@@ -66,7 +66,7 @@ function CircularProgress({ percentage, color, size = 100, strokeWidth = 8 }: { 
 }
 
 export default function DashboardPage() {
-  const { notes } = useKnowledge()
+  const { notes, currentNote } = useKnowledge()
   const { areas: contextAreas } = useAreas()
   const { getEntry, getStreak: getJournalStreak } = useJournal()
   // No async loading needed - all data comes from context
@@ -139,7 +139,10 @@ export default function DashboardPage() {
   const remainingHours = (stats.total_notes - stats.understood_notes) * 2
 
   const recentNotes = notes.slice(-3).reverse()
-  const lastStudiedNote = recentNotes[0]
+  // Use currentNote (last viewed) if available, otherwise fall back to most recent note
+  const lastStudiedNote = currentNote || recentNotes[0]
+  // Get the area of the last studied note
+  const lastStudiedArea = lastStudiedNote ? detectAreaFromContent(lastStudiedNote.title, lastStudiedNote.content) : null
 
   return (
     <div
@@ -393,7 +396,9 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-sm mb-1" style={{ color: '#6D6D6D' }}>Continuar donde dejaste</p>
                   <h3 className="text-xl font-bold" style={{ color: '#222222' }}>{lastStudiedNote.title}</h3>
-                  <p className="text-sm" style={{ color: '#9A9A9A' }}>General • Intermedio</p>
+                  <p className="text-sm" style={{ color: '#9A9A9A' }}>
+                    {lastStudiedArea ? `${lastStudiedArea.icon} ${lastStudiedArea.name}` : 'General'} • {lastStudiedNote.status === 'understood' ? 'Completado' : lastStudiedNote.status === 'read' ? 'En progreso' : 'Nuevo'}
+                  </p>
                 </div>
               </div>
               <Link
