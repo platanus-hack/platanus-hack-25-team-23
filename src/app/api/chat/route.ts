@@ -5,15 +5,22 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { SupabaseVFS } from '@/lib/vfs/SupabaseVFS';
+<<<<<<< HEAD
 // @ts-ignore
 import PDFParser from 'pdf2json';
+=======
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
   console.log('API: Chat request received (DeepAgents)');
   try {
+<<<<<<< HEAD
     const { messages, model, webSearch, googleCalendarToken } = await req.json();
+=======
+    const { messages, model } = await req.json();
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
     const supabase = await createClient();
     
     const { data: { user } } = await supabase.auth.getUser();
@@ -24,6 +31,7 @@ export async function POST(req: Request) {
     // const user = { id: 'debug-user-id' }; // Mock user for debugging
 
     const vfs = new SupabaseVFS(user.id, supabase);
+<<<<<<< HEAD
     const { data: { session } } = await supabase.auth.getSession();
     console.log('API: Session retrieved. Provider token present:', !!session?.provider_token);
     
@@ -35,20 +43,31 @@ export async function POST(req: Request) {
     const listFiles = tool(
       async ({ path = '/', file_path }) => {
         return await vfs.listFiles(path || file_path || '/');
+=======
+
+    // Define Tools
+    const listFiles = tool(
+      async ({ path = '/' }) => {
+        return await vfs.listFiles(path);
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
       },
       {
         name: 'list_files',
         description: 'List files and directories in the VFS.',
         schema: z.object({
           path: z.string().optional().describe('The directory path to list (default: /)'),
+<<<<<<< HEAD
           file_path: z.string().optional().describe('Alias for path'),
           offset: z.number().optional().describe('Ignored'),
           limit: z.number().optional().describe('Ignored'),
+=======
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
         }),
       }
     );
 
     const writeFile = tool(
+<<<<<<< HEAD
       async ({ path, file_path, content }) => {
         const targetPath = path || file_path;
         if (!targetPath) throw new Error('Path is required');
@@ -61,12 +80,24 @@ export async function POST(req: Request) {
         schema: z.object({
           path: z.string().optional().describe('The full path to the file (e.g. /notes/React.md)'),
           file_path: z.string().optional().describe('Alias for path'),
+=======
+      async ({ path, content }) => {
+        await vfs.writeFile(path, content);
+        return `File '${path}' written successfully.`;
+      },
+      {
+        name: 'write_file',
+        description: 'Create or update a markdown file.',
+        schema: z.object({
+          path: z.string().describe('The full path to the file'),
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
           content: z.string().describe('The markdown content'),
         }),
       }
     );
 
     const readFile = tool(
+<<<<<<< HEAD
       async ({ path, file_path }) => {
         const targetPath = path || file_path;
         if (!targetPath) return 'Error: Path is required';
@@ -75,34 +106,55 @@ export async function POST(req: Request) {
         } catch (error: any) {
           return `Error reading file '${targetPath}': ${error.message || 'Unknown error'}`;
         }
+=======
+      async ({ path }) => {
+        return await vfs.readFile(path);
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
       },
       {
         name: 'read_file',
         description: 'Read the content of a markdown file.',
         schema: z.object({
+<<<<<<< HEAD
           path: z.string().optional().describe('The full path to the file'),
           file_path: z.string().optional().describe('Alias for path'),
+=======
+          path: z.string().describe('The full path to the file'),
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
         }),
       }
     );
 
+<<<<<<< HEAD
     const createDirectory = tool(
       async ({ path, file_path }) => {
         const targetPath = path || file_path;
         if (!targetPath) throw new Error('Path is required');
         await vfs.createDirectory(targetPath);
         return `Directory '${targetPath}' created successfully.`;
+=======
+    // Added create_directory_tool as per instruction's tools array
+    const createDirectory = tool(
+      async ({ path }) => {
+        await vfs.createDirectory(path);
+        return `Directory '${path}' created successfully.`;
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
       },
       {
         name: 'create_directory',
         description: 'Create a new directory.',
         schema: z.object({
+<<<<<<< HEAD
           path: z.string().optional().describe('The full path to the new directory'),
           file_path: z.string().optional().describe('Alias for path'),
+=======
+          path: z.string().describe('The full path to the new directory'),
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
         }),
       }
     );
 
+<<<<<<< HEAD
     const searchFiles = tool(
       async ({ query }) => {
         const results = await vfs.searchFiles(query);
@@ -426,6 +478,16 @@ export async function POST(req: Request) {
       modelName: modelName,
       openAIApiKey: apiKey,
       configuration: configuration,
+=======
+    const SYSTEM_PROMPT = `You are a Knowledge Graph assistant. 
+      Use the VFS tools to manage notes. 
+      ALWAYS use [[WikiLinks]] for concepts.`;
+
+    // Initialize Agent
+    const modelInstance = new ChatOpenAI({
+      modelName: model || 'gpt-4o',
+      openAIApiKey: process.env.OPENAI_API_KEY,
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
       streaming: true,
     });
 
@@ -436,6 +498,7 @@ export async function POST(req: Request) {
         listFiles,
         readFile,
         writeFile,
+<<<<<<< HEAD
         createDirectory,
         searchFiles,
         searchFiles,
@@ -446,6 +509,9 @@ export async function POST(req: Request) {
         updateEventTool,
         deleteEventTool,
         getFreeBusyTool
+=======
+        createDirectory
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
       ], 
     });
 
@@ -453,6 +519,7 @@ export async function POST(req: Request) {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
+<<<<<<< HEAD
         // Helper to safely enqueue data
         const safeEnqueue = (data: Uint8Array) => {
             try {
@@ -467,10 +534,13 @@ export async function POST(req: Request) {
             }
         };
 
+=======
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
         try {
           // STATIC DEBUG STREAM - REMOVED
           // console.log('API: Starting STATIC stream (DATA STREAM PROTOCOL)...');
           
+<<<<<<< HEAD
           console.log('API: Starting agent stream (Token Level)...');
 
           // Convert UI messages to Agent messages
@@ -592,6 +662,46 @@ export async function POST(req: Request) {
               try { controller.close(); } catch(e) {}
               return;
           }
+=======
+          console.log('API: Starting agent stream...');
+          
+          // Convert UI messages to Agent messages if needed
+          // DeepAgents expects { role, content }
+          const agentMessages = messages.map((m: any) => ({ 
+              role: m.role, 
+              content: m.content || (m.parts ? m.parts.map((p:any) => p.text).join('') : '') 
+          }));
+          console.log('API: Agent messages prepared:', agentMessages.length);
+
+          const agentStream = await agent.stream({
+            messages: agentMessages,
+          });
+
+          let chunkCount = 0;
+          for await (const chunk of agentStream) {
+            chunkCount++;
+            console.log(`API: Chunk ${chunkCount} keys:`, Object.keys(chunk));
+            
+            const modelChunk = chunk.model_request || chunk.agent;
+            if (modelChunk) {
+                console.log('API: Model chunk found. Messages:', modelChunk.messages?.length);
+            }
+
+            if (modelChunk && modelChunk.messages && modelChunk.messages.length > 0) {
+              const msg = modelChunk.messages[0];
+              const content = msg.kwargs?.content || msg.content; 
+              console.log('API: Message content type:', typeof content);
+              
+              if (content && typeof content === 'string') {
+                console.log('API: Enqueuing content:', content.slice(0, 50) + '...');
+                controller.enqueue(encoder.encode(`0:${JSON.stringify(content)}\n`));
+              }
+            }
+          }
+          console.log(`API: Stream finished. Total chunks: ${chunkCount}`);
+          controller.close();
+        } catch (e) {
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
           console.error('Stream Error:', e);
           controller.error(e);
         }

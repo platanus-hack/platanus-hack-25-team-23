@@ -173,12 +173,15 @@ importers:
       openai:
         specifier: ^6.9.1
         version: 6.9.1(ws@8.18.3)(zod@3.25.76)
+<<<<<<< HEAD
       pdf-parse:
         specifier: ^2.4.5
         version: 2.4.5
       pdf2json:
         specifier: ^4.0.0
         version: 4.0.0
+=======
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
       react:
         specifier: 19.2.0
         version: 19.2.0
@@ -218,9 +221,12 @@ importers:
       tailwind-merge:
         specifier: ^3.4.0
         version: 3.4.0
+<<<<<<< HEAD
       twilio:
         specifier: ^5.10.6
         version: 5.10.6
+=======
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
       use-stick-to-bottom:
         specifier: ^1.1.1
         version: 1.1.1(react@19.2.0)
@@ -2791,6 +2797,7 @@ packages:
     resolution: {integrity: sha512-dKx12eRCVIzqCxFGplyFKJMPvLEWgmNtUrpTiJIR5u97zEhRG8ySrtboPHZXx7daLxQVrl643cTzbab2tkQjxg==}
     engines: {node: '>= 0.4'}
 
+<<<<<<< HEAD
   foreground-child@3.3.1:
     resolution: {integrity: sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==}
     engines: {node: '>=14'}
@@ -2803,6 +2810,8 @@ packages:
     resolution: {integrity: sha512-buewHzMvYL29jdeQTVILecSaZKnt/RJWjoZCF5OW60Z67/GmSLBkOFM7qh1PI3zFNtJbaZL5eQu1vLfazOwj4g==}
     engines: {node: '>=12.20.0'}
 
+=======
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
   framer-motion@12.23.24:
     resolution: {integrity: sha512-HMi5HRoRCTou+3fb3h9oTLyJGBxHfW+HnNE25tAXOvVx/IvwMHK0cx7IR4a2ZU6sh3IX1Z+4ts32PcYBOqka8w==}
     peerDependencies:
@@ -3009,6 +3018,7 @@ packages:
   html-void-elements@3.0.0:
     resolution: {integrity: sha512-bEqo66MRXsUGxWHV5IP0PUiAWwoEjba4VCzg0LjFJBpchPaTfyfCKTG6bc5F8ucKec3q5y6qOdGyYTSBEvhCrg==}
 
+<<<<<<< HEAD
   https-proxy-agent@5.0.1:
     resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}
     engines: {node: '>= 6'}
@@ -3017,6 +3027,8 @@ packages:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
     engines: {node: '>= 14'}
 
+=======
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
     engines: {node: '>=0.10.0'}
@@ -4256,6 +4268,7 @@ packages:
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
 
+<<<<<<< HEAD
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
     engines: {node: '>=8'}
@@ -4264,6 +4277,8 @@ packages:
     resolution: {integrity: sha512-HnLOCR3vjcY8beoNLtcjZ5/nxn2afmME6lhrDrebokqMap+XbeW8n9TXpPDOqdGK5qcI3oT0GKTW6wC7EMiVqA==}
     engines: {node: '>=12'}
 
+=======
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
   string.prototype.includes@2.0.1:
     resolution: {integrity: sha512-o7+c9bW6zpAdJHTtujeePODAhkuicdAryFsfVKwA+wGw89wJ4GTY484WTucM9hLtDEOpOvI+aHnzqnC5lHp4Rg==}
     engines: {node: '>= 0.4'}
@@ -6411,6 +6426,7 @@ snapshots:
 
   acorn@8.15.0: {}
 
+<<<<<<< HEAD
   agent-base@6.0.2:
     dependencies:
       debug: 4.4.3
@@ -6421,6 +6437,10 @@ snapshots:
 
   ai@5.0.99(zod@3.25.76):
     dependencies:
+=======
+  ai@5.0.99(zod@3.25.76):
+    dependencies:
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
       '@ai-sdk/gateway': 2.0.13(zod@3.25.76)
       '@ai-sdk/provider': 2.0.0
       '@ai-sdk/provider-utils': 3.0.17(zod@3.25.76)
@@ -7404,6 +7424,7 @@ snapshots:
     dependencies:
       is-callable: 1.2.7
 
+<<<<<<< HEAD
   foreground-child@3.3.1:
     dependencies:
       cross-spawn: 7.0.6
@@ -7421,6 +7442,8 @@ snapshots:
     dependencies:
       fetch-blob: 3.2.0
 
+=======
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
   framer-motion@12.23.24(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:
       motion-dom: 12.23.23
@@ -7724,6 +7747,7 @@ snapshots:
 
   html-void-elements@3.0.0: {}
 
+<<<<<<< HEAD
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
@@ -7738,6 +7762,8 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+=======
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
   iconv-lite@0.6.3:
     dependencies:
       safer-buffer: 2.1.2
@@ -9336,6 +9362,7 @@ snapshots:
       - supports-color
       - unified
 
+<<<<<<< HEAD
   string-width@4.2.3:
     dependencies:
       emoji-regex: 8.0.0
@@ -9348,6 +9375,8 @@ snapshots:
       emoji-regex: 9.2.2
       strip-ansi: 7.1.2
 
+=======
+>>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
   string.prototype.includes@2.0.1:
     dependencies:
       call-bind: 1.0.8
