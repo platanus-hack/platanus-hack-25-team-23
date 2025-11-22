@@ -64,6 +64,10 @@ Use these specific markers at the start of a bullet point line for emphasis:
 Speak in Spanish
 Be concise, don't repeat yourself
 
+## User preferences
+Speak in Spanish
+Be concise, don't repeat yourself
+
 ## Example Output
 
 {
