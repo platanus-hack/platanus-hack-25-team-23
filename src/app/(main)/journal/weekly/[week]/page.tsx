@@ -14,7 +14,12 @@ import {
   TrendingUp,
   Award,
   Lightbulb,
-  Calendar
+  Calendar,
+  Brain,
+  Zap,
+  Heart,
+  Wallet,
+  GraduationCap
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -83,11 +88,26 @@ export default function WeeklyJournalPage() {
   // Form state
   const [weeklyGratitude, setWeeklyGratitude] = useState<string[]>(['', '', '', '', ''])
   const [highlights, setHighlights] = useState<string[]>(['', '', ''])
+  const [kpis, setKpis] = useState({
+    mindset: 5,
+    energy: 5,
+    relationships: 5,
+    finances: 5,
+    learning: 5
+  })
   const [weeklyLesson, setWeeklyLesson] = useState('')
   const [toImprove, setToImprove] = useState('')
   const [isComplete, setIsComplete] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const kpiConfig = [
+    { key: 'mindset', label: 'Mentalidad', icon: Brain, color: '#9575CD', bg: '#E6DAFF' },
+    { key: 'energy', label: 'Energia', icon: Zap, color: '#F5A962', bg: '#FFF0E6' },
+    { key: 'relationships', label: 'Relaciones', icon: Heart, color: '#E57373', bg: '#FFD9D9' },
+    { key: 'finances', label: 'Finanzas', icon: Wallet, color: '#10B981', bg: '#D4F5E9' },
+    { key: 'learning', label: 'Aprendizaje', icon: GraduationCap, color: '#5A8FCC', bg: '#CFE4FF' }
+  ]
 
   // Load entry
   useEffect(() => {
@@ -96,12 +116,14 @@ export default function WeeklyJournalPage() {
       if (entry) {
         setWeeklyGratitude(entry.weekly_gratitude || ['', '', '', '', ''])
         setHighlights(entry.highlights || ['', '', ''])
+        setKpis(entry.kpis || { mindset: 5, energy: 5, relationships: 5, finances: 5, learning: 5 })
         setWeeklyLesson(entry.weekly_lesson || '')
         setToImprove(entry.to_improve || '')
         setIsComplete(entry.is_complete)
       } else {
         setWeeklyGratitude(['', '', '', '', ''])
         setHighlights(['', '', ''])
+        setKpis({ mindset: 5, energy: 5, relationships: 5, finances: 5, learning: 5 })
         setWeeklyLesson('')
         setToImprove('')
         setIsComplete(false)
@@ -116,12 +138,13 @@ export default function WeeklyJournalPage() {
     await createOrUpdateEntry(weekStr, {
       weekly_gratitude: weeklyGratitude,
       highlights,
+      kpis,
       weekly_lesson: weeklyLesson,
       to_improve: toImprove,
       is_complete: isComplete
     }, 'weekly')
     setHasChanges(false)
-  }, [weekStr, weeklyGratitude, highlights, weeklyLesson, toImprove, isComplete, createOrUpdateEntry])
+  }, [weekStr, weeklyGratitude, highlights, kpis, weeklyLesson, toImprove, isComplete, createOrUpdateEntry])
 
   useEffect(() => {
     if (hasChanges) {
@@ -156,6 +179,7 @@ export default function WeeklyJournalPage() {
     await createOrUpdateEntry(weekStr, {
       weekly_gratitude: weeklyGratitude,
       highlights,
+      kpis,
       weekly_lesson: weeklyLesson,
       to_improve: toImprove,
       is_complete: newComplete
@@ -309,6 +333,42 @@ export default function WeeklyJournalPage() {
                   className="flex-1 px-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
                   style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
                 />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* KPIs - Auto-evaluacion */}
+        <div className="rounded-2xl p-6 mb-6" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#CFE4FF' }}>
+              <Target className="size-5" style={{ color: '#5A8FCC' }} />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Auto-evaluacion (1-10)</h2>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>Como te fue en cada area esta semana?</p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {kpiConfig.map(({ key, label, icon: Icon, color, bg }) => (
+              <div key={key} className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: bg }}>
+                  <Icon className="size-5" style={{ color }} />
+                </div>
+                <span className="text-sm font-medium w-28" style={{ color: '#222222' }}>{label}</span>
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={kpis[key as keyof typeof kpis]}
+                  onChange={(e) => {
+                    setKpis(prev => ({ ...prev, [key]: parseInt(e.target.value) }))
+                    markChange()
+                  }}
+                  className="flex-1 h-2 rounded-full appearance-none cursor-pointer"
+                  style={{ backgroundColor: '#F6F5F2' }}
+                />
+                <span className="text-lg font-bold w-8 text-center" style={{ color }}>{kpis[key as keyof typeof kpis]}</span>
               </div>
             ))}
           </div>

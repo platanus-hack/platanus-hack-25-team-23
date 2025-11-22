@@ -239,8 +239,8 @@ export default function YearlyJournalPage() {
               <Star className="size-5" style={{ color: '#F5A962' }} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Palabra del Ano</h2>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>Una palabra que guiara tu ano</p>
+              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Palabra del Año</h2>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>Una palabra que guiara tu año</p>
             </div>
           </div>
           <input
@@ -261,13 +261,13 @@ export default function YearlyJournalPage() {
             </div>
             <div>
               <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Vision del Ano</h2>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>Como te ves al final de este ano?</p>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>Como te ves al final de este año?</p>
             </div>
           </div>
           <textarea
             value={visionStatement}
             onChange={(e) => { setVisionStatement(e.target.value); markChange() }}
-            placeholder="Describe tu vision ideal para el final del ano..."
+            placeholder="Describe tu vision ideal para el final del año..."
             rows={4}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
             style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
@@ -348,7 +348,7 @@ export default function YearlyJournalPage() {
             </div>
             <div>
               <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Reflexion Anual</h2>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>Llena esto al final del ano</p>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>Llena esto al final del año</p>
             </div>
           </div>
           <div className="space-y-4">
@@ -360,7 +360,7 @@ export default function YearlyJournalPage() {
               <textarea
                 value={yearlyReflection.grateful_people}
                 onChange={(e) => { setYearlyReflection(prev => ({ ...prev, grateful_people: e.target.value })); markChange() }}
-                placeholder="Quienes hicieron diferencia en tu ano?"
+                placeholder="Quienes hicieron diferencia en tu año?"
                 rows={2}
                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
                 style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
@@ -369,7 +369,7 @@ export default function YearlyJournalPage() {
             <div>
               <label className="text-sm font-medium mb-1 flex items-center gap-2" style={{ color: '#6D6D6D' }}>
                 <Award className="size-4" style={{ color: '#10B981' }} />
-                Logros del ano
+                Logros del año
               </label>
               <textarea
                 value={yearlyReflection.achievements}
@@ -388,7 +388,7 @@ export default function YearlyJournalPage() {
               <textarea
                 value={yearlyReflection.lessons_learned}
                 onChange={(e) => { setYearlyReflection(prev => ({ ...prev, lessons_learned: e.target.value })); markChange() }}
-                placeholder="Que aprendiste este ano?"
+                placeholder="Que aprendiste este año?"
                 rows={2}
                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
                 style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
@@ -397,12 +397,12 @@ export default function YearlyJournalPage() {
             <div>
               <label className="text-sm font-medium mb-1 flex items-center gap-2" style={{ color: '#6D6D6D' }}>
                 <Rocket className="size-4" style={{ color: '#9575CD' }} />
-                Intenciones para el proximo ano
+                Intenciones para el próximo año
               </label>
               <textarea
                 value={yearlyReflection.next_year_intentions}
                 onChange={(e) => { setYearlyReflection(prev => ({ ...prev, next_year_intentions: e.target.value })); markChange() }}
-                placeholder="Como quieres que sea el proximo ano?"
+                placeholder="Como quieres que sea el próximo año?"
                 rows={2}
                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
                 style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
