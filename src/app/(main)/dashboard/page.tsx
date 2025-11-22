@@ -16,6 +16,7 @@ interface AreaWithProgress {
   progress: number
   total: number
   understood: number
+  inProgress: number
   hours: number
 }
 
@@ -115,7 +116,13 @@ export default function DashboardPage() {
       .map(area => {
         const areaNotes = notesByArea[area.name] || []
         const understood = areaNotes.filter(n => n.status === 'understood').length
+        const inProgress = areaNotes.filter(n => n.status === 'read').length
         const total = areaNotes.length
+
+        // Progress: understood = 100%, in progress = 50% credit
+        const progressValue = total > 0
+          ? Math.round(((understood + inProgress * 0.5) / total) * 100)
+          : 0
 
         return {
           id: area.id,
@@ -124,7 +131,8 @@ export default function DashboardPage() {
           icon: area.icon,
           total,
           understood,
-          progress: total > 0 ? Math.round((understood / total) * 100) : 0,
+          inProgress,
+          progress: progressValue,
           hours: total * 2
         }
       })
@@ -464,7 +472,16 @@ export default function DashboardPage() {
                       {area.name}
                     </h3>
                     <p className="text-xs" style={{ color: '#9A9A9A' }}>
-                      {area.understood || 0}/{area.total || 0} temas
+                      {area.understood > 0 || area.inProgress > 0 ? (
+                        <>
+                          {area.understood > 0 && <span style={{ color: '#10B981' }}>✓{area.understood}</span>}
+                          {area.understood > 0 && area.inProgress > 0 && ' '}
+                          {area.inProgress > 0 && <span style={{ color: '#F59E0B' }}>◐{area.inProgress}</span>}
+                          <span> / {area.total}</span>
+                        </>
+                      ) : (
+                        `${area.total} temas`
+                      )}
                     </p>
                   </div>
                 </Link>
