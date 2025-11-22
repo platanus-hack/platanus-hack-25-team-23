@@ -1,4 +1,3 @@
-# team-23 Platanus Hack Project
 
 | Project Logo | Submission Details |
 | :---: | :--- |
