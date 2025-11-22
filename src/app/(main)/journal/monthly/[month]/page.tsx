@@ -156,7 +156,7 @@ export default function MonthlyJournalPage() {
 
   const kpiConfig = [
     { key: 'mindset', label: 'Mentalidad', icon: Brain, color: '#9575CD', bg: '#E6DAFF' },
-    { key: 'energy', label: 'Energia', icon: Zap, color: '#F5A962', bg: '#FFF0E6' },
+    { key: 'energy', label: 'Energía', icon: Zap, color: '#F5A962', bg: '#FFF0E6' },
     { key: 'relationships', label: 'Relaciones', icon: Heart, color: '#E57373', bg: '#FFD9D9' },
     { key: 'finances', label: 'Finanzas', icon: Wallet, color: '#10B981', bg: '#D4F5E9' },
     { key: 'learning', label: 'Aprendizaje', icon: GraduationCap, color: '#5A8FCC', bg: '#CFE4FF' }
@@ -277,8 +277,8 @@ export default function MonthlyJournalPage() {
               <Target className="size-5" style={{ color: '#5A8FCC' }} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Auto-evaluacion (1-10)</h2>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>Como te fue en cada area este mes?</p>
+              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Auto-evaluación (1-10)</h2>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>¿Cómo te fue en cada área este mes?</p>
             </div>
           </div>
           <div className="space-y-4">
@@ -313,14 +313,14 @@ export default function MonthlyJournalPage() {
               <Lightbulb className="size-5" style={{ color: '#F5A962' }} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Leccion del Mes</h2>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>La leccion mas importante de este mes</p>
+              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Lección del Mes</h2>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>La lección más importante de este mes</p>
             </div>
           </div>
           <textarea
             value={monthlyLesson}
             onChange={(e) => { setMonthlyLesson(e.target.value); markChange() }}
-            placeholder="Escribe tu reflexion..."
+            placeholder="Escribe tu reflexión..."
             rows={3}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
             style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
@@ -334,14 +334,14 @@ export default function MonthlyJournalPage() {
               <TrendingUp className="size-5" style={{ color: '#E57373' }} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Ajustes para el Proximo Mes</h2>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>Que cambiaras o mejoraras?</p>
+              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Ajustes para el Próximo Mes</h2>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>¿Qué cambiarás o mejorarás?</p>
             </div>
           </div>
           <textarea
             value={adjustments}
             onChange={(e) => { setAdjustments(e.target.value); markChange() }}
-            placeholder="Escribe aqui..."
+            placeholder="Escribe aquí..."
             rows={3}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
             style={{ backgroundColor: '#F6F5F2', color: '#222222' }}

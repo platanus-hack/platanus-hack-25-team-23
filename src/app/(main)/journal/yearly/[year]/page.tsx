@@ -128,7 +128,7 @@ export default function YearlyJournalPage() {
       yearly_reflection: yearlyReflection,
       is_complete: newComplete
     }, 'yearly')
-    toast.success(newComplete ? 'Ano marcado como completo' : 'Ano marcado como pendiente')
+    toast.success(newComplete ? 'Año marcado como completo' : 'Año marcado como pendiente')
   }
 
   // Add/remove SMART goals
@@ -207,7 +207,7 @@ export default function YearlyJournalPage() {
                 </div>
                 {year}
               </h1>
-              <p className="text-sm mt-1" style={{ color: '#6D6D6D' }}>Reflexion y planificacion anual</p>
+              <p className="text-sm mt-1" style={{ color: '#6D6D6D' }}>Reflexión y planificación anual</p>
             </div>
             <button
               onClick={goToNextYear}
@@ -226,7 +226,7 @@ export default function YearlyJournalPage() {
             </div>
             {isComplete && (
               <div className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: '#D4F5E9', color: '#10B981' }}>
-                Ano Completo
+                Año Completo
               </div>
             )}
           </div>
@@ -240,14 +240,14 @@ export default function YearlyJournalPage() {
             </div>
             <div>
               <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Palabra del Año</h2>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>Una palabra que guiara tu año</p>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>Una palabra que guiará tu año</p>
             </div>
           </div>
           <input
             type="text"
             value={wordOfYear}
             onChange={(e) => { setWordOfYear(e.target.value); markChange() }}
-            placeholder="Ej: Crecimiento, Equilibrio, Valentia..."
+            placeholder="Ej: Crecimiento, Equilibrio, Valentía..."
             className="w-full px-4 py-3 rounded-xl text-lg font-semibold text-center focus:outline-none focus:ring-2 focus:ring-purple-200"
             style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
           />
@@ -260,14 +260,14 @@ export default function YearlyJournalPage() {
               <Compass className="size-5" style={{ color: '#9575CD' }} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Vision del Ano</h2>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>Como te ves al final de este año?</p>
+              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Visión del Año</h2>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>¿Cómo te ves al final de este año?</p>
             </div>
           </div>
           <textarea
             value={visionStatement}
             onChange={(e) => { setVisionStatement(e.target.value); markChange() }}
-            placeholder="Describe tu vision ideal para el final del año..."
+            placeholder="Describe tu visión ideal para el final del año..."
             rows={4}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
             style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
@@ -283,7 +283,7 @@ export default function YearlyJournalPage() {
               </div>
               <div>
                 <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Metas SMART</h2>
-                <p className="text-xs" style={{ color: '#6D6D6D' }}>Objetivos especificos y medibles</p>
+                <p className="text-xs" style={{ color: '#6D6D6D' }}>Objetivos específicos y medibles</p>
               </div>
             </div>
             <button
@@ -314,7 +314,7 @@ export default function YearlyJournalPage() {
                     type="text"
                     value={goal.area}
                     onChange={(e) => updateGoal(index, 'area', e.target.value)}
-                    placeholder="Area (Ej: Salud, Carrera, Finanzas)"
+                    placeholder="Área (Ej: Salud, Carrera, Finanzas)"
                     className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
                     style={{ backgroundColor: 'white', color: '#222222' }}
                   />
@@ -330,7 +330,7 @@ export default function YearlyJournalPage() {
                     type="text"
                     value={goal.metric}
                     onChange={(e) => updateGoal(index, 'metric', e.target.value)}
-                    placeholder="Metrica (Ej: Peso en kg cada mes)"
+                    placeholder="Métrica (Ej: Peso en kg cada mes)"
                     className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
                     style={{ backgroundColor: 'white', color: '#222222' }}
                   />
@@ -347,7 +347,7 @@ export default function YearlyJournalPage() {
               <Lightbulb className="size-5" style={{ color: '#5A8FCC' }} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Reflexion Anual</h2>
+              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Reflexión Anual</h2>
               <p className="text-xs" style={{ color: '#6D6D6D' }}>Llena esto al final del año</p>
             </div>
           </div>
@@ -360,7 +360,7 @@ export default function YearlyJournalPage() {
               <textarea
                 value={yearlyReflection.grateful_people}
                 onChange={(e) => { setYearlyReflection(prev => ({ ...prev, grateful_people: e.target.value })); markChange() }}
-                placeholder="Quienes hicieron diferencia en tu año?"
+                placeholder="¿Quiénes hicieron diferencia en tu año?"
                 rows={2}
                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
                 style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
@@ -374,7 +374,7 @@ export default function YearlyJournalPage() {
               <textarea
                 value={yearlyReflection.achievements}
                 onChange={(e) => { setYearlyReflection(prev => ({ ...prev, achievements: e.target.value })); markChange() }}
-                placeholder="De que estas mas orgulloso?"
+                placeholder="¿De qué estás más orgulloso?"
                 rows={2}
                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
                 style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
@@ -388,7 +388,7 @@ export default function YearlyJournalPage() {
               <textarea
                 value={yearlyReflection.lessons_learned}
                 onChange={(e) => { setYearlyReflection(prev => ({ ...prev, lessons_learned: e.target.value })); markChange() }}
-                placeholder="Que aprendiste este año?"
+                placeholder="¿Qué aprendiste este año?"
                 rows={2}
                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
                 style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
@@ -402,7 +402,7 @@ export default function YearlyJournalPage() {
               <textarea
                 value={yearlyReflection.next_year_intentions}
                 onChange={(e) => { setYearlyReflection(prev => ({ ...prev, next_year_intentions: e.target.value })); markChange() }}
-                placeholder="Como quieres que sea el próximo año?"
+                placeholder="¿Cómo quieres que sea el próximo año?"
                 rows={2}
                 className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
                 style={{ backgroundColor: '#F6F5F2', color: '#222222' }}

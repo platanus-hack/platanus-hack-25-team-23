@@ -103,7 +103,7 @@ export default function WeeklyJournalPage() {
 
   const kpiConfig = [
     { key: 'mindset', label: 'Mentalidad', icon: Brain, color: '#9575CD', bg: '#E6DAFF' },
-    { key: 'energy', label: 'Energia', icon: Zap, color: '#F5A962', bg: '#FFF0E6' },
+    { key: 'energy', label: 'Energía', icon: Zap, color: '#F5A962', bg: '#FFF0E6' },
     { key: 'relationships', label: 'Relaciones', icon: Heart, color: '#E57373', bg: '#FFD9D9' },
     { key: 'finances', label: 'Finanzas', icon: Wallet, color: '#10B981', bg: '#D4F5E9' },
     { key: 'learning', label: 'Aprendizaje', icon: GraduationCap, color: '#5A8FCC', bg: '#CFE4FF' }
@@ -280,7 +280,7 @@ export default function WeeklyJournalPage() {
             </div>
             <div>
               <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Gratitud Semanal</h2>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>5 cosas por las que estas agradecido esta semana</p>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>5 cosas por las que estás agradecido esta semana</p>
             </div>
           </div>
           <div className="space-y-3">
@@ -296,7 +296,7 @@ export default function WeeklyJournalPage() {
                     setWeeklyGratitude(newGratitude)
                     markChange()
                   }}
-                  placeholder="Escribe aqui..."
+                  placeholder="Escribe aquí..."
                   className="flex-1 px-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
                   style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
                 />
@@ -329,7 +329,7 @@ export default function WeeklyJournalPage() {
                     setHighlights(newHighlights)
                     markChange()
                   }}
-                  placeholder="Escribe aqui..."
+                  placeholder="Escribe aquí..."
                   className="flex-1 px-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200"
                   style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
                 />
@@ -338,15 +338,15 @@ export default function WeeklyJournalPage() {
           </div>
         </div>
 
-        {/* KPIs - Auto-evaluacion */}
+        {/* KPIs - Auto-evaluación */}
         <div className="rounded-2xl p-6 mb-6" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#CFE4FF' }}>
               <Target className="size-5" style={{ color: '#5A8FCC' }} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Auto-evaluacion (1-10)</h2>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>Como te fue en cada area esta semana?</p>
+              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Auto-evaluación (1-10)</h2>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>¿Cómo te fue en cada área esta semana?</p>
             </div>
           </div>
           <div className="space-y-4">
@@ -381,14 +381,14 @@ export default function WeeklyJournalPage() {
               <Lightbulb className="size-5" style={{ color: '#5A8FCC' }} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Leccion de la Semana</h2>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>Que aprendiste esta semana?</p>
+              <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>Lección de la Semana</h2>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>¿Qué aprendiste esta semana?</p>
             </div>
           </div>
           <textarea
             value={weeklyLesson}
             onChange={(e) => { setWeeklyLesson(e.target.value); markChange() }}
-            placeholder="Escribe tu reflexion..."
+            placeholder="Escribe tu reflexión..."
             rows={3}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
             style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
@@ -403,13 +403,13 @@ export default function WeeklyJournalPage() {
             </div>
             <div>
               <h2 className="text-lg font-semibold" style={{ color: '#222222' }}>A Mejorar</h2>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>En que puedes mejorar la proxima semana?</p>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>¿En qué puedes mejorar la próxima semana?</p>
             </div>
           </div>
           <textarea
             value={toImprove}
             onChange={(e) => { setToImprove(e.target.value); markChange() }}
-            placeholder="Escribe aqui..."
+            placeholder="Escribe aquí..."
             rows={3}
             className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
             style={{ backgroundColor: '#F6F5F2', color: '#222222' }}
