@@ -2,11 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, BookOpen, Network, GitBranch, User, Plus, FolderOpen, Search, Brain, LogOut, Flame } from 'lucide-react';
+import { Home, Network, GitBranch, User, Plus, FolderOpen, Search, Brain, LogOut, Flame } from 'lucide-react';
 import { useKnowledge } from '@/lib/store/knowledge-context';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { useEffect, useState } from 'react';
 
 interface SidebarProps {
   isCollapsed?: boolean;
@@ -16,27 +15,8 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { session } = useKnowledge();
-  const [studyStreak, setStudyStreak] = useState(0);
-
-  useEffect(() => {
-    async function loadStreak() {
-      if (!session?.user) return;
-
-      const supabase = createClient();
-      const { data } = await supabase
-        .from('user_progress')
-        .select('study_streak')
-        .eq('user_id', session.user.id)
-        .order('study_streak', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (data?.study_streak) {
-        setStudyStreak(data.study_streak);
-      }
-    }
-    loadStreak();
-  }, [session]);
+  // Streak disabled - table doesn't exist in Supabase
+  const studyStreak = 0;
 
   const handleLogout = async () => {
     const supabase = createClient();

@@ -58,6 +58,7 @@ export function NewQueryView() {
   const [query, setQuery] = useState('');
   const [level, setLevel] = useState<'beginner' | 'intermediate' | 'expert'>('beginner');
   const [showResults, setShowResults] = useState(false);
+  const [hasScrolled, setHasScrolled] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
   // Get recent topics from user's notes (last 3)
@@ -67,12 +68,17 @@ export function NewQueryView() {
     .map(note => note.title)
     .filter(title => title && title.length > 0);
 
-  // Auto-scroll to results when streaming starts
+  // Auto-scroll to results ONLY once when streaming starts
   useEffect(() => {
-    if ((isLoading || streamingNote) && resultRef.current) {
+    if (isLoading && !hasScrolled && resultRef.current) {
       resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setHasScrolled(true);
     }
-  }, [isLoading, streamingNote]);
+    // Reset scroll flag when loading stops
+    if (!isLoading) {
+      setHasScrolled(false);
+    }
+  }, [isLoading, hasScrolled]);
 
   // Show results panel when we have streaming content
   useEffect(() => {

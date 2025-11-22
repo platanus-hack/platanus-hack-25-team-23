@@ -1,26 +1,27 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useMemo } from "react"
 import { useKnowledge } from "@/lib/store/knowledge-context"
-import { createClient } from "@/lib/supabase/client"
+import { useAreas } from "@/lib/store/areas-context"
 import { BookOpen, TrendingUp, Clock, Target, ArrowRight, Plus, MapPin, Flame, Lightbulb, Star } from "lucide-react"
 import Link from "next/link"
+import { detectAreaFromContent } from "@/lib/data/areas-config"
 
-interface Area {
+interface AreaWithProgress {
   id: string
   name: string
   color: string
   icon: string
-  progress?: number
-  total?: number
-  understood?: number
-  hours?: number
+  progress: number
+  total: number
+  understood: number
+  hours: number
 }
 
 interface DashboardStats {
-  total_concepts: number
-  understood_concepts: number
-  in_progress_concepts: number
+  total_notes: number
+  understood_notes: number
+  in_progress_notes: number
   total_study_time: number
 }
 
@@ -64,109 +65,69 @@ function CircularProgress({ percentage, color, size = 100, strokeWidth = 8 }: { 
 }
 
 export default function DashboardPage() {
-  const { notes, session } = useKnowledge()
-  const [areas, setAreas] = useState<Area[]>([])
-  const [stats, setStats] = useState<DashboardStats>({
-    total_concepts: 0,
-    understood_concepts: 0,
-    in_progress_concepts: 0,
-    total_study_time: 0
-  })
-  const [loading, setLoading] = useState(true)
-  const [streak, setStreak] = useState(0)
+  const { notes } = useKnowledge()
+  const { areas: contextAreas } = useAreas()
+  // No async loading needed - all data comes from context
+  const loading = false
+  // Streak disabled - user_progress table doesn't exist in Supabase
+  const streak = 0
 
-  useEffect(() => {
-    async function loadDashboardData() {
-      if (!session?.user) {
-        setLoading(false)
-        return
-      }
-
-      const supabase = createClient()
-
-      // Load study streak
-      const { data: progressData } = await supabase
-        .from('user_progress')
-        .select('study_streak')
-        .eq('user_id', session.user.id)
-        .order('study_streak', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (progressData?.study_streak) {
-        setStreak(progressData.study_streak)
-      }
-
-      // Load areas with progress
-      const { data: areasData } = await supabase
-        .from('areas')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('sort_order')
-
-      if (areasData) {
-        const areasWithProgress = await Promise.all(
-          areasData.map(async (area) => {
-            const { count: total } = await supabase
-              .from('concepts')
-              .select('*', { count: 'exact', head: true })
-              .eq('area_id', area.id)
-
-            const { count: understood } = await supabase
-              .from('concepts')
-              .select('*', { count: 'exact', head: true })
-              .eq('area_id', area.id)
-              .eq('status', 'understood')
-
-            return {
-              ...area,
-              total: total || 0,
-              understood: understood || 0,
-              progress: total ? Math.round(((understood || 0) / total) * 100) : 0,
-              hours: (total || 0) * 2 // Estimated 2 hours per concept
-            }
-          })
-        )
-        setAreas(areasWithProgress.filter(a => a.total > 0))
-      }
-
-      // Load overall stats
-      const { count: totalConcepts } = await supabase
-        .from('concepts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id)
-
-      const { count: understoodConcepts } = await supabase
-        .from('concepts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id)
-        .eq('status', 'understood')
-
-      const { count: inProgressConcepts } = await supabase
-        .from('concepts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id)
-        .eq('status', 'in-progress')
-
-      setStats({
-        total_concepts: totalConcepts || 0,
-        understood_concepts: understoodConcepts || 0,
-        in_progress_concepts: inProgressConcepts || 0,
-        total_study_time: (totalConcepts || 0) * 2
-      })
-
-      setLoading(false)
+  // Calculate stats from notes in context (works without authentication)
+  // Note status: 'new' | 'read' | 'understood'
+  // 'read' = en progreso, 'understood' = completado, 'new' = pendiente
+  const stats = useMemo<DashboardStats>(() => {
+    const understood = notes.filter(n => n.status === 'understood').length
+    const inProgress = notes.filter(n => n.status === 'read').length
+    return {
+      total_notes: notes.length,
+      understood_notes: understood,
+      in_progress_notes: inProgress,
+      total_study_time: notes.length * 2 // Estimated 2 hours per note
     }
+  }, [notes])
 
-    loadDashboardData()
-  }, [session])
+  // Calculate areas with progress based on notes
+  const areasWithProgress = useMemo<AreaWithProgress[]>(() => {
+    // Group notes by area
+    const notesByArea: Record<string, typeof notes> = {}
 
-  const progressPercent = stats.total_concepts > 0
-    ? Math.round((stats.understood_concepts / stats.total_concepts) * 100)
+    notes.forEach(note => {
+      const detectedArea = detectAreaFromContent(note.title, note.content)
+      const areaName = detectedArea?.name || contextAreas[0]?.name || 'General'
+
+      if (!notesByArea[areaName]) {
+        notesByArea[areaName] = []
+      }
+      notesByArea[areaName].push(note)
+    })
+
+    // Map context areas with their note counts
+    return contextAreas
+      .map(area => {
+        const areaNotes = notesByArea[area.name] || []
+        const understood = areaNotes.filter(n => n.status === 'understood').length
+        const total = areaNotes.length
+
+        return {
+          id: area.id,
+          name: area.name,
+          color: area.color,
+          icon: area.icon,
+          total,
+          understood,
+          progress: total > 0 ? Math.round((understood / total) * 100) : 0,
+          hours: total * 2
+        }
+      })
+      .filter(a => a.total > 0)
+  }, [notes, contextAreas])
+
+  const progressPercent = stats.total_notes > 0
+    ? Math.round((stats.understood_notes / stats.total_notes) * 100)
     : 0
 
-  const completedHours = stats.understood_concepts * 2
-  const remainingHours = (stats.total_concepts - stats.understood_concepts) * 2
+  const completedHours = stats.understood_notes * 2
+  const remainingHours = (stats.total_notes - stats.understood_notes) * 2
 
   const recentNotes = notes.slice(-3).reverse()
   const lastStudiedNote = recentNotes[0]
@@ -230,7 +191,7 @@ export default function DashboardPage() {
             </div>
             <h3 className="font-semibold mb-1 relative z-10" style={{ color: 'var(--foreground)' }}>Progreso Global</h3>
             <p className="text-sm relative z-10" style={{ color: 'var(--muted-foreground)' }}>
-              {loading ? '-' : `${stats.understood_concepts} de ${stats.total_concepts} temas`}
+              {loading ? '-' : `${stats.understood_notes} de ${stats.total_notes} notas`}
             </p>
             <div className="mt-4 h-2.5 rounded-full overflow-hidden relative z-10" style={{ backgroundColor: 'rgba(255, 255, 255, 0.5)' }}>
               <div
@@ -264,12 +225,12 @@ export default function DashboardPage() {
                 <BookOpen className="size-6" style={{ color: '#F8C94E' }} />
               </div>
               <span className="text-4xl font-bold" style={{ color: '#B89C3C' }}>
-                {loading ? '-' : stats.in_progress_concepts}
+                {loading ? '-' : stats.in_progress_notes}
               </span>
             </div>
             <h3 className="font-semibold mb-1 relative z-10" style={{ color: 'var(--foreground)' }}>En Progreso</h3>
             <p className="text-sm relative z-10" style={{ color: 'var(--muted-foreground)' }}>Temas activos ahora</p>
-            {stats.in_progress_concepts > 0 && (
+            {stats.in_progress_notes > 0 && (
               <Link
                 href="/tree"
                 className="mt-4 text-sm font-medium hover:underline relative z-10 block"
@@ -411,7 +372,7 @@ export default function DashboardPage() {
         )}
 
         {/* Progress by Area - Circular Progress */}
-        {areas.length > 0 && (
+        {areasWithProgress.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -436,7 +397,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-6">
-              {areas.map(area => (
+              {areasWithProgress.map(area => (
                 <Link
                   key={area.id}
                   href="/tree"
@@ -483,7 +444,7 @@ export default function DashboardPage() {
         )}
 
         {/* Recommendations */}
-        {(stats.in_progress_concepts > 0 || recentNotes.length > 0) && (
+        {(stats.in_progress_notes > 0 || recentNotes.length > 0) && (
           <div>
             <h2 className="text-3xl font-bold mb-6" style={{ color: 'var(--foreground)' }}>
               Recomendaciones para ti
@@ -491,7 +452,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
               {/* In Progress Reminder */}
-              {stats.in_progress_concepts > 0 && (
+              {stats.in_progress_notes > 0 && (
                 <div
                   className="rounded-3xl p-6 hover:scale-105 transition-all duration-300"
                   style={{
@@ -511,7 +472,7 @@ export default function DashboardPage() {
                         Temas en progreso
                       </h3>
                       <p className="text-sm mb-4" style={{ color: 'var(--muted-foreground)' }}>
-                        Tienes {stats.in_progress_concepts} tema(s) en progreso. Continua para completarlos!
+                        Tienes {stats.in_progress_notes} nota(s) en progreso. Continua para completarlas!
                       </p>
                       <Link
                         href="/tree"

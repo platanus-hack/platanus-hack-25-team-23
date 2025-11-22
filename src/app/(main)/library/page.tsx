@@ -13,8 +13,14 @@ import {
   Brain,
   Clock,
   Zap,
-  Plus
+  Plus,
+  Settings,
+  Pencil,
+  Trash2,
+  X
 } from "lucide-react"
+import { DEFAULT_AREAS, DEFAULT_YOU_NODE_COLOR, COLOR_PALETTE, AreaConfig, detectAreaFromContent } from '@/lib/data/areas-config'
+import { useAreas } from '@/lib/store/areas-context'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -44,151 +50,167 @@ interface Folder {
   lastOrganized: Date
 }
 
-// Area definitions with colors and icons
+// Build AREA_CONFIG from shared DEFAULT_AREAS
 const AREA_CONFIG: Record<string, { color: string; icon: string; description: string }> = {
-  'Desarrollo Profesional': { color: '#3b82f6', icon: '💼', description: 'Carrera, habilidades técnicas y crecimiento laboral' },
-  'Programacion': { color: '#3b82f6', icon: '💻', description: 'Código, algoritmos y desarrollo de software' },
-  'Matematicas': { color: '#8b5cf6', icon: '🧮', description: 'Álgebra, cálculo, estadística y matemáticas aplicadas' },
-  'Ciencias': { color: '#22c55e', icon: '🔬', description: 'Física, química, biología y ciencias naturales' },
-  'Salud y Bienestar': { color: '#22c55e', icon: '🏃', description: 'Ejercicio, nutrición, salud mental y física' },
-  'Finanzas Personales': { color: '#eab308', icon: '💰', description: 'Presupuesto, inversiones, ahorro y libertad financiera' },
-  'Historia': { color: '#f97316', icon: '📜', description: 'Historia, geografía y ciencias sociales' },
-  'Idiomas': { color: '#ec4899', icon: '🗣️', description: 'Inglés, español y aprendizaje de idiomas' },
-  'Arte': { color: '#8b5cf6', icon: '🎨', description: 'Arte, música, diseño y expresión creativa' },
-  'Economia': { color: '#eab308', icon: '📊', description: 'Economía, finanzas y negocios' },
-  'Humanidades': { color: '#ec4899', icon: '📚', description: 'Filosofía, psicología y ciencias humanas' },
-  'Educacion Continua': { color: '#f97316', icon: '📚', description: 'Cursos, lectura, aprendizaje y desarrollo intelectual' },
-  'Crecimiento Personal': { color: '#9333ea', icon: '🌱', description: 'Hábitos, mindfulness y autoconocimiento' },
+  ...DEFAULT_AREAS.reduce((acc, area) => {
+    acc[area.name] = { color: area.color, icon: area.icon, description: area.description }
+    return acc
+  }, {} as Record<string, { color: string; icon: string; description: string }>),
   'General': { color: '#C9B7F3', icon: '📝', description: 'Notas generales y temas variados' },
 }
 
-// Helper to categorize notes by keywords
+// Helper to categorize notes by keywords - using shared config
 function detectArea(title: string, content: string): string {
-  const text = `${title} ${content}`.toLowerCase()
-
-  if (text.includes('matemat') || text.includes('algebra') || text.includes('calcul') || text.includes('geometr') || text.includes('ecuacion')) {
-    return 'Matematicas'
-  }
-  if (text.includes('program') || text.includes('codigo') || text.includes('software') || text.includes('algoritm') || text.includes('javascript') || text.includes('python') || text.includes('react')) {
-    return 'Programacion'
-  }
-  if (text.includes('fisica') || text.includes('quimica') || text.includes('biolog') || text.includes('ciencia')) {
-    return 'Ciencias'
-  }
-  if (text.includes('histor') || text.includes('geograf') || text.includes('social')) {
-    return 'Historia'
-  }
-  if (text.includes('idioma') || text.includes('ingles') || text.includes('español') || text.includes('lenguaje') || text.includes('grammar')) {
-    return 'Idiomas'
-  }
-  if (text.includes('arte') || text.includes('musica') || text.includes('dibujo') || text.includes('diseño')) {
-    return 'Arte'
-  }
-  if (text.includes('econom') || text.includes('finanz') || text.includes('negocio') || text.includes('empresa') || text.includes('inversion')) {
-    return 'Finanzas Personales'
-  }
-  if (text.includes('filosof') || text.includes('psicolog') || text.includes('sociolog')) {
-    return 'Humanidades'
-  }
-  if (text.includes('salud') || text.includes('ejercicio') || text.includes('nutricion') || text.includes('fitness')) {
-    return 'Salud y Bienestar'
-  }
-  if (text.includes('habito') || text.includes('productividad') || text.includes('meditacion') || text.includes('mindfulness')) {
-    return 'Crecimiento Personal'
-  }
-
-  return 'General'
+  const detectedArea = detectAreaFromContent(title, content)
+  return detectedArea ? detectedArea.name : 'General'
 }
 
 function getAreaConfig(areaName: string) {
   return AREA_CONFIG[areaName] || AREA_CONFIG['General']
 }
 
+// Helper functions moved outside component for better performance and to avoid hoisting issues
+function getStatusLabel(status: string) {
+  switch (status) {
+    case 'understood': return '✅ Entendido'
+    case 'read': return '🔄 En progreso'
+    case 'new': return '⏳ Pendiente'
+    default: return status
+  }
+}
+
+function getStatusStyle(status: string) {
+  switch (status) {
+    case 'understood':
+      return { background: 'linear-gradient(135deg, #A3E4B6 0%, #B9E2B1 100%)', color: '#2F8F4F' }
+    case 'read':
+      return { background: 'linear-gradient(135deg, #FFE9A9 0%, #FFF4D4 100%)', color: '#B89C3C' }
+    case 'new':
+      return { background: 'linear-gradient(135deg, #FFB1B1 0%, #FFCBCB 100%)', color: '#CC5050' }
+    default:
+      return { background: '#F6F6F6', color: '#646464' }
+  }
+}
+
+function getTimeSince(dateString: string, now: number) {
+  const hours = Math.floor((now - new Date(dateString).getTime()) / (1000 * 60 * 60))
+  if (hours < 1) return 'hace menos de 1h'
+  if (hours < 24) return `hace ${hours}h`
+  const days = Math.floor(hours / 24)
+  if (days === 1) return 'hace 1 día'
+  return `hace ${days} días`
+}
+
+function getHoursSince(date: Date, now: number) {
+  return Math.floor((now - date.getTime()) / (1000 * 60 * 60))
+}
+
 export default function LibraryPage() {
   const { notes: contextNotes, session } = useKnowledge()
+  const { areas, youNodeColor, setYouNodeColor, updateArea, deleteArea, addArea } = useAreas()
   const [libraryNotes, setLibraryNotes] = useState<LibraryNote[]>([])
   const [loading, setLoading] = useState(true)
   const [isOrganizing, setIsOrganizing] = useState(false)
   const [lastOrganized, setLastOrganized] = useState(new Date())
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
+  const [showAreaManager, setShowAreaManager] = useState(false)
+  const [customColor, setCustomColor] = useState('#6366f1')
 
-  const loadLibraryData = useCallback(async () => {
-    setLoading(true)
+  // Edit modal state
+  const [editingArea, setEditingArea] = useState<AreaConfig | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editColor, setEditColor] = useState('')
+  const [editIcon, setEditIcon] = useState('')
 
-    // If no session, use notes from context
-    if (!session?.user) {
-      const notesFromContext: LibraryNote[] = contextNotes.map(note => {
-        const area = detectArea(note.title, note.content)
-        return {
-          id: note.id || note.slug,
-          title: note.title,
-          slug: note.slug,
-          content: note.content,
-          status: note.status,
-          area,
-          areaColor: getAreaConfig(area).color,
-          createdAt: new Date().toISOString(),
-          lastModified: new Date().toISOString(),
-          wordCount: note.content.split(/\s+/).length,
-          conceptsCount: Math.floor(note.content.split(/\s+/).length / 50) + 1
-        }
-      })
-      setLibraryNotes(notesFromContext)
-      // Expand first folder by default
-      if (notesFromContext.length > 0) {
-        const firstArea = detectArea(notesFromContext[0].title, notesFromContext[0].content)
-        setExpandedFolders(new Set([firstArea.toLowerCase().replace(/\s+/g, '-')]))
-      }
-      setLoading(false)
-      return
-    }
+  // Delete confirmation state
+  const [deletingArea, setDeletingArea] = useState<AreaConfig | null>(null)
 
-    const supabase = createClient()
+  // New area state
+  const [showNewAreaForm, setShowNewAreaForm] = useState(false)
+  const [newAreaName, setNewAreaName] = useState('')
+  const [newAreaDescription, setNewAreaDescription] = useState('')
+  const [newAreaColor, setNewAreaColor] = useState('#6366f1')
+  const [newAreaIcon, setNewAreaIcon] = useState('📁')
 
-    // Load notes from the notes table
-    const { data: notesData, error } = await supabase
-      .from('notes')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error loading notes:', error)
-      toast.error('Error al cargar las notas')
-      setLoading(false)
-      return
-    }
-
-    if (notesData) {
-      const loadedNotes: LibraryNote[] = notesData.map(n => {
-        const area = detectArea(n.title, n.content || '')
-        return {
-          id: n.id,
-          title: n.title,
-          slug: n.slug,
-          content: n.content || '',
-          status: (n.status || 'new') as 'new' | 'read' | 'understood',
-          area,
-          areaColor: getAreaConfig(area).color,
-          createdAt: n.created_at,
-          lastModified: n.updated_at || n.created_at,
-          wordCount: (n.content || '').split(/\s+/).length,
-          conceptsCount: Math.floor((n.content || '').split(/\s+/).length / 50) + 1
-        }
-      })
-      setLibraryNotes(loadedNotes)
-      // Expand first folder by default
-      if (loadedNotes.length > 0) {
-        setExpandedFolders(new Set([loadedNotes[0].area.toLowerCase().replace(/\s+/g, '-')]))
-      }
-    }
-
-    setLoading(false)
-  }, [session, contextNotes])
-
+  // Load library data on mount and when session/notes change
   useEffect(() => {
-    loadLibraryData()
-  }, [loadLibraryData])
+    let mounted = true
+
+    async function loadData() {
+      // If no session, use notes from context
+      if (!session?.user) {
+        const notesFromContext: LibraryNote[] = contextNotes.map(note => {
+          const area = detectArea(note.title, note.content)
+          return {
+            id: note.id || note.slug,
+            title: note.title,
+            slug: note.slug,
+            content: note.content,
+            status: note.status,
+            area,
+            areaColor: getAreaConfig(area).color,
+            createdAt: new Date().toISOString(),
+            lastModified: new Date().toISOString(),
+            wordCount: note.content.split(/\s+/).length,
+            conceptsCount: Math.floor(note.content.split(/\s+/).length / 50) + 1
+          }
+        })
+        if (mounted) {
+          setLibraryNotes(notesFromContext)
+          if (notesFromContext.length > 0) {
+            const firstArea = detectArea(notesFromContext[0].title, notesFromContext[0].content)
+            setExpandedFolders(new Set([firstArea.toLowerCase().replace(/\s+/g, '-')]))
+          }
+          setLoading(false)
+        }
+        return
+      }
+
+      const supabase = createClient()
+      const { data: notesData, error } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+
+      if (!mounted) return
+
+      if (error) {
+        console.error('Error loading notes:', error)
+        toast.error('Error al cargar las notas')
+        setLoading(false)
+        return
+      }
+
+      if (notesData) {
+        const loadedNotes: LibraryNote[] = notesData.map(n => {
+          const area = detectArea(n.title, n.content || '')
+          return {
+            id: n.id,
+            title: n.title,
+            slug: n.slug,
+            content: n.content || '',
+            status: (n.status || 'new') as 'new' | 'read' | 'understood',
+            area,
+            areaColor: getAreaConfig(area).color,
+            createdAt: n.created_at,
+            lastModified: n.updated_at || n.created_at,
+            wordCount: (n.content || '').split(/\s+/).length,
+            conceptsCount: Math.floor((n.content || '').split(/\s+/).length / 50) + 1
+          }
+        })
+        setLibraryNotes(loadedNotes)
+        if (loadedNotes.length > 0) {
+          setExpandedFolders(new Set([loadedNotes[0].area.toLowerCase().replace(/\s+/g, '-')]))
+        }
+      }
+      setLoading(false)
+    }
+
+    loadData()
+    return () => { mounted = false }
+  }, [session, contextNotes])
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -199,8 +221,9 @@ export default function LibraryPage() {
     return { total, understood, inProgress, pending }
   }, [libraryNotes])
 
-  // Create folder structure
+  // Create folder structure from context areas (synced with Gestionar Áreas)
   const folders: Folder[] = useMemo(() => {
+    // Group notes by area name
     const grouped = libraryNotes.reduce((acc, note) => {
       if (!acc[note.area]) {
         acc[note.area] = []
@@ -209,20 +232,31 @@ export default function LibraryPage() {
       return acc
     }, {} as Record<string, LibraryNote[]>)
 
-    return Object.entries(grouped).map(([areaName, notes]) => {
-      const config = getAreaConfig(areaName)
-      return {
-        id: areaName.toLowerCase().replace(/\s+/g, '-'),
-        name: areaName,
-        description: config.description,
-        color: config.color,
-        icon: config.icon,
-        notes,
-        autoGenerated: true,
-        lastOrganized
-      }
-    })
-  }, [libraryNotes, lastOrganized])
+    // Create folders from ALL areas in context (synced with area manager)
+    // Notes without a detected area will be assigned to the first area
+    const contextFolders = areas.map(area => ({
+      id: area.id,
+      name: area.name,
+      description: area.description,
+      color: area.color,
+      icon: area.icon,
+      notes: grouped[area.name] || [],
+      autoGenerated: true,
+      lastOrganized
+    }))
+
+    // Assign unclassified notes (General) to first area if exists
+    const contextAreaNames = new Set(areas.map(a => a.name))
+    const unclassifiedNotes = Object.entries(grouped)
+      .filter(([areaName]) => !contextAreaNames.has(areaName))
+      .flatMap(([, notes]) => notes)
+
+    if (unclassifiedNotes.length > 0 && contextFolders.length > 0) {
+      contextFolders[0].notes = [...contextFolders[0].notes, ...unclassifiedNotes]
+    }
+
+    return contextFolders
+  }, [libraryNotes, lastOrganized, areas])
 
   // Toggle folder expansion
   const toggleFolder = (folderId: string) => {
@@ -289,35 +323,79 @@ export default function LibraryPage() {
     toast.success('Exportado correctamente')
   }, [])
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'understood': return '✅ Entendido'
-      case 'read': return '🔄 En progreso'
-      case 'new': return '⏳ Pendiente'
-      default: return status
-    }
-  }
+  // Edit area handlers
+  const handleStartEdit = useCallback((area: AreaConfig) => {
+    setEditingArea(area)
+    setEditName(area.name)
+    setEditDescription(area.description)
+    setEditColor(area.color)
+    setEditIcon(area.icon)
+  }, [])
 
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'understood':
-        return { background: 'linear-gradient(135deg, #A3E4B6 0%, #B9E2B1 100%)', color: '#2F8F4F' }
-      case 'read':
-        return { background: 'linear-gradient(135deg, #FFE9A9 0%, #FFF4D4 100%)', color: '#B89C3C' }
-      case 'new':
-        return { background: 'linear-gradient(135deg, #FFB1B1 0%, #FFCBCB 100%)', color: '#CC5050' }
-      default:
-        return { background: '#F6F6F6', color: '#646464' }
+  const handleSaveEdit = useCallback(() => {
+    if (!editingArea) return
+    if (!editName.trim()) {
+      toast.error('El nombre es requerido')
+      return
     }
-  }
+    updateArea(editingArea.id, {
+      name: editName.trim(),
+      description: editDescription.trim(),
+      color: editColor,
+      icon: editIcon
+    })
+    setEditingArea(null)
+    toast.success('Área actualizada correctamente')
+  }, [editingArea, editName, editDescription, editColor, editIcon, updateArea])
 
-  const getTimeSince = (dateString: string) => {
-    const hours = Math.floor((Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60))
-    if (hours < 1) return 'hace menos de 1h'
-    if (hours < 24) return `hace ${hours}h`
-    const days = Math.floor(hours / 24)
-    return `hace ${days}d`
-  }
+  const handleCancelEdit = useCallback(() => {
+    setEditingArea(null)
+    setEditName('')
+    setEditDescription('')
+    setEditColor('')
+    setEditIcon('')
+  }, [])
+
+  // Delete area handlers
+  const handleConfirmDelete = useCallback(() => {
+    if (!deletingArea) return
+    deleteArea(deletingArea.id)
+    setDeletingArea(null)
+    toast.success('Área eliminada correctamente')
+  }, [deletingArea, deleteArea])
+
+  // New area handlers
+  const handleAddNewArea = useCallback(() => {
+    if (!newAreaName.trim()) {
+      toast.error('El nombre es requerido')
+      return
+    }
+    const newArea: AreaConfig = {
+      id: newAreaName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+      name: newAreaName.trim(),
+      description: newAreaDescription.trim() || 'Nueva área temática',
+      icon: newAreaIcon,
+      color: newAreaColor,
+      colorVariants: [],
+      keywords: []
+    }
+    addArea(newArea)
+    setShowNewAreaForm(false)
+    setNewAreaName('')
+    setNewAreaDescription('')
+    setNewAreaColor('#6366f1')
+    setNewAreaIcon('📁')
+    toast.success('Nueva área creada correctamente')
+  }, [newAreaName, newAreaDescription, newAreaIcon, newAreaColor, addArea])
+
+  // Current time state for time-based calculations (updated on mount)
+  const [currentTime, setCurrentTime] = useState(() => Date.now())
+
+  useEffect(() => {
+    // Update time every minute for "time since" calculations
+    const interval = setInterval(() => setCurrentTime(Date.now()), 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Render folder component
   const renderFolder = (folder: Folder) => {
@@ -460,7 +538,7 @@ export default function LibraryPage() {
                           🧩 {note.conceptsCount} conceptos
                         </span>
                         <span className="flex items-center gap-1">
-                          🕒 Modificado {getTimeSince(note.lastModified)}
+                          🕒 Modificado {getTimeSince(note.lastModified, currentTime)}
                         </span>
                       </div>
                     </div>
@@ -503,6 +581,20 @@ export default function LibraryPage() {
 
             <div className="flex items-center gap-3">
               <button
+                onClick={() => setShowAreaManager(!showAreaManager)}
+                className="px-6 py-3 rounded-3xl transition-all flex items-center gap-2 hover:scale-105 duration-300 font-medium"
+                style={{
+                  background: showAreaManager
+                    ? 'linear-gradient(135deg, #A3D4FF 0%, #CADFFF 100%)'
+                    : 'linear-gradient(135deg, #A3D4FF 0%, #CADFFF 100%)',
+                  color: 'white',
+                  boxShadow: '0px 4px 14px rgba(163, 212, 255, 0.3)'
+                }}
+              >
+                <Settings className="size-5" />
+                Gestionar Áreas
+              </button>
+              <button
                 onClick={handleReorganize}
                 disabled={isOrganizing}
                 className="px-6 py-3 text-white rounded-3xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:scale-105 duration-300"
@@ -521,7 +613,7 @@ export default function LibraryPage() {
                   </>
                 ) : (
                   <>
-                    <Brain className="size-5" />
+                    <Zap className="size-5" />
                     Reorganizar Ahora
                   </>
                 )}
@@ -598,7 +690,7 @@ export default function LibraryPage() {
               </h3>
               <p className="text-sm" style={{ color: 'rgba(30, 30, 30, 0.7)' }}>
                 Nodi reorganiza tus notas cada día a las 23:00. La última reorganización fue hace{' '}
-                {Math.floor((Date.now() - lastOrganized.getTime()) / (1000 * 60 * 60))} horas.
+                {getHoursSince(lastOrganized, currentTime)} horas.
                 Puedes forzar una reorganización manual haciendo click en el botón de arriba.
               </p>
             </div>
@@ -613,9 +705,470 @@ export default function LibraryPage() {
 
         {/* Folders */}
         <div className="space-y-4">
-          <h2 className="text-lg font-medium mb-4" style={{ color: 'var(--foreground)' }}>
-            Carpetas organizadas por la IA
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium" style={{ color: 'var(--foreground)' }}>
+              Carpetas organizadas por la IA
+            </h2>
+            <button
+              onClick={() => setShowAreaManager(!showAreaManager)}
+              className="px-4 py-2 rounded-2xl transition-all flex items-center gap-2 hover:scale-105 duration-300 font-medium"
+              style={{
+                backgroundColor: 'var(--card)',
+                color: 'var(--muted-foreground)',
+                boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)'
+              }}
+            >
+              <Settings className="size-4" />
+              {showAreaManager ? 'Ocultar' : 'Gestionar Áreas y Colores'}
+            </button>
+          </div>
+
+          {/* Area Management Panel */}
+          {showAreaManager && (
+            <div
+              className="p-6 rounded-3xl mb-6"
+              style={{
+                backgroundColor: 'var(--card)',
+                border: '2px solid #E6E6E6',
+                boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
+              }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">🧠</span>
+                  <div>
+                    <h3 className="font-bold text-lg" style={{ color: 'var(--foreground)' }}>
+                      Gestión de Áreas y Colores
+                    </h3>
+                    <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                      Personaliza los colores de cada área temática para el grafo
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowNewAreaForm(true)}
+                  className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
+                  style={{
+                    background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+                    color: 'white',
+                    boxShadow: '0px 2px 8px rgba(201, 183, 243, 0.3)'
+                  }}
+                >
+                  <Plus className="size-4 inline mr-2" />
+                  Nueva Área
+                </button>
+              </div>
+
+              {/* Central Node "Yo" */}
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
+                  🧠 Nodo Central &quot;Yo&quot;
+                </h4>
+                <div
+                  className="p-5 rounded-2xl"
+                  style={{
+                    backgroundColor: '#FAFBFC',
+                    border: '2px solid #E6E6E6'
+                  }}
+                >
+                  <div className="flex items-start gap-4">
+                    <div
+                      className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
+                      style={{ backgroundColor: youNodeColor }}
+                    >
+                      🧠
+                    </div>
+                    <div className="flex-1">
+                      <h5 className="font-semibold mb-1" style={{ color: 'var(--foreground)' }}>Nodo Central</h5>
+                      <p className="text-sm mb-4" style={{ color: 'var(--muted-foreground)' }}>
+                        Este es el nodo central de tu grafo. Todas las áreas se conectan a este nodo.
+                      </p>
+
+                      <p className="text-xs font-medium mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                        Color del Nodo &quot;Yo&quot;
+                      </p>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        {COLOR_PALETTE.map((color) => (
+                          <button
+                            key={color}
+                            onClick={() => setYouNodeColor(color)}
+                            className="w-10 h-10 rounded-xl transition-all hover:scale-110"
+                            style={{
+                              backgroundColor: color,
+                              border: youNodeColor === color ? '3px solid #1E1E1E' : '2px solid transparent',
+                              boxShadow: youNodeColor === color ? '0px 2px 8px rgba(0, 0, 0, 0.2)' : 'none'
+                            }}
+                          >
+                            {youNodeColor === color && (
+                              <span className="text-white text-lg">✓</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                          O elige un color personalizado:
+                        </span>
+                        <input
+                          type="color"
+                          value={customColor}
+                          onChange={(e) => {
+                            setCustomColor(e.target.value)
+                            setYouNodeColor(e.target.value)
+                          }}
+                          className="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200"
+                        />
+                        <span className="text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>
+                          {customColor}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t mb-6" style={{ borderColor: '#E6E6E6' }} />
+
+              {/* Areas List */}
+              <h4 className="text-sm font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
+                Áreas Temáticas
+              </h4>
+              <div className="space-y-3">
+                {areas.map((area) => (
+                  <div
+                    key={area.id}
+                    className="p-4 rounded-2xl flex items-center justify-between"
+                    style={{
+                      backgroundColor: `${area.color}10`,
+                      border: `2px solid ${area.color}40`
+                    }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="text-2xl">{area.icon}</span>
+                      <div>
+                        <h5 className="font-semibold" style={{ color: 'var(--foreground)' }}>
+                          {area.name}
+                        </h5>
+                        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                          {area.description}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                            Variantes:
+                          </span>
+                          {area.colorVariants.map((variant, idx) => (
+                            <div
+                              key={idx}
+                              className="w-6 h-6 rounded-lg"
+                              style={{ backgroundColor: variant }}
+                              title={idx === 0 ? 'Área' : idx === 1 ? 'Tema' : idx === 2 ? 'Subtema' : 'Notas'}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleStartEdit(area)}
+                        className="p-2.5 rounded-xl hover:scale-110 transition-all"
+                        style={{
+                          backgroundColor: 'var(--card)',
+                          border: '1px solid #E6E6E6'
+                        }}
+                      >
+                        <Pencil className="size-4" style={{ color: 'var(--muted-foreground)' }} />
+                      </button>
+                      <button
+                        onClick={() => setDeletingArea(area)}
+                        className="p-2.5 rounded-xl hover:scale-110 transition-all"
+                        style={{
+                          backgroundColor: 'var(--card)',
+                          border: '1px solid #FFB1B1'
+                        }}
+                      >
+                        <Trash2 className="size-4" style={{ color: '#CC5050' }} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Edit Area Modal */}
+          {editingArea && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div
+                className="w-full max-w-lg p-6 rounded-3xl"
+                style={{ backgroundColor: 'var(--card)' }}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
+                    Editar Área
+                  </h3>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="p-2 rounded-xl hover:bg-gray-100 transition-all"
+                  >
+                    <X className="size-5" style={{ color: 'var(--muted-foreground)' }} />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                      Icono
+                    </label>
+                    <input
+                      type="text"
+                      value={editIcon}
+                      onChange={(e) => setEditIcon(e.target.value)}
+                      className="w-20 p-3 rounded-xl text-2xl text-center"
+                      style={{ backgroundColor: '#F6F6F6', border: '2px solid #E6E6E6' }}
+                      maxLength={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                      Nombre
+                    </label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full p-3 rounded-xl"
+                      style={{ backgroundColor: '#F6F6F6', border: '2px solid #E6E6E6', color: 'var(--foreground)' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                      Descripción
+                    </label>
+                    <input
+                      type="text"
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      className="w-full p-3 rounded-xl"
+                      style={{ backgroundColor: '#F6F6F6', border: '2px solid #E6E6E6', color: 'var(--foreground)' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                      Color
+                    </label>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {COLOR_PALETTE.map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setEditColor(color)}
+                          className="w-10 h-10 rounded-xl transition-all hover:scale-110"
+                          style={{
+                            backgroundColor: color,
+                            border: editColor === color ? '3px solid #1E1E1E' : '2px solid transparent',
+                            boxShadow: editColor === color ? '0px 2px 8px rgba(0, 0, 0, 0.2)' : 'none'
+                          }}
+                        >
+                          {editColor === color && (
+                            <span className="text-white text-lg">✓</span>
+                          )}
+                        </button>
+                      ))}
+                      <input
+                        type="color"
+                        value={editColor}
+                        onChange={(e) => setEditColor(e.target.value)}
+                        className="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={handleCancelEdit}
+                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
+                    style={{ backgroundColor: '#F6F6F6', color: 'var(--muted-foreground)' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
+                    style={{
+                      background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+                      color: 'white'
+                    }}
+                  >
+                    Guardar Cambios
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delete Confirmation Modal */}
+          {deletingArea && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div
+                className="w-full max-w-md p-6 rounded-3xl"
+                style={{ backgroundColor: 'var(--card)' }}
+              >
+                <div className="text-center mb-6">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                    style={{ backgroundColor: '#FFE5E5' }}
+                  >
+                    <Trash2 className="size-8" style={{ color: '#CC5050' }} />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+                    Eliminar Área
+                  </h3>
+                  <p style={{ color: 'var(--muted-foreground)' }}>
+                    ¿Estás seguro de que quieres eliminar el área <strong>{deletingArea.name}</strong>?
+                    Esta acción no se puede deshacer.
+                  </p>
+                </div>
+
+                <div className="flex justify-center gap-3">
+                  <button
+                    onClick={() => setDeletingArea(null)}
+                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
+                    style={{ backgroundColor: '#F6F6F6', color: 'var(--muted-foreground)' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleConfirmDelete}
+                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
+                    style={{ backgroundColor: '#CC5050', color: 'white' }}
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* New Area Modal */}
+          {showNewAreaForm && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div
+                className="w-full max-w-lg p-6 rounded-3xl"
+                style={{ backgroundColor: 'var(--card)' }}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
+                    Nueva Área
+                  </h3>
+                  <button
+                    onClick={() => setShowNewAreaForm(false)}
+                    className="p-2 rounded-xl hover:bg-gray-100 transition-all"
+                  >
+                    <X className="size-5" style={{ color: 'var(--muted-foreground)' }} />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                      Icono
+                    </label>
+                    <input
+                      type="text"
+                      value={newAreaIcon}
+                      onChange={(e) => setNewAreaIcon(e.target.value)}
+                      className="w-20 p-3 rounded-xl text-2xl text-center"
+                      style={{ backgroundColor: '#F6F6F6', border: '2px solid #E6E6E6' }}
+                      maxLength={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                      Nombre
+                    </label>
+                    <input
+                      type="text"
+                      value={newAreaName}
+                      onChange={(e) => setNewAreaName(e.target.value)}
+                      className="w-full p-3 rounded-xl"
+                      style={{ backgroundColor: '#F6F6F6', border: '2px solid #E6E6E6', color: 'var(--foreground)' }}
+                      placeholder="Ej: Proyectos Personales"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                      Descripción
+                    </label>
+                    <input
+                      type="text"
+                      value={newAreaDescription}
+                      onChange={(e) => setNewAreaDescription(e.target.value)}
+                      className="w-full p-3 rounded-xl"
+                      style={{ backgroundColor: '#F6F6F6', border: '2px solid #E6E6E6', color: 'var(--foreground)' }}
+                      placeholder="Ej: Mis proyectos y side projects"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                      Color
+                    </label>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {COLOR_PALETTE.map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setNewAreaColor(color)}
+                          className="w-10 h-10 rounded-xl transition-all hover:scale-110"
+                          style={{
+                            backgroundColor: color,
+                            border: newAreaColor === color ? '3px solid #1E1E1E' : '2px solid transparent',
+                            boxShadow: newAreaColor === color ? '0px 2px 8px rgba(0, 0, 0, 0.2)' : 'none'
+                          }}
+                        >
+                          {newAreaColor === color && (
+                            <span className="text-white text-lg">✓</span>
+                          )}
+                        </button>
+                      ))}
+                      <input
+                        type="color"
+                        value={newAreaColor}
+                        onChange={(e) => setNewAreaColor(e.target.value)}
+                        className="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => setShowNewAreaForm(false)}
+                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
+                    style={{ backgroundColor: '#F6F6F6', color: 'var(--muted-foreground)' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleAddNewArea}
+                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
+                    style={{
+                      background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+                      color: 'white'
+                    }}
+                  >
+                    Crear Área
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {folders.length > 0 ? (
             folders.map(folder => renderFolder(folder))
