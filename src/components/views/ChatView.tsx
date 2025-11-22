@@ -192,9 +192,12 @@ export function ChatView() {
     }
 
     // 1. Normalize term (handle file paths like /notes/Foo.md)
-    let searchTitle = term;
-    if (term.includes('/') || term.endsWith('.md')) {
-        searchTitle = term.split('/').pop()?.replace('.md', '') || term;
+    // Decode URI component to handle %20 spaces
+    const decodedTerm = decodeURIComponent(term);
+    let searchTitle = decodedTerm;
+    
+    if (decodedTerm.includes('/') || decodedTerm.endsWith('.md')) {
+        searchTitle = decodedTerm.split('/').pop()?.replace('.md', '') || decodedTerm;
     }
     
     // 2. Try to find in loaded notes using fuzzy matching on title/slug

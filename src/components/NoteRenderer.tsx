@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useMemo, useEffect, useState } from 'react'
-import { AlertCircle, Lightbulb, HelpCircle, Code, Eye, Sparkles } from 'lucide-react'
+import { AlertCircle, Lightbulb, HelpCircle, Code, Eye, Sparkles, BookOpen } from 'lucide-react'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 
@@ -254,9 +254,9 @@ function ConceptLink({ term, onClick }: { term: string, onClick?: (term: string)
   return (
     <button
       onClick={() => onClick?.(term)}
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors font-medium text-sm cursor-pointer border border-purple-200 hover:border-purple-300"
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors font-medium text-sm cursor-pointer border border-indigo-200 hover:border-indigo-300"
     >
-      <Sparkles className="size-3" />
+      <BookOpen className="size-3" />
       {term}
     </button>
   )
