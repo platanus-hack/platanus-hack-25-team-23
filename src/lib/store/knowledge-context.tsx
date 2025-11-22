@@ -49,23 +49,27 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
   const loadUserNotes = useCallback(async (userId: string) => {
     const supabase = createClient()
 
-    // Load notes
-    const { data: studyContent } = await supabase
-      .from('study_content')
+    // Load notes from the correct 'notes' table
+    const { data: notesData, error: notesError } = await supabase
+      .from('notes')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
-    if (studyContent) {
-      const loadedNotes: Note[] = studyContent.map(sc => ({
-        id: sc.id,
-        title: sc.title,
-        content: sc.content,
-        slug: sc.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        status: 'new' as const,
-        linkedTerms: sc.linked_concepts || [],
-        prerequisites: sc.prerequisites || [],
-        nextSteps: sc.next_steps || [],
+    if (notesError) {
+      console.error('Error loading notes:', notesError)
+    }
+
+    if (notesData) {
+      const loadedNotes: Note[] = notesData.map(n => ({
+        id: n.id,
+        title: n.title,
+        content: n.content,
+        slug: n.slug,
+        status: (n.status || 'new') as 'new' | 'read' | 'understood',
+        linkedTerms: [],
+        prerequisites: [],
+        nextSteps: [],
       }))
       setNotes(loadedNotes)
       if (loadedNotes.length > 0) {
@@ -73,17 +77,21 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Load relationships/edges
-    const { data: relationships } = await supabase
-      .from('concept_relationships')
-      .select('id, source_concept_id, target_concept_id')
+    // Load relationships/edges from the correct 'edges' table
+    const { data: edgesData, error: edgesError } = await supabase
+      .from('edges')
+      .select('id, source_id, target_id, relationship')
       .eq('user_id', userId)
 
-    if (relationships) {
-      const loadedEdges: Edge[] = relationships.map(r => ({
-        id: r.id,
-        source: r.source_concept_id,
-        target: r.target_concept_id,
+    if (edgesError) {
+      console.error('Error loading edges:', edgesError)
+    }
+
+    if (edgesData) {
+      const loadedEdges: Edge[] = edgesData.map(e => ({
+        id: e.id,
+        source: e.source_id,
+        target: e.target_id,
       }))
       setEdges(loadedEdges)
     }
@@ -124,6 +132,7 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
     api: '/api/notes/generate',
     schema: noteSchema,
     onFinish: ({ object }: { object: any }) => {
+      console.log('📝 Knowledge Context: onFinish called with object:', object)
       if (object) {
         const note: Note = {
           title: object.title || 'Generating...',
@@ -134,9 +143,14 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
           prerequisites: object.prerequisites || [],
           nextSteps: object.nextSteps || []
         }
+        console.log('📝 Knowledge Context: Adding note to state:', note.title, note.slug)
         setCurrentNote(note)
         setNotes(prev => {
-          if (prev.some(n => n.slug === note.slug)) return prev
+          if (prev.some(n => n.slug === note.slug)) {
+            console.log('📝 Knowledge Context: Note already exists, skipping')
+            return prev
+          }
+          console.log('📝 Knowledge Context: Notes count will be:', prev.length + 1)
           return [...prev, note]
         })
 

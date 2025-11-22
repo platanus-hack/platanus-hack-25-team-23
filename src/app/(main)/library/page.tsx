@@ -1,107 +1,224 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { createClient } from "@/lib/supabase/client"
-import { Search, Grid, List, CheckCircle, Clock, Circle, Plus, BookOpen, ArrowRight, FolderOpen } from "lucide-react"
+import { Search, Grid, List, CheckCircle, Clock, Circle, Plus, ArrowRight, FolderOpen, Brain, Download, RefreshCw, FileText } from "lucide-react"
 import Link from 'next/link'
+import { toast } from 'sonner'
 
-interface Concept {
+interface LibraryNote {
   id: string
-  name: string
+  title: string
+  slug: string
+  content: string
+  status: 'new' | 'read' | 'understood'
   area: string
-  areaColor?: string
-  status: string
-  level: string
-  isGenerated: boolean
+  areaColor: string
+  createdAt: string
+  wordCount: number
 }
 
-interface Area {
-  id: string
-  name: string
-  color: string
-  icon: string
+// Color palette for auto-assigned areas
+const AREA_COLORS = [
+  '#C9B7F3', // Purple
+  '#A3E4B6', // Green
+  '#FFE9A9', // Yellow
+  '#F5A3A3', // Red
+  '#A3D4F5', // Blue
+  '#F5D4A3', // Orange
+  '#D4A3F5', // Violet
+  '#A3F5E4', // Teal
+]
+
+// Helper to categorize notes by keywords
+function detectArea(title: string, content: string): string {
+  const text = `${title} ${content}`.toLowerCase()
+
+  if (text.includes('matemat') || text.includes('algebra') || text.includes('calcul') || text.includes('geometr')) {
+    return 'Matematicas'
+  }
+  if (text.includes('program') || text.includes('codigo') || text.includes('software') || text.includes('algoritm')) {
+    return 'Programacion'
+  }
+  if (text.includes('fisica') || text.includes('quimica') || text.includes('biolog') || text.includes('ciencia')) {
+    return 'Ciencias'
+  }
+  if (text.includes('histor') || text.includes('geograf') || text.includes('social')) {
+    return 'Historia'
+  }
+  if (text.includes('idioma') || text.includes('ingles') || text.includes('español') || text.includes('lenguaje')) {
+    return 'Idiomas'
+  }
+  if (text.includes('arte') || text.includes('musica') || text.includes('dibujo') || text.includes('diseño')) {
+    return 'Arte'
+  }
+  if (text.includes('econom') || text.includes('finanz') || text.includes('negocio') || text.includes('empresa')) {
+    return 'Economia'
+  }
+  if (text.includes('filosof') || text.includes('psicolog') || text.includes('sociolog')) {
+    return 'Humanidades'
+  }
+
+  return 'General'
+}
+
+function getAreaColor(areaName: string): string {
+  const areaIndex = [
+    'Matematicas', 'Programacion', 'Ciencias', 'Historia',
+    'Idiomas', 'Arte', 'Economia', 'Humanidades', 'General'
+  ].indexOf(areaName)
+
+  return AREA_COLORS[areaIndex >= 0 ? areaIndex : 0]
 }
 
 export default function LibraryPage() {
-  const { notes, session } = useKnowledge()
+  const { notes: contextNotes, session } = useKnowledge()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedArea, setSelectedArea] = useState<string | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [concepts, setConcepts] = useState<Concept[]>([])
-  const [areas, setAreas] = useState<Area[]>([])
+  const [libraryNotes, setLibraryNotes] = useState<LibraryNote[]>([])
   const [loading, setLoading] = useState(true)
+  const [isReorganizing, setIsReorganizing] = useState(false)
 
-  useEffect(() => {
-    async function loadLibraryData() {
-      if (!session?.user) {
-        const demoConcepts = notes.map(note => ({
-          id: note.slug,
-          name: note.title,
-          area: 'General',
-          areaColor: '#C9B7F3',
-          status: note.status === 'understood' ? 'understood' : note.status === 'read' ? 'in-progress' : 'pending',
-          level: 'intermediate',
-          isGenerated: true
-        }))
-        setConcepts(demoConcepts)
-        setLoading(false)
-        return
-      }
+  const loadLibraryData = useCallback(async () => {
+    setLoading(true)
 
-      const supabase = createClient()
-
-      const { data: areasData } = await supabase
-        .from('areas')
-        .select('*')
-        .eq('user_id', session.user.id)
-
-      if (areasData) {
-        setAreas(areasData)
-      }
-
-      const { data: conceptsData } = await supabase
-        .from('concepts')
-        .select('*, areas(name, color)')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
-
-      if (conceptsData) {
-        const loadedConcepts: Concept[] = conceptsData.map(c => ({
-          id: c.id,
-          name: c.name,
-          area: (c.areas as any)?.name || 'General',
-          areaColor: (c.areas as any)?.color || '#C9B7F3',
-          status: c.status || 'pending',
-          level: c.level || 'intermediate',
-          isGenerated: true
-        }))
-        setConcepts(loadedConcepts)
-      }
-
+    // If no session, use notes from context
+    if (!session?.user) {
+      const notesFromContext: LibraryNote[] = contextNotes.map(note => {
+        const area = detectArea(note.title, note.content)
+        return {
+          id: note.id || note.slug,
+          title: note.title,
+          slug: note.slug,
+          content: note.content,
+          status: note.status,
+          area,
+          areaColor: getAreaColor(area),
+          createdAt: new Date().toISOString(),
+          wordCount: note.content.split(/\s+/).length
+        }
+      })
+      setLibraryNotes(notesFromContext)
       setLoading(false)
+      return
     }
 
+    const supabase = createClient()
+
+    // Load notes from the notes table
+    const { data: notesData, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error loading notes:', error)
+      toast.error('Error al cargar las notas')
+      setLoading(false)
+      return
+    }
+
+    if (notesData) {
+      const loadedNotes: LibraryNote[] = notesData.map(n => {
+        const area = detectArea(n.title, n.content || '')
+        return {
+          id: n.id,
+          title: n.title,
+          slug: n.slug,
+          content: n.content || '',
+          status: (n.status || 'new') as 'new' | 'read' | 'understood',
+          area,
+          areaColor: getAreaColor(area),
+          createdAt: n.created_at,
+          wordCount: (n.content || '').split(/\s+/).length
+        }
+      })
+      setLibraryNotes(loadedNotes)
+    }
+
+    setLoading(false)
+  }, [session, contextNotes])
+
+  useEffect(() => {
     loadLibraryData()
-  }, [session, notes])
+  }, [loadLibraryData])
 
-  const allConcepts = concepts
+  // Get unique areas from notes
+  const uniqueAreas = [...new Set(libraryNotes.map(n => n.area))]
 
-  const filteredConcepts = allConcepts.filter(concept => {
-    const matchesSearch = concept.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesArea = !selectedArea || concept.area === selectedArea
-    const matchesStatus = !selectedStatus || concept.status === selectedStatus
+  const filteredNotes = libraryNotes.filter(note => {
+    const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      note.content.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesArea = !selectedArea || note.area === selectedArea
+    const matchesStatus = !selectedStatus || note.status === selectedStatus
     return matchesSearch && matchesArea && matchesStatus
   })
 
-  const groupedByArea = filteredConcepts.reduce((acc, concept) => {
-    if (!acc[concept.area]) {
-      acc[concept.area] = []
+  const groupedByArea = filteredNotes.reduce((acc, note) => {
+    if (!acc[note.area]) {
+      acc[note.area] = []
     }
-    acc[concept.area].push(concept)
+    acc[note.area].push(note)
     return acc
-  }, {} as Record<string, typeof filteredConcepts>)
+  }, {} as Record<string, LibraryNote[]>)
+
+  // Reorganize notes (simulate AI reorganization)
+  const handleReorganize = useCallback(async () => {
+    setIsReorganizing(true)
+    // Simulate reorganization delay
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    // Re-detect areas for all notes
+    const reorganized = libraryNotes.map(note => ({
+      ...note,
+      area: detectArea(note.title, note.content),
+      areaColor: getAreaColor(detectArea(note.title, note.content))
+    }))
+
+    setLibraryNotes(reorganized)
+    setIsReorganizing(false)
+    toast.success('Biblioteca reorganizada')
+  }, [libraryNotes])
+
+  // Export notes to Markdown
+  const exportToMarkdown = useCallback((notesToExport: LibraryNote[], folderName?: string) => {
+    let markdown = folderName
+      ? `# ${folderName}\n\nExportado el ${new Date().toLocaleDateString('es-ES')}\n\n---\n\n`
+      : `# Mi Biblioteca\n\nExportado el ${new Date().toLocaleDateString('es-ES')}\n\n---\n\n`
+
+    // Group by area if exporting all
+    const grouped = notesToExport.reduce((acc, note) => {
+      if (!acc[note.area]) acc[note.area] = []
+      acc[note.area].push(note)
+      return acc
+    }, {} as Record<string, LibraryNote[]>)
+
+    for (const [area, notes] of Object.entries(grouped)) {
+      markdown += `## ${area}\n\n`
+      for (const note of notes) {
+        markdown += `### ${note.title}\n\n`
+        markdown += `${note.content}\n\n`
+        markdown += `---\n\n`
+      }
+    }
+
+    // Download the file
+    const blob = new Blob([markdown], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = folderName ? `${folderName.toLowerCase().replace(/\s+/g, '-')}.md` : 'mi-biblioteca.md'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    toast.success('Exportado correctamente')
+  }, [])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -117,7 +234,7 @@ export default function LibraryPage() {
             <CheckCircle className="size-4 text-white" />
           </div>
         )
-      case 'in-progress':
+      case 'read':
         return (
           <div
             className="w-6 h-6 rounded-full flex items-center justify-center"
@@ -144,10 +261,8 @@ export default function LibraryPage() {
     }
   }
 
-  const getAreaColor = (areaName: string, concept?: Concept) => {
-    if (concept?.areaColor) return concept.areaColor
-    const area = areas.find(a => a.name === areaName)
-    return area?.color || '#C9B7F3'
+  const getNoteAreaColor = (note: LibraryNote) => {
+    return note.areaColor || getAreaColor(note.area)
   }
 
   return (
@@ -163,20 +278,55 @@ export default function LibraryPage() {
               Biblioteca
             </h1>
             <p style={{ color: '#646464' }}>
-              {allConcepts.length} conceptos en tu biblioteca
+              {libraryNotes.length} notas en tu biblioteca
             </p>
           </div>
-          <Link
-            href="/new-query"
-            className="flex items-center gap-2 px-6 py-3 text-white rounded-2xl transition-all hover:scale-105"
-            style={{
-              background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
-              boxShadow: '0px 4px 14px rgba(201, 183, 243, 0.3)'
-            }}
-          >
-            <Plus className="size-5" />
-            Nuevo Concepto
-          </Link>
+          <div className="flex items-center gap-3">
+            {/* Reorganize Button */}
+            <button
+              onClick={handleReorganize}
+              disabled={isReorganizing || libraryNotes.length === 0}
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+              style={{
+                backgroundColor: 'white',
+                border: '1px solid #E6E6E6',
+                color: '#646464',
+                boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
+              }}
+            >
+              <Brain className={`size-5 ${isReorganizing ? 'animate-pulse' : ''}`} />
+              {isReorganizing ? 'Reorganizando...' : 'Reorganizar'}
+            </button>
+
+            {/* Export All Button */}
+            <button
+              onClick={() => exportToMarkdown(libraryNotes)}
+              disabled={libraryNotes.length === 0}
+              className="flex items-center gap-2 px-5 py-3 rounded-2xl transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+              style={{
+                backgroundColor: 'white',
+                border: '1px solid #E6E6E6',
+                color: '#646464',
+                boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
+              }}
+            >
+              <Download className="size-5" />
+              Exportar Todo
+            </button>
+
+            {/* New Note Button */}
+            <Link
+              href="/new-query"
+              className="flex items-center gap-2 px-6 py-3 text-white rounded-2xl transition-all hover:scale-105"
+              style={{
+                background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+                boxShadow: '0px 4px 14px rgba(201, 183, 243, 0.3)'
+              }}
+            >
+              <Plus className="size-5" />
+              Nueva Nota
+            </Link>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -220,8 +370,8 @@ export default function LibraryPage() {
               }}
             >
               <option value="">Todas las areas</option>
-              {areas.map(area => (
-                <option key={area.id} value={area.name}>{area.icon} {area.name}</option>
+              {uniqueAreas.map(area => (
+                <option key={area} value={area}>{area}</option>
               ))}
             </select>
 
@@ -238,8 +388,8 @@ export default function LibraryPage() {
             >
               <option value="">Todos los estados</option>
               <option value="understood">Dominado</option>
-              <option value="in-progress">En progreso</option>
-              <option value="pending">Pendiente</option>
+              <option value="read">Leido</option>
+              <option value="new">Nuevo</option>
             </select>
 
             {/* View Mode */}
@@ -296,10 +446,10 @@ export default function LibraryPage() {
               <FolderOpen className="size-10" style={{ color: '#C9B7F3' }} />
             </div>
             <h3 className="text-xl font-semibold mb-2" style={{ color: '#1E1E1E' }}>
-              No se encontraron conceptos
+              No se encontraron notas
             </h3>
             <p className="mb-6" style={{ color: '#646464' }}>
-              Intenta con otros filtros o crea un nuevo concepto
+              Intenta con otros filtros o crea una nueva nota
             </p>
             <Link
               href="/new-query"
@@ -310,37 +460,52 @@ export default function LibraryPage() {
               }}
             >
               <Plus className="size-5" />
-              Crear concepto
+              Crear nota
             </Link>
           </div>
         ) : viewMode === 'grid' ? (
           // Grid View - Grouped by Area
           <div className="space-y-8">
-            {Object.entries(groupedByArea).map(([areaName, concepts]) => (
+            {Object.entries(groupedByArea).map(([areaName, areaNotes]) => (
               <div key={areaName}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div
-                    className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg"
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center"
+                      style={{
+                        backgroundColor: getAreaColor(areaName) + '30',
+                        boxShadow: `0px 2px 6px ${getAreaColor(areaName)}20`
+                      }}
+                    >
+                      <FileText className="size-5" style={{ color: getAreaColor(areaName) }} />
+                    </div>
+                    <h2 className="text-xl font-bold" style={{ color: '#1E1E1E' }}>{areaName}</h2>
+                    <span
+                      className="text-sm px-3 py-1 rounded-full"
+                      style={{ backgroundColor: '#F6F6F6', color: '#646464' }}
+                    >
+                      {areaNotes.length}
+                    </span>
+                  </div>
+                  {/* Export folder button */}
+                  <button
+                    onClick={() => exportToMarkdown(areaNotes, areaName)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm transition-all hover:scale-105"
                     style={{
-                      backgroundColor: getAreaColor(areaName) + '30',
-                      boxShadow: `0px 2px 6px ${getAreaColor(areaName)}20`
+                      backgroundColor: '#F6F6F6',
+                      color: '#646464',
+                      border: '1px solid #E6E6E6'
                     }}
                   >
-                    {areas.find(a => a.name === areaName)?.icon || '📚'}
-                  </div>
-                  <h2 className="text-xl font-bold" style={{ color: '#1E1E1E' }}>{areaName}</h2>
-                  <span
-                    className="text-sm px-3 py-1 rounded-full"
-                    style={{ backgroundColor: '#F6F6F6', color: '#646464' }}
-                  >
-                    {concepts.length}
-                  </span>
+                    <Download className="size-4" />
+                    Exportar
+                  </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {concepts.map(concept => (
+                  {areaNotes.map(note => (
                     <Link
-                      key={concept.id}
-                      href={`/study?topic=${encodeURIComponent(concept.name)}`}
+                      key={note.id}
+                      href={`/study?topic=${encodeURIComponent(note.title)}`}
                       className="rounded-2xl p-5 transition-all hover:scale-[1.02] group"
                       style={{
                         backgroundColor: 'white',
@@ -349,41 +514,45 @@ export default function LibraryPage() {
                       }}
                     >
                       <div className="flex items-start justify-between mb-3">
-                        {getStatusIcon(concept.status)}
+                        {getStatusIcon(note.status)}
                         <span
-                          className="text-xs px-2 py-1 rounded-lg capitalize"
+                          className="text-xs px-2 py-1 rounded-lg"
                           style={{ backgroundColor: '#F6F6F6', color: '#646464' }}
                         >
-                          {concept.level}
+                          {note.wordCount} palabras
                         </span>
                       </div>
                       <h3
-                        className="font-semibold mb-3 group-hover:text-purple-600 transition-colors"
+                        className="font-semibold mb-2 group-hover:text-purple-600 transition-colors line-clamp-2"
                         style={{ color: '#1E1E1E' }}
                       >
-                        {concept.name}
+                        {note.title}
                       </h3>
+                      <p
+                        className="text-sm mb-3 line-clamp-2"
+                        style={{ color: '#646464' }}
+                      >
+                        {note.content.slice(0, 100)}...
+                      </p>
                       <div className="flex items-center justify-between">
                         <span
                           className="text-xs px-3 py-1.5 rounded-xl font-medium"
                           style={{
-                            backgroundColor: getAreaColor(concept.area, concept) + '20',
-                            color: getAreaColor(concept.area, concept)
+                            backgroundColor: getNoteAreaColor(note) + '20',
+                            color: getNoteAreaColor(note)
                           }}
                         >
-                          {concept.area.split(' ')[0]}
+                          {note.area}
                         </span>
-                        {concept.isGenerated && (
-                          <span
-                            className="text-xs px-3 py-1.5 rounded-xl font-medium"
-                            style={{
-                              background: 'linear-gradient(135deg, rgba(201, 183, 243, 0.2) 0%, rgba(214, 201, 245, 0.2) 100%)',
-                              color: '#9575CD'
-                            }}
-                          >
-                            IA
-                          </span>
-                        )}
+                        <span
+                          className="text-xs px-3 py-1.5 rounded-xl font-medium"
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(201, 183, 243, 0.2) 0%, rgba(214, 201, 245, 0.2) 100%)',
+                            color: '#9575CD'
+                          }}
+                        >
+                          IA
+                        </span>
                       </div>
                     </Link>
                   ))}
@@ -408,50 +577,48 @@ export default function LibraryPage() {
                 }}
               >
                 <tr>
-                  <th className="text-left p-4 text-sm font-semibold" style={{ color: '#646464' }}>Concepto</th>
+                  <th className="text-left p-4 text-sm font-semibold" style={{ color: '#646464' }}>Titulo</th>
                   <th className="text-left p-4 text-sm font-semibold" style={{ color: '#646464' }}>Area</th>
-                  <th className="text-left p-4 text-sm font-semibold" style={{ color: '#646464' }}>Nivel</th>
+                  <th className="text-left p-4 text-sm font-semibold" style={{ color: '#646464' }}>Palabras</th>
                   <th className="text-left p-4 text-sm font-semibold" style={{ color: '#646464' }}>Estado</th>
                   <th className="p-4"></th>
                 </tr>
               </thead>
               <tbody>
-                {filteredConcepts.map(concept => (
+                {filteredNotes.map(note => (
                   <tr
-                    key={concept.id}
+                    key={note.id}
                     className="hover:bg-gray-50 transition-colors"
                     style={{ borderBottom: '1px solid #E6E6E6' }}
                   >
                     <td className="p-4">
-                      <span className="font-semibold" style={{ color: '#1E1E1E' }}>{concept.name}</span>
-                      {concept.isGenerated && (
-                        <span
-                          className="ml-2 text-xs px-2 py-0.5 rounded-lg"
-                          style={{
-                            background: 'linear-gradient(135deg, rgba(201, 183, 243, 0.2) 0%, rgba(214, 201, 245, 0.2) 100%)',
-                            color: '#9575CD'
-                          }}
-                        >
-                          IA
-                        </span>
-                      )}
+                      <span className="font-semibold" style={{ color: '#1E1E1E' }}>{note.title}</span>
+                      <span
+                        className="ml-2 text-xs px-2 py-0.5 rounded-lg"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(201, 183, 243, 0.2) 0%, rgba(214, 201, 245, 0.2) 100%)',
+                          color: '#9575CD'
+                        }}
+                      >
+                        IA
+                      </span>
                     </td>
                     <td className="p-4">
                       <span
                         className="text-sm px-3 py-1.5 rounded-xl font-medium"
                         style={{
-                          backgroundColor: getAreaColor(concept.area, concept) + '20',
-                          color: getAreaColor(concept.area, concept)
+                          backgroundColor: getNoteAreaColor(note) + '20',
+                          color: getNoteAreaColor(note)
                         }}
                       >
-                        {concept.area}
+                        {note.area}
                       </span>
                     </td>
-                    <td className="p-4 text-sm capitalize" style={{ color: '#646464' }}>{concept.level}</td>
-                    <td className="p-4">{getStatusIcon(concept.status)}</td>
+                    <td className="p-4 text-sm" style={{ color: '#646464' }}>{note.wordCount}</td>
+                    <td className="p-4">{getStatusIcon(note.status)}</td>
                     <td className="p-4">
                       <Link
-                        href={`/study?topic=${encodeURIComponent(concept.name)}`}
+                        href={`/study?topic=${encodeURIComponent(note.title)}`}
                         className="flex items-center gap-1 text-sm font-medium transition-all hover:scale-105"
                         style={{ color: '#C9B7F3' }}
                       >

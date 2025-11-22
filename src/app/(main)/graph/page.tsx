@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { createClient } from "@/lib/supabase/client"
-import { ZoomIn, ZoomOut, Maximize2, Sliders, Eye, Palette } from "lucide-react"
+import { ZoomIn, ZoomOut, Maximize2, Sliders, Eye, Palette, Filter, X, ChevronDown } from "lucide-react"
 import * as d3 from 'd3'
 import Link from 'next/link'
 
@@ -17,14 +17,15 @@ interface GraphNode {
   isYouNode?: boolean
   isAreaNode?: boolean
   distanceFromArea?: number
+  connectionCount?: number
   x?: number
   y?: number
 }
 
 interface GraphLink {
-  source: string
-  target: string
-  type?: string
+  source: string | GraphNode
+  target: string | GraphNode
+  type?: 'prerequisite' | 'related' | 'mentions'
 }
 
 interface Area {
@@ -34,9 +35,67 @@ interface Area {
   icon: string
 }
 
+// Link type colors
+const linkTypeColors = {
+  prerequisite: '#6366f1',
+  related: '#8b5cf6',
+  mentions: '#d1d5db'
+}
+
+// Calculate distance from area node using BFS
+function calculateDistanceFromArea(
+  nodes: GraphNode[],
+  links: GraphLink[]
+): Map<string, number> {
+  const distances = new Map<string, number>()
+  const areaNodes = nodes.filter(n => n.isAreaNode || n.isYouNode)
+
+  // Initialize distances
+  nodes.forEach(n => distances.set(n.id, Infinity))
+  areaNodes.forEach(n => distances.set(n.id, 0))
+
+  // BFS from area nodes
+  const queue = [...areaNodes.map(n => n.id)]
+  while (queue.length > 0) {
+    const currentId = queue.shift()!
+    const currentDist = distances.get(currentId)!
+
+    links.forEach(link => {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id
+
+      let neighborId: string | null = null
+      if (sourceId === currentId) neighborId = targetId
+      if (targetId === currentId) neighborId = sourceId
+
+      if (neighborId && distances.get(neighborId)! > currentDist + 1) {
+        distances.set(neighborId, currentDist + 1)
+        queue.push(neighborId)
+      }
+    })
+  }
+
+  return distances
+}
+
+// Get color with alpha based on distance
+function getColorWithAlpha(baseColor: string, distance: number, maxDistance: number): string {
+  const alpha = Math.max(0.3, 1 - (distance / (maxDistance + 1)) * 0.5)
+
+  // Parse hex color
+  const hex = baseColor.replace('#', '')
+  const r = parseInt(hex.substring(0, 2), 16)
+  const g = parseInt(hex.substring(2, 4), 16)
+  const b = parseInt(hex.substring(4, 6), 16)
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
 export default function GraphPage() {
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const controlsRef = useRef<HTMLDivElement>(null)
+  const filtersRef = useRef<HTMLDivElement>(null)
   const { notes, edges, session } = useKnowledge()
   const [viewMode, setViewMode] = useState<'status' | 'area'>('area')
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
@@ -45,7 +104,66 @@ export default function GraphPage() {
   const [areas, setAreas] = useState<Area[]>([])
   const [loading, setLoading] = useState(true)
   const [showControls, setShowControls] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
   const [nodeSpacing, setNodeSpacing] = useState(150)
+  const [sliderValue, setSliderValue] = useState(150) // Immediate slider value for UI
+  const spacingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const simulationRef = useRef<d3.Simulation<d3.SimulationNodeDatum, undefined> | null>(null)
+
+  // Filter states
+  const [filterArea, setFilterArea] = useState<string | null>(null)
+  const [filterLevel, setFilterLevel] = useState<string | null>(null)
+  const [filterStatus, setFilterStatus] = useState<string | null>(null)
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
+
+  // Smooth spacing update - updates simulation without recreating graph
+  const handleSpacingChange = useCallback((value: number) => {
+    setSliderValue(value) // Update UI immediately
+
+    // Update simulation smoothly without debounce
+    if (simulationRef.current) {
+      const linkForce = simulationRef.current.force('link') as d3.ForceLink<d3.SimulationNodeDatum, d3.SimulationLinkDatum<d3.SimulationNodeDatum>>
+      if (linkForce) {
+        linkForce.distance(value)
+      }
+      // Reheat simulation gently for smooth animation
+      simulationRef.current.alpha(0.3).restart()
+    }
+
+    // Update state for persistence (debounced)
+    if (spacingTimeoutRef.current) {
+      clearTimeout(spacingTimeoutRef.current)
+    }
+    spacingTimeoutRef.current = setTimeout(() => {
+      setNodeSpacing(value)
+    }, 300)
+  }, [])
+
+  // Close popups when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as HTMLElement
+
+      // Don't close if clicking inside the popup or on the toggle button
+      const isInsideControls = controlsRef.current?.contains(target)
+      const isInsideFilters = filtersRef.current?.contains(target)
+      const isToggleButton = target.closest('[data-popup-toggle]')
+
+      if (isToggleButton) return
+
+      if (showControls && !isInsideControls) {
+        setShowControls(false)
+      }
+
+      if (showFilters && !isInsideFilters) {
+        setShowFilters(false)
+      }
+    }
+
+    // Use click instead of mousedown to avoid race condition with button onClick
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [showControls, showFilters])
 
   // Default areas
   const defaultAreas: Area[] = [
@@ -60,9 +178,80 @@ export default function GraphPage() {
 
   const activeAreas = areas.length > 0 ? areas : defaultAreas
 
+  // Filter nodes and links based on current filters
+  const { filteredNodes, filteredLinks, maxDistance } = useMemo(() => {
+    let filtered = graphNodes.filter(node => {
+      if (node.isYouNode) return true
+      if (node.isAreaNode) {
+        if (filterArea && !node.name.includes(filterArea)) return false
+        return true
+      }
+      if (filterArea && node.area !== filterArea) return false
+      if (filterLevel && node.level !== filterLevel) return false
+      if (filterStatus && node.status !== filterStatus) return false
+      return true
+    })
+
+    // Calculate connection counts
+    const connectionCounts = new Map<string, number>()
+    graphLinks.forEach(link => {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id
+      connectionCounts.set(sourceId, (connectionCounts.get(sourceId) || 0) + 1)
+      connectionCounts.set(targetId, (connectionCounts.get(targetId) || 0) + 1)
+    })
+
+    // Add connection counts to nodes
+    filtered = filtered.map(node => ({
+      ...node,
+      connectionCount: connectionCounts.get(node.id) || 0
+    }))
+
+    const filteredIds = new Set(filtered.map(n => n.id))
+
+    // Filter links to only include those between filtered nodes
+    const links = graphLinks.filter(link => {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id
+      return filteredIds.has(sourceId) && filteredIds.has(targetId)
+    })
+
+    // Calculate distances from area nodes
+    const distances = calculateDistanceFromArea(filtered, links)
+    const maxDist = Math.max(...Array.from(distances.values()).filter(d => d !== Infinity), 1)
+
+    // Update nodes with distances
+    filtered = filtered.map(node => ({
+      ...node,
+      distanceFromArea: distances.get(node.id) || 0
+    }))
+
+    return { filteredNodes: filtered, filteredLinks: links, maxDistance: maxDist }
+  }, [graphNodes, graphLinks, filterArea, filterLevel, filterStatus])
+
+  // Get connected node IDs for hovered node
+  const connectedNodeIds = useMemo(() => {
+    if (!hoveredNodeId) return new Set<string>()
+    const connected = new Set<string>([hoveredNodeId])
+    filteredLinks.forEach(link => {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id
+      if (sourceId === hoveredNodeId) connected.add(targetId)
+      if (targetId === hoveredNodeId) connected.add(sourceId)
+    })
+    return connected
+  }, [hoveredNodeId, filteredLinks])
+
   // Load graph data from API
   useEffect(() => {
     async function loadGraphData() {
+      console.log('📊 Graph: Loading data...', {
+        hasSession: !!session?.user,
+        notesCount: notes.length,
+        edgesCount: edges.length,
+        notesTitles: notes.map(n => n.title)
+      })
+
       if (!session?.user) {
         // For demo mode, use notes from context
         const validNotes = notes.filter(note =>
@@ -71,6 +260,8 @@ export default function GraphPage() {
           note.title &&
           note.title !== 'Generating...'
         )
+
+        console.log('📊 Graph: Demo mode - valid notes:', validNotes.length, validNotes.map(n => n.title))
 
         const demoNodes: GraphNode[] = [
           { id: 'you', name: 'Yo', status: 'understood', area: '', level: 'intermediate', isYouNode: true },
@@ -89,6 +280,8 @@ export default function GraphPage() {
           source: 'you',
           target: note.slug
         }))
+
+        console.log('📊 Graph: Created nodes:', demoNodes.length, 'links:', demoLinks.length)
 
         edges.forEach(edge => {
           const sourceExists = demoNodes.some(n => n.id === edge.source)
@@ -126,79 +319,78 @@ export default function GraphPage() {
 
       const supabase = createClient()
 
-      const { data: areasData } = await supabase
-        .from('areas')
+      // Load notes from the correct 'notes' table
+      const { data: notesData, error: notesError } = await supabase
+        .from('notes')
         .select('*')
         .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
 
-      if (areasData) {
-        setAreas(areasData)
+      if (notesError) {
+        console.error('Error loading notes for graph:', notesError)
       }
 
-      const { data: concepts } = await supabase
-        .from('concepts')
-        .select('*, areas(name, color)')
-        .eq('user_id', session.user.id)
-
-      const { data: relationships } = await supabase
-        .from('concept_relationships')
+      // Load edges from the correct 'edges' table
+      const { data: edgesData, error: edgesError } = await supabase
+        .from('edges')
         .select('*')
         .eq('user_id', session.user.id)
+
+      if (edgesError) {
+        console.error('Error loading edges for graph:', edgesError)
+      }
 
       const nodes: GraphNode[] = [
         { id: 'you', name: 'Yo', status: 'understood', area: '', level: 'intermediate', isYouNode: true }
       ]
 
-      if (areasData) {
-        areasData.forEach(area => {
+      // Add notes as nodes
+      if (notesData && notesData.length > 0) {
+        notesData.forEach(note => {
           nodes.push({
-            id: `area-${area.id}`,
-            name: area.name,
-            status: 'understood',
-            area: area.name,
-            areaColor: area.color,
-            level: 'intermediate',
-            isAreaNode: true
-          })
-        })
-      }
-
-      if (concepts) {
-        concepts.forEach(concept => {
-          nodes.push({
-            id: concept.id,
-            name: concept.name,
-            status: concept.status || 'pending',
-            area: (concept.areas as any)?.name || 'General',
-            areaColor: (concept.areas as any)?.color || '#C9B7F3',
-            level: concept.level || 'intermediate'
+            id: note.id,
+            name: note.title,
+            status: (note.status === 'understood' ? 'understood' :
+                    note.status === 'read' ? 'in-progress' : 'pending') as 'understood' | 'in-progress' | 'pending',
+            area: 'General',
+            areaColor: '#C9B7F3',
+            level: 'intermediate'
           })
         })
       }
 
       const links: GraphLink[] = []
 
-      if (areasData) {
-        areasData.forEach(area => {
-          links.push({ source: 'you', target: `area-${area.id}` })
-        })
-      }
+      // Connect all notes to the "You" node
+      if (notesData && notesData.length > 0) {
+        notesData.forEach(note => {
+          links.push({ source: 'you', target: note.id })
 
-      if (concepts) {
-        concepts.forEach(concept => {
-          if (concept.area_id) {
-            links.push({ source: `area-${concept.area_id}`, target: concept.id })
+          // If note has a parent, create that connection too
+          if (note.parent_id) {
+            links.push({
+              source: note.parent_id,
+              target: note.id,
+              type: 'prerequisite'
+            })
           }
         })
       }
 
-      if (relationships) {
-        relationships.forEach(rel => {
-          links.push({
-            source: rel.source_concept_id,
-            target: rel.target_concept_id,
-            type: rel.relationship_type
-          })
+      // Add edges from the edges table
+      if (edgesData && edgesData.length > 0) {
+        edgesData.forEach(edge => {
+          // Check if both source and target exist in nodes
+          const sourceExists = nodes.some(n => n.id === edge.source_id)
+          const targetExists = nodes.some(n => n.id === edge.target_id)
+          if (sourceExists && targetExists) {
+            links.push({
+              source: edge.source_id,
+              target: edge.target_id,
+              type: (edge.relationship === 'prerequisite' ? 'prerequisite' :
+                    edge.relationship === 'related' ? 'related' : 'mentions') as 'prerequisite' | 'related' | 'mentions'
+            })
+          }
         })
       }
 
@@ -217,24 +409,41 @@ export default function GraphPage() {
     }
 
     if (viewMode === 'status') {
-      switch (node.status) {
-        case 'understood': return '#A3E4B6'
-        case 'in-progress': return '#FFE9A9'
-        default: return '#D1D5DB'
-      }
+      const baseColor = (() => {
+        switch (node.status) {
+          case 'understood': return '#A3E4B6'
+          case 'in-progress': return '#FFE9A9'
+          default: return '#D1D5DB'
+        }
+      })()
+      // Apply distance-based alpha
+      return getColorWithAlpha(baseColor, node.distanceFromArea || 0, maxDistance)
     } else {
-      return node.areaColor || '#D6C9F5'
+      const baseColor = node.areaColor || '#D6C9F5'
+      // Apply distance-based alpha
+      return getColorWithAlpha(baseColor, node.distanceFromArea || 0, maxDistance)
     }
   }
 
   const getNodeRadius = (node: GraphNode) => {
-    if (node.isYouNode) return 30
-    if (node.isAreaNode) return 25
-    return 18
+    if (node.isYouNode) return 32
+    if (node.isAreaNode) return 26
+
+    // Dynamic sizing based on connections (min 14, max 24)
+    const connections = node.connectionCount || 0
+    const baseRadius = 14
+    const extraRadius = Math.min(connections * 2, 10)
+    return baseRadius + extraRadius
+  }
+
+  // Get link color based on type
+  const getLinkColor = (link: GraphLink) => {
+    const type = link.type || 'mentions'
+    return linkTypeColors[type] || linkTypeColors.mentions
   }
 
   useEffect(() => {
-    if (!svgRef.current || !containerRef.current || loading || graphNodes.length === 0) return
+    if (!svgRef.current || !containerRef.current || loading || filteredNodes.length === 0) return
 
     const container = containerRef.current
     const width = container.clientWidth
@@ -246,8 +455,50 @@ export default function GraphPage() {
       .attr('width', width)
       .attr('height', height)
 
+    // Add arrow markers for different link types
+    const defs = svg.append('defs')
+
+    // Prerequisite arrow marker (indigo)
+    defs.append('marker')
+      .attr('id', 'arrow-prerequisite')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 20)
+      .attr('refY', 0)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('fill', linkTypeColors.prerequisite)
+      .attr('d', 'M0,-5L10,0L0,5')
+
+    // Related arrow marker (purple)
+    defs.append('marker')
+      .attr('id', 'arrow-related')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 20)
+      .attr('refY', 0)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('fill', linkTypeColors.related)
+      .attr('d', 'M0,-5L10,0L0,5')
+
+    // Mentions arrow marker (gray)
+    defs.append('marker')
+      .attr('id', 'arrow-mentions')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 20)
+      .attr('refY', 0)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('fill', linkTypeColors.mentions)
+      .attr('d', 'M0,-5L10,0L0,5')
+
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.3, 3])
+      .scaleExtent([0.2, 4])
       .on('zoom', (event) => {
         g.attr('transform', event.transform)
       })
@@ -256,25 +507,46 @@ export default function GraphPage() {
 
     const g = svg.append('g')
 
-    const simulation = d3.forceSimulation(graphNodes as d3.SimulationNodeDatum[])
-      .force('link', d3.forceLink(graphLinks)
-        .id((d: any) => d.id)
-        .distance(nodeSpacing))
-      .force('charge', d3.forceManyBody().strength(-(nodeSpacing * 5)))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius((d: any) => getNodeRadius(d) + 10))
+    // Deep copy nodes and links for D3 simulation
+    const nodesData = filteredNodes.map(n => ({ ...n }))
+    const linksData = filteredLinks.map(l => ({
+      ...l,
+      source: typeof l.source === 'string' ? l.source : l.source.id,
+      target: typeof l.target === 'string' ? l.target : l.target.id
+    }))
 
+    const simulation = d3.forceSimulation(nodesData as d3.SimulationNodeDatum[])
+      .force('link', d3.forceLink(linksData)
+        .id((d: any) => d.id)
+        .distance(sliderValue)
+        .strength(0.5))
+      .force('charge', d3.forceManyBody()
+        .strength(-200)
+        .distanceMin(50)
+        .distanceMax(500))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collision', d3.forceCollide().radius((d: any) => getNodeRadius(d) + 20))
+      .force('x', d3.forceX(width / 2).strength(0.05))
+      .force('y', d3.forceY(height / 2).strength(0.05))
+      .alphaDecay(0.02)
+      .velocityDecay(0.4)
+
+    // Store simulation ref for smooth updates
+    simulationRef.current = simulation
+
+    // Create links with arrow markers
     const link = g.append('g')
       .selectAll('line')
-      .data(graphLinks)
+      .data(linksData)
       .join('line')
-      .attr('stroke', '#E6E6E6')
+      .attr('stroke', (d: any) => getLinkColor(d))
       .attr('stroke-width', 2)
-      .attr('stroke-opacity', 0.7)
+      .attr('stroke-opacity', 0.6)
+      .attr('marker-end', (d: any) => `url(#arrow-${d.type || 'mentions'})`)
 
     const node = g.append('g')
       .selectAll('g')
-      .data(graphNodes)
+      .data(nodesData)
       .join('g')
       .attr('cursor', 'pointer')
       .call(d3.drag<SVGGElement, GraphNode>()
@@ -293,41 +565,92 @@ export default function GraphPage() {
           d.fy = null
         }) as any)
 
+    // Add circles to nodes
     node.append('circle')
       .attr('r', d => getNodeRadius(d))
       .attr('fill', d => getNodeColor(d))
       .attr('stroke', '#fff')
       .attr('stroke-width', 2.5)
+      .style('filter', 'drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.1))')
       .on('click', (event, d) => {
         setSelectedNode(d)
       })
       .on('mouseenter', function(event, d) {
+        setHoveredNodeId(d.id)
+
+        // Expand the hovered node
         d3.select(this)
           .transition()
           .duration(200)
-          .attr('r', getNodeRadius(d) + 5)
+          .attr('r', getNodeRadius(d) + 6)
+          .style('filter', 'drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.2))')
 
-        link.attr('stroke-opacity', (l: any) => {
-          const sourceId = typeof l.source === 'string' ? l.source : l.source.id
-          const targetId = typeof l.target === 'string' ? l.target : l.target.id
-          return (sourceId === d.id || targetId === d.id) ? 1 : 0.2
+        // Get connected node IDs
+        const connected = new Set<string>([d.id])
+        linksData.forEach(l => {
+          const sourceId = typeof l.source === 'string' ? l.source : (l.source as any).id
+          const targetId = typeof l.target === 'string' ? l.target : (l.target as any).id
+          if (sourceId === d.id) connected.add(targetId)
+          if (targetId === d.id) connected.add(sourceId)
         })
+
+        // Highlight connected links
+        link.transition().duration(200)
+          .attr('stroke-opacity', (l: any) => {
+            const sourceId = typeof l.source === 'string' ? l.source : l.source.id
+            const targetId = typeof l.target === 'string' ? l.target : l.target.id
+            return (sourceId === d.id || targetId === d.id) ? 1 : 0.1
+          })
+          .attr('stroke-width', (l: any) => {
+            const sourceId = typeof l.source === 'string' ? l.source : l.source.id
+            const targetId = typeof l.target === 'string' ? l.target : l.target.id
+            return (sourceId === d.id || targetId === d.id) ? 3 : 1.5
+          })
+
+        // Highlight connected nodes
+        node.selectAll('circle')
+          .transition()
+          .duration(200)
+          .attr('opacity', (n: any) => connected.has(n.id) ? 1 : 0.3)
+
+        node.selectAll('text')
+          .transition()
+          .duration(200)
+          .attr('opacity', (n: any) => connected.has(n.id) ? 1 : 0.3)
       })
       .on('mouseleave', function(event, d) {
+        setHoveredNodeId(null)
+
         d3.select(this)
           .transition()
           .duration(200)
           .attr('r', getNodeRadius(d))
+          .style('filter', 'drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.1))')
 
-        link.attr('stroke-opacity', 0.7)
+        // Reset link styles
+        link.transition().duration(200)
+          .attr('stroke-opacity', 0.6)
+          .attr('stroke-width', 2)
+
+        // Reset node opacity
+        node.selectAll('circle')
+          .transition()
+          .duration(200)
+          .attr('opacity', 1)
+
+        node.selectAll('text')
+          .transition()
+          .duration(200)
+          .attr('opacity', 1)
       })
 
+    // Add text labels
     node.append('text')
       .text(d => d.isYouNode ? 'Yo' : (d.name.length > 15 ? d.name.slice(0, 12) + '...' : d.name))
       .attr('text-anchor', 'middle')
       .attr('dy', d => getNodeRadius(d) + 16)
       .attr('fill', '#374151')
-      .attr('font-size', '12px')
+      .attr('font-size', '11px')
       .attr('font-weight', '500')
       .attr('pointer-events', 'none')
       .style('user-select', 'none')
@@ -342,12 +665,13 @@ export default function GraphPage() {
       node.attr('transform', (d: any) => `translate(${d.x},${d.y})`)
     })
 
-    svg.call(zoom.transform, d3.zoomIdentity.translate(0, 0).scale(0.8))
+    // Center the view initially
+    svg.call(zoom.transform, d3.zoomIdentity.translate(width * 0.1, height * 0.1).scale(0.8))
 
     return () => {
       simulation.stop()
     }
-  }, [graphNodes, graphLinks, viewMode, loading, nodeSpacing])
+  }, [filteredNodes, filteredLinks, viewMode, loading, maxDistance])
 
   const handleZoomIn = () => {
     const svg = d3.select(svgRef.current)
@@ -366,9 +690,25 @@ export default function GraphPage() {
 
   return (
     <div
-      className="flex-1 flex flex-col relative overflow-hidden"
+      className="flex-1 flex flex-col relative overflow-hidden h-full"
       style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}
     >
+      {/* Graph Container - MUST be first for proper z-index stacking */}
+      <div
+        ref={containerRef}
+        className="absolute inset-0"
+        style={{ zIndex: 1 }}
+      >
+        <svg
+          ref={svgRef}
+          className="w-full h-full"
+          style={{
+            cursor: 'grab',
+            background: 'transparent'
+          }}
+        />
+      </div>
+
       {/* View Mode Toggle - Centered at top */}
       <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-10">
         <div
@@ -438,6 +778,7 @@ export default function GraphPage() {
 
         {/* Spacing Control Toggle */}
         <button
+          data-popup-toggle="controls"
           onClick={() => setShowControls(!showControls)}
           className="p-3 rounded-2xl hover:scale-110 transition-all"
           style={{
@@ -451,11 +792,35 @@ export default function GraphPage() {
             style={{ color: showControls ? 'white' : '#646464' }}
           />
         </button>
+
+        {/* Filter Toggle */}
+        <button
+          data-popup-toggle="filters"
+          onClick={() => setShowFilters(!showFilters)}
+          className="p-3 rounded-2xl hover:scale-110 transition-all relative"
+          style={{
+            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
+            background: showFilters ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)' : 'white'
+          }}
+          title="Filtros"
+        >
+          <Filter
+            className="size-5"
+            style={{ color: showFilters ? 'white' : '#646464' }}
+          />
+          {(filterArea || filterLevel || filterStatus) && (
+            <span
+              className="absolute -top-1 -right-1 w-3 h-3 rounded-full"
+              style={{ background: '#C9B7F3' }}
+            />
+          )}
+        </button>
       </div>
 
       {/* Spacing Control Slider */}
       {showControls && (
         <div
+          ref={controlsRef}
           className="absolute top-28 right-6 z-10 p-5 rounded-3xl"
           style={{
             background: 'white',
@@ -486,20 +851,23 @@ export default function GraphPage() {
               min="50"
               max="300"
               step="10"
-              value={nodeSpacing}
-              onChange={(e) => setNodeSpacing(Number(e.target.value))}
+              value={sliderValue}
+              onChange={(e) => handleSpacingChange(Number(e.target.value))}
               className="w-full h-2 rounded-full appearance-none cursor-pointer"
               style={{
-                background: `linear-gradient(to right, #A3D4FF 0%, #A3D4FF ${((nodeSpacing - 50) / 250) * 100}%, #E6E6E6 ${((nodeSpacing - 50) / 250) * 100}%, #E6E6E6 100%)`
+                background: `linear-gradient(to right, #A3D4FF 0%, #A3D4FF ${((sliderValue - 50) / 250) * 100}%, #E6E6E6 ${((sliderValue - 50) / 250) * 100}%, #E6E6E6 100%)`
               }}
             />
 
             <div className="flex justify-between items-center">
               <span className="text-xs font-medium" style={{ color: '#646464' }}>
-                Distancia: {nodeSpacing}px
+                Distancia: {sliderValue}px
               </span>
               <button
-                onClick={() => setNodeSpacing(150)}
+                onClick={() => {
+                  setSliderValue(150)
+                  setNodeSpacing(150)
+                }}
                 className="text-xs px-3 py-1.5 rounded-full transition-all hover:scale-105"
                 style={{
                   background: 'linear-gradient(135deg, #A3D4FF 0%, #CADFFF 100%)',
@@ -510,6 +878,145 @@ export default function GraphPage() {
                 Restaurar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <div
+          ref={filtersRef}
+          className="absolute z-10 p-5 rounded-3xl"
+          style={{
+            background: 'white',
+            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
+            width: '300px',
+            top: showControls ? '250px' : '160px',
+            right: '24px'
+          }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div
+                className="p-2 rounded-xl"
+                style={{ backgroundColor: 'rgba(201, 183, 243, 0.2)' }}
+              >
+                <Filter className="size-4" style={{ color: '#9575CD' }} />
+              </div>
+              <h4 className="font-semibold" style={{ color: '#1E1E1E' }}>
+                Filtros
+              </h4>
+            </div>
+            {(filterArea || filterLevel || filterStatus) && (
+              <button
+                onClick={() => {
+                  setFilterArea(null)
+                  setFilterLevel(null)
+                  setFilterStatus(null)
+                }}
+                className="text-xs px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-1"
+                style={{ color: '#646464' }}
+              >
+                <X className="size-3" />
+                Limpiar
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {/* Area Filter */}
+            <div>
+              <label className="text-xs font-medium mb-2 block" style={{ color: '#646464' }}>
+                Area
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {activeAreas.slice(0, 4).map(area => (
+                  <button
+                    key={area.id}
+                    onClick={() => setFilterArea(filterArea === area.name ? null : area.name)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all hover:scale-105"
+                    style={{
+                      background: filterArea === area.name
+                        ? `linear-gradient(135deg, ${area.color} 0%, ${area.color}cc 100%)`
+                        : 'rgba(0,0,0,0.05)',
+                      color: filterArea === area.name ? 'white' : '#646464',
+                      boxShadow: filterArea === area.name ? `0px 2px 6px ${area.color}40` : 'none'
+                    }}
+                  >
+                    {area.icon} {area.name.split(' ')[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Level Filter */}
+            <div>
+              <label className="text-xs font-medium mb-2 block" style={{ color: '#646464' }}>
+                Nivel
+              </label>
+              <div className="flex gap-2">
+                {[
+                  { id: 'beginner', label: 'Basico', color: '#22c55e' },
+                  { id: 'intermediate', label: 'Intermedio', color: '#eab308' },
+                  { id: 'advanced', label: 'Avanzado', color: '#ef4444' }
+                ].map(level => (
+                  <button
+                    key={level.id}
+                    onClick={() => setFilterLevel(filterLevel === level.id ? null : level.id)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all hover:scale-105 flex-1"
+                    style={{
+                      background: filterLevel === level.id
+                        ? `linear-gradient(135deg, ${level.color} 0%, ${level.color}cc 100%)`
+                        : 'rgba(0,0,0,0.05)',
+                      color: filterLevel === level.id ? 'white' : '#646464',
+                      boxShadow: filterLevel === level.id ? `0px 2px 6px ${level.color}40` : 'none'
+                    }}
+                  >
+                    {level.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <label className="text-xs font-medium mb-2 block" style={{ color: '#646464' }}>
+                Estado
+              </label>
+              <div className="flex gap-2">
+                {[
+                  { id: 'understood', label: 'Dominado', color: '#A3E4B6' },
+                  { id: 'in-progress', label: 'En Progreso', color: '#FFE9A9' },
+                  { id: 'pending', label: 'Pendiente', color: '#D1D5DB' }
+                ].map(status => (
+                  <button
+                    key={status.id}
+                    onClick={() => setFilterStatus(filterStatus === status.id ? null : status.id)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all hover:scale-105 flex-1"
+                    style={{
+                      background: filterStatus === status.id
+                        ? `linear-gradient(135deg, ${status.color} 0%, ${status.color}cc 100%)`
+                        : 'rgba(0,0,0,0.05)',
+                      color: filterStatus === status.id ? '#1E1E1E' : '#646464',
+                      boxShadow: filterStatus === status.id ? `0px 2px 6px ${status.color}40` : 'none'
+                    }}
+                  >
+                    {status.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Active Filters Summary */}
+            {(filterArea || filterLevel || filterStatus) && (
+              <div
+                className="pt-3 border-t text-xs"
+                style={{ borderColor: '#E6E6E6', color: '#646464' }}
+              >
+                <span className="font-medium">Mostrando:</span>{' '}
+                {filteredNodes.length} de {graphNodes.length} nodos
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -652,11 +1159,6 @@ export default function GraphPage() {
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Graph Container */}
-      <div ref={containerRef} className="flex-1 relative">
-        <svg ref={svgRef} className="w-full h-full" style={{ cursor: 'grab' }} />
       </div>
 
       {/* Selected Node Panel - Right side */}
