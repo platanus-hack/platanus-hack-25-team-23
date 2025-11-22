@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { createClient } from "@/lib/supabase/client"
-import { ChevronRight, ChevronDown, CheckCircle, Clock, Circle } from "lucide-react"
+import { ChevronRight, ChevronDown, CheckCircle, Clock, Circle, Lightbulb, ArrowRight, Network } from "lucide-react"
 import Link from 'next/link'
 
 interface TreeNode {
@@ -34,7 +34,6 @@ export default function TreePage() {
   useEffect(() => {
     async function loadTreeData() {
       if (!session?.user) {
-        // Demo mode: build tree from context notes
         const demoTree: TreeNode[] = [{
           id: 'yo',
           name: 'Yo',
@@ -46,6 +45,7 @@ export default function TreePage() {
             name: note.title,
             status: note.status === 'understood' ? 'understood' : note.status === 'read' ? 'in-progress' : 'pending',
             area: 'General',
+            areaColor: '#C9B7F3',
             level: 'intermediate',
             children: []
           }))
@@ -57,7 +57,6 @@ export default function TreePage() {
 
       const supabase = createClient()
 
-      // Load areas
       const { data: areasData } = await supabase
         .from('areas')
         .select('*')
@@ -67,22 +66,18 @@ export default function TreePage() {
         setAreas(areasData)
       }
 
-      // Load concepts with areas
       const { data: concepts } = await supabase
         .from('concepts')
         .select('*, areas(name, color)')
         .eq('user_id', session.user.id)
 
-      // Load relationships
       const { data: relationships } = await supabase
         .from('concept_relationships')
         .select('*')
         .eq('user_id', session.user.id)
 
-      // Build tree structure
       const nodeMap = new Map<string, TreeNode>()
 
-      // Add root "Yo" node
       nodeMap.set('yo', {
         id: 'yo',
         name: 'Yo',
@@ -92,7 +87,6 @@ export default function TreePage() {
         children: []
       })
 
-      // Add area nodes
       if (areasData) {
         areasData.forEach(area => {
           nodeMap.set(`area-${area.id}`, {
@@ -104,12 +98,10 @@ export default function TreePage() {
             level: 'intermediate',
             children: []
           })
-          // Link areas to "Yo"
           nodeMap.get('yo')!.children.push(nodeMap.get(`area-${area.id}`)!)
         })
       }
 
-      // Add concept nodes
       if (concepts) {
         concepts.forEach(concept => {
           nodeMap.set(concept.id, {
@@ -122,7 +114,6 @@ export default function TreePage() {
             children: []
           })
 
-          // Link concepts to their area
           if (concept.area_id) {
             const areaNode = nodeMap.get(`area-${concept.area_id}`)
             if (areaNode) {
@@ -132,7 +123,6 @@ export default function TreePage() {
         })
       }
 
-      // Add relationships between concepts
       if (relationships) {
         relationships.forEach(rel => {
           const parent = nodeMap.get(rel.source_concept_id)
@@ -166,11 +156,41 @@ export default function TreePage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'understood':
-        return <CheckCircle className="size-5 text-green-500" />
+        return (
+          <div
+            className="w-6 h-6 rounded-full flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #A3E4B6 0%, #B9E2B1 100%)',
+              boxShadow: '0px 2px 6px rgba(163, 228, 182, 0.3)'
+            }}
+          >
+            <CheckCircle className="size-4 text-white" />
+          </div>
+        )
       case 'in-progress':
-        return <Clock className="size-5 text-yellow-500" />
+        return (
+          <div
+            className="w-6 h-6 rounded-full flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #FFE9A9 0%, #FFF4D4 100%)',
+              boxShadow: '0px 2px 6px rgba(255, 233, 169, 0.3)'
+            }}
+          >
+            <Clock className="size-4" style={{ color: '#B89C3C' }} />
+          </div>
+        )
       default:
-        return <Circle className="size-5 text-gray-300" />
+        return (
+          <div
+            className="w-6 h-6 rounded-full flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #E6E6E6 0%, #F0F0F0 100%)',
+              boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.05)'
+            }}
+          >
+            <Circle className="size-4" style={{ color: '#646464' }} />
+          </div>
+        )
     }
   }
 
@@ -180,13 +200,27 @@ export default function TreePage() {
     return area?.color || '#C9B7F3'
   }
 
+  // Find next recommended (pending with no pending prerequisites)
+  const findNextRecommended = () => {
+    const allNodes: TreeNode[] = []
+    const collectNodes = (node: TreeNode) => {
+      if (!node.id.startsWith('area-') && node.id !== 'yo') {
+        allNodes.push(node)
+      }
+      node.children.forEach(collectNodes)
+    }
+    tree.forEach(collectNodes)
+    return allNodes.find(n => n.status === 'pending')
+  }
+
+  const nextRecommended = findNextRecommended()
+
   const renderTreeNode = (node: TreeNode, depth: number = 0) => {
     const isExpanded = expandedNodes.has(node.id)
     const hasChildren = node.children.length > 0
     const isYouNode = node.id === 'yo'
     const isAreaNode = node.id.startsWith('area-')
 
-    // Filter by selected area
     if (selectedArea && !isYouNode && !isAreaNode) {
       if (node.area !== selectedArea) return null
     }
@@ -194,32 +228,56 @@ export default function TreePage() {
     return (
       <div key={node.id} className="select-none">
         <div
-          className={`flex items-center gap-3 py-3 px-4 rounded-xl cursor-pointer transition-colors ${
-            isYouNode ? 'bg-purple-100' :
-            isAreaNode ? 'bg-gray-100' :
-            'hover:bg-gray-50'
-          }`}
-          style={{ marginLeft: depth * 24 }}
+          className="flex items-center gap-3 py-4 px-4 rounded-2xl cursor-pointer transition-all duration-200 mb-2 hover:scale-[1.01]"
+          style={{
+            marginLeft: depth * 28,
+            background: isYouNode
+              ? 'linear-gradient(135deg, #E6DEF9 0%, #F0EAF9 100%)'
+              : isAreaNode
+              ? `linear-gradient(135deg, ${getAreaColor(node.area, node)}20 0%, ${getAreaColor(node.area, node)}10 100%)`
+              : 'white',
+            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
+            border: isYouNode
+              ? '2px solid #D6C9F5'
+              : isAreaNode
+              ? `2px solid ${getAreaColor(node.area, node)}40`
+              : '1px solid #E6E6E6'
+          }}
           onClick={() => hasChildren && toggleNode(node.id)}
         >
           {/* Expand/Collapse Button */}
           {hasChildren ? (
-            <button className="w-6 h-6 flex items-center justify-center text-gray-400">
-              {isExpanded ? <ChevronDown className="size-5" /> : <ChevronRight className="size-5" />}
+            <button
+              className="w-7 h-7 rounded-xl flex items-center justify-center transition-colors"
+              style={{
+                backgroundColor: 'rgba(100, 100, 100, 0.1)',
+                color: '#646464'
+              }}
+            >
+              {isExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
             </button>
           ) : (
-            <div className="w-6" />
+            <div className="w-7" />
           )}
 
-          {/* Status Icon or Area Color */}
+          {/* Status Icon or Avatar */}
           {isYouNode ? (
-            <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-lg">
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center text-white text-sm font-bold"
+              style={{
+                background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+                boxShadow: '0px 2px 8px rgba(201, 183, 243, 0.3)'
+              }}
+            >
               Yo
             </div>
           ) : isAreaNode ? (
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-lg"
-              style={{ backgroundColor: getAreaColor(node.area, node) }}
+              className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
+              style={{
+                backgroundColor: getAreaColor(node.area, node),
+                boxShadow: `0px 2px 8px ${getAreaColor(node.area, node)}50`
+              }}
             >
               {areas.find(a => a.name === node.name)?.icon || '📚'}
             </div>
@@ -229,20 +287,31 @@ export default function TreePage() {
 
           {/* Node Name */}
           <div className="flex-1">
-            <span className={`font-medium ${isYouNode || isAreaNode ? 'text-gray-900' : 'text-gray-700'}`}>
+            <span
+              className="font-semibold"
+              style={{ color: '#1E1E1E' }}
+            >
               {node.name}
             </span>
             {!isYouNode && !isAreaNode && (
-              <span className="ml-2 text-xs text-gray-400 capitalize">{node.level}</span>
+              <span
+                className="ml-2 text-xs px-2 py-0.5 rounded-full capitalize"
+                style={{
+                  backgroundColor: '#F6F6F6',
+                  color: '#646464'
+                }}
+              >
+                {node.level}
+              </span>
             )}
           </div>
 
           {/* Area Badge */}
           {!isYouNode && !isAreaNode && (
             <div
-              className="px-2 py-1 rounded-full text-xs font-medium"
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold"
               style={{
-                backgroundColor: getAreaColor(node.area, node) + '30',
+                backgroundColor: getAreaColor(node.area, node) + '20',
                 color: getAreaColor(node.area, node)
               }}
             >
@@ -254,17 +323,26 @@ export default function TreePage() {
           {!isYouNode && !isAreaNode && (
             <Link
               href={`/study?topic=${encodeURIComponent(node.name)}`}
-              className="px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm hover:bg-purple-200 transition-colors"
+              className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105 flex items-center gap-2"
+              style={{
+                background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+                color: 'white',
+                boxShadow: '0px 2px 6px rgba(201, 183, 243, 0.3)'
+              }}
               onClick={(e) => e.stopPropagation()}
             >
               Estudiar
+              <ArrowRight className="size-4" />
             </Link>
           )}
         </div>
 
         {/* Children */}
         {hasChildren && isExpanded && (
-          <div className="ml-4 border-l-2 border-gray-200">
+          <div
+            className="ml-6 pl-4"
+            style={{ borderLeft: '2px solid #E6E6E6' }}
+          >
             {node.children.map(child => renderTreeNode(child, depth + 1))}
           </div>
         )}
@@ -273,23 +351,101 @@ export default function TreePage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
+    <div
+      className="flex-1 overflow-y-auto"
+      style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}
+    >
+      <div className="max-w-4xl mx-auto p-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Ruta de Aprendizaje</h1>
-          <p className="text-gray-600">Explora tu camino de conocimiento</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold mb-2" style={{ color: '#1E1E1E' }}>
+              Ruta de Aprendizaje
+            </h1>
+            <p style={{ color: '#646464' }}>
+              Explora tu camino de conocimiento paso a paso
+            </p>
+          </div>
+
+          <Link
+            href="/graph"
+            className="flex items-center gap-2 px-5 py-3 rounded-2xl font-medium transition-all hover:scale-105"
+            style={{
+              backgroundColor: 'white',
+              color: '#646464',
+              boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
+              border: '1px solid #E6E6E6'
+            }}
+          >
+            <Network className="size-5" />
+            Ver en Grafo
+          </Link>
         </div>
 
+        {/* Recommendation Banner */}
+        {nextRecommended && (
+          <div
+            className="rounded-3xl p-6 mb-8 relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, #A3D4FF 0%, #CADFFF 100%)',
+              boxShadow: '0px 4px 14px rgba(163, 212, 255, 0.3)'
+            }}
+          >
+            <div
+              className="absolute top-0 right-0 w-32 h-32"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                clipPath: 'polygon(100% 0, 100% 100%, 0 0)'
+              }}
+            />
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center gap-4">
+                <div
+                  className="p-3 rounded-2xl"
+                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.3)' }}
+                >
+                  <Lightbulb className="size-6" style={{ color: '#5A8FCC' }} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1" style={{ color: '#5A8FCC' }}>
+                    Siguiente recomendado:
+                  </p>
+                  <p className="text-lg font-bold" style={{ color: '#1E1E1E' }}>
+                    {nextRecommended.name}
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={`/study?topic=${encodeURIComponent(nextRecommended.name)}`}
+                className="px-6 py-3 rounded-2xl font-semibold transition-all hover:scale-105 flex items-center gap-2"
+                style={{
+                  backgroundColor: 'white',
+                  color: '#5A8FCC',
+                  boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)'
+                }}
+              >
+                Comenzar
+                <ArrowRight className="size-5" />
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Area Filter */}
-        <div className="mb-6 flex flex-wrap gap-2">
+        <div className="mb-6 flex flex-wrap gap-3">
           <button
             onClick={() => setSelectedArea(null)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-              selectedArea === null
-                ? 'bg-purple-100 text-purple-700'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
+            className="px-5 py-2.5 rounded-2xl text-sm font-medium transition-all hover:scale-105"
+            style={{
+              background: selectedArea === null
+                ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)'
+                : 'white',
+              color: selectedArea === null ? 'white' : '#646464',
+              boxShadow: selectedArea === null
+                ? '0px 2px 8px rgba(201, 183, 243, 0.3)'
+                : '0px 2px 8px rgba(0, 0, 0, 0.04)',
+              border: selectedArea === null ? 'none' : '1px solid #E6E6E6'
+            }}
           >
             Todas las areas
           </button>
@@ -297,40 +453,84 @@ export default function TreePage() {
             <button
               key={area.id}
               onClick={() => setSelectedArea(area.name)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                selectedArea === area.name
-                  ? 'text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-100'
-              }`}
+              className="px-5 py-2.5 rounded-2xl text-sm font-medium transition-all hover:scale-105 flex items-center gap-2"
               style={{
-                backgroundColor: selectedArea === area.name ? area.color : undefined
+                backgroundColor: selectedArea === area.name ? area.color : 'white',
+                color: selectedArea === area.name ? 'white' : '#646464',
+                boxShadow: selectedArea === area.name
+                  ? `0px 2px 8px ${area.color}50`
+                  : '0px 2px 8px rgba(0, 0, 0, 0.04)',
+                border: selectedArea === area.name ? 'none' : '1px solid #E6E6E6'
               }}
             >
-              {area.icon || '📚'} {area.name}
+              <span>{area.icon || '📚'}</span>
+              {area.name}
             </button>
           ))}
         </div>
 
         {/* Tree View */}
-        <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-4">
-          {tree.map(node => renderTreeNode(node))}
+        <div
+          className="rounded-3xl p-6"
+          style={{
+            backgroundColor: 'white',
+            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
+          }}
+        >
+          {loading ? (
+            <div className="text-center py-12" style={{ color: '#646464' }}>
+              Cargando ruta...
+            </div>
+          ) : tree.length > 0 ? (
+            tree.map(node => renderTreeNode(node))
+          ) : (
+            <div className="text-center py-12" style={{ color: '#646464' }}>
+              No hay conceptos en tu ruta todavia
+            </div>
+          )}
         </div>
 
         {/* Legend */}
-        <div className="mt-6 bg-white rounded-xl p-4 shadow-soft border border-gray-100">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">Estado de los conceptos</h4>
-          <div className="flex gap-6">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="size-5 text-green-500" />
-              <span className="text-sm text-gray-600">Dominado</span>
+        <div
+          className="mt-6 rounded-2xl p-5"
+          style={{
+            backgroundColor: 'white',
+            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
+          }}
+        >
+          <h4 className="text-sm font-semibold mb-4" style={{ color: '#1E1E1E' }}>
+            Estado de los conceptos
+          </h4>
+          <div className="flex gap-8">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-5 h-5 rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, #A3E4B6 0%, #B9E2B1 100%)',
+                  boxShadow: '0px 2px 6px rgba(163, 228, 182, 0.3)'
+                }}
+              />
+              <span className="text-sm" style={{ color: '#646464' }}>Dominado</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="size-5 text-yellow-500" />
-              <span className="text-sm text-gray-600">En progreso</span>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-5 h-5 rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, #FFE9A9 0%, #FFF4D4 100%)',
+                  boxShadow: '0px 2px 6px rgba(255, 233, 169, 0.3)'
+                }}
+              />
+              <span className="text-sm" style={{ color: '#646464' }}>En progreso</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Circle className="size-5 text-gray-300" />
-              <span className="text-sm text-gray-600">Pendiente</span>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-5 h-5 rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, #E6E6E6 0%, #F0F0F0 100%)',
+                  boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.05)'
+                }}
+              />
+              <span className="text-sm" style={{ color: '#646464' }}>Pendiente</span>
             </div>
           </div>
         </div>

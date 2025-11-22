@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { createClient } from "@/lib/supabase/client"
-import { Search, Filter, Grid, List, CheckCircle, Clock, Circle, Plus } from "lucide-react"
+import { Search, Grid, List, CheckCircle, Clock, Circle, Plus, BookOpen, ArrowRight, FolderOpen } from "lucide-react"
 import Link from 'next/link'
 
 interface Concept {
@@ -36,11 +36,11 @@ export default function LibraryPage() {
   useEffect(() => {
     async function loadLibraryData() {
       if (!session?.user) {
-        // Demo mode: use notes from context
         const demoConcepts = notes.map(note => ({
           id: note.slug,
           name: note.title,
           area: 'General',
+          areaColor: '#C9B7F3',
           status: note.status === 'understood' ? 'understood' : note.status === 'read' ? 'in-progress' : 'pending',
           level: 'intermediate',
           isGenerated: true
@@ -52,7 +52,6 @@ export default function LibraryPage() {
 
       const supabase = createClient()
 
-      // Load areas
       const { data: areasData } = await supabase
         .from('areas')
         .select('*')
@@ -62,7 +61,6 @@ export default function LibraryPage() {
         setAreas(areasData)
       }
 
-      // Load concepts with areas
       const { data: conceptsData } = await supabase
         .from('concepts')
         .select('*, areas(name, color)')
@@ -90,7 +88,6 @@ export default function LibraryPage() {
 
   const allConcepts = concepts
 
-  // Filter concepts
   const filteredConcepts = allConcepts.filter(concept => {
     const matchesSearch = concept.name.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesArea = !selectedArea || concept.area === selectedArea
@@ -98,7 +95,6 @@ export default function LibraryPage() {
     return matchesSearch && matchesArea && matchesStatus
   })
 
-  // Group by area
   const groupedByArea = filteredConcepts.reduce((acc, concept) => {
     if (!acc[concept.area]) {
       acc[concept.area] = []
@@ -110,11 +106,41 @@ export default function LibraryPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'understood':
-        return <CheckCircle className="size-5 text-green-500" />
+        return (
+          <div
+            className="w-6 h-6 rounded-full flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #A3E4B6 0%, #B9E2B1 100%)',
+              boxShadow: '0px 2px 6px rgba(163, 228, 182, 0.3)'
+            }}
+          >
+            <CheckCircle className="size-4 text-white" />
+          </div>
+        )
       case 'in-progress':
-        return <Clock className="size-5 text-yellow-500" />
+        return (
+          <div
+            className="w-6 h-6 rounded-full flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #FFE9A9 0%, #FFF4D4 100%)',
+              boxShadow: '0px 2px 6px rgba(255, 233, 169, 0.3)'
+            }}
+          >
+            <Clock className="size-4" style={{ color: '#B89C3C' }} />
+          </div>
+        )
       default:
-        return <Circle className="size-5 text-gray-300" />
+        return (
+          <div
+            className="w-6 h-6 rounded-full flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #E6E6E6 0%, #F0F0F0 100%)',
+              boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.05)'
+            }}
+          >
+            <Circle className="size-4" style={{ color: '#646464' }} />
+          </div>
+        )
     }
   }
 
@@ -125,17 +151,28 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div
+      className="flex-1 overflow-y-auto"
+      style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}
+    >
+      <div className="max-w-6xl mx-auto p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Biblioteca</h1>
-            <p className="text-gray-600">{allConcepts.length} conceptos en tu biblioteca</p>
+            <h1 className="text-4xl font-bold mb-2" style={{ color: '#1E1E1E' }}>
+              Biblioteca
+            </h1>
+            <p style={{ color: '#646464' }}>
+              {allConcepts.length} conceptos en tu biblioteca
+            </p>
           </div>
           <Link
             href="/new-query"
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors"
+            className="flex items-center gap-2 px-6 py-3 text-white rounded-2xl transition-all hover:scale-105"
+            style={{
+              background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+              boxShadow: '0px 4px 14px rgba(201, 183, 243, 0.3)'
+            }}
           >
             <Plus className="size-5" />
             Nuevo Concepto
@@ -143,17 +180,31 @@ export default function LibraryPage() {
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-2xl p-4 shadow-soft border border-gray-100 mb-6">
+        <div
+          className="rounded-3xl p-5 mb-6"
+          style={{
+            backgroundColor: 'white',
+            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
+          }}
+        >
           <div className="flex flex-wrap gap-4">
             {/* Search */}
             <div className="flex-1 min-w-[200px] relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 size-5"
+                style={{ color: '#646464' }}
+              />
               <input
                 type="text"
                 placeholder="Buscar conceptos..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full pl-12 pr-4 py-3 rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all"
+                style={{
+                  backgroundColor: '#F6F6F6',
+                  border: '1px solid #E6E6E6',
+                  color: '#1E1E1E'
+                }}
               />
             </div>
 
@@ -161,11 +212,16 @@ export default function LibraryPage() {
             <select
               value={selectedArea || ''}
               onChange={(e) => setSelectedArea(e.target.value || null)}
-              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+              className="px-4 py-3 rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all"
+              style={{
+                backgroundColor: '#F6F6F6',
+                border: '1px solid #E6E6E6',
+                color: '#646464'
+              }}
             >
               <option value="">Todas las areas</option>
               {areas.map(area => (
-                <option key={area.id} value={area.name}>{area.name}</option>
+                <option key={area.id} value={area.name}>{area.icon} {area.name}</option>
               ))}
             </select>
 
@@ -173,7 +229,12 @@ export default function LibraryPage() {
             <select
               value={selectedStatus || ''}
               onChange={(e) => setSelectedStatus(e.target.value || null)}
-              className="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+              className="px-4 py-3 rounded-2xl text-sm focus:outline-none focus:ring-2 transition-all"
+              style={{
+                backgroundColor: '#F6F6F6',
+                border: '1px solid #E6E6E6',
+                color: '#646464'
+              }}
             >
               <option value="">Todos los estados</option>
               <option value="understood">Dominado</option>
@@ -182,18 +243,38 @@ export default function LibraryPage() {
             </select>
 
             {/* View Mode */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
+            <div
+              className="flex rounded-2xl p-1.5"
+              style={{
+                backgroundColor: '#F6F6F6',
+                border: '1px solid #E6E6E6'
+              }}
+            >
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-white shadow-sm' : ''}`}
+                className="p-2.5 rounded-xl transition-all"
+                style={{
+                  background: viewMode === 'grid'
+                    ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)'
+                    : 'transparent',
+                  color: viewMode === 'grid' ? 'white' : '#646464',
+                  boxShadow: viewMode === 'grid' ? '0px 2px 6px rgba(201, 183, 243, 0.3)' : 'none'
+                }}
               >
-                <Grid className="size-5 text-gray-600" />
+                <Grid className="size-5" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-white shadow-sm' : ''}`}
+                className="p-2.5 rounded-xl transition-all"
+                style={{
+                  background: viewMode === 'list'
+                    ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)'
+                    : 'transparent',
+                  color: viewMode === 'list' ? 'white' : '#646464',
+                  boxShadow: viewMode === 'list' ? '0px 2px 6px rgba(201, 183, 243, 0.3)' : 'none'
+                }}
               >
-                <List className="size-5 text-gray-600" />
+                <List className="size-5" />
               </button>
             </div>
           </div>
@@ -201,12 +282,36 @@ export default function LibraryPage() {
 
         {/* Content */}
         {Object.keys(groupedByArea).length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 shadow-soft border border-gray-100 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="size-8 text-gray-400" />
+          <div
+            className="rounded-3xl p-12 text-center"
+            style={{
+              backgroundColor: 'white',
+              boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
+            }}
+          >
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: '#E6DEF9' }}
+            >
+              <FolderOpen className="size-10" style={{ color: '#C9B7F3' }} />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No se encontraron conceptos</h3>
-            <p className="text-gray-600">Intenta con otros filtros o crea un nuevo concepto</p>
+            <h3 className="text-xl font-semibold mb-2" style={{ color: '#1E1E1E' }}>
+              No se encontraron conceptos
+            </h3>
+            <p className="mb-6" style={{ color: '#646464' }}>
+              Intenta con otros filtros o crea un nuevo concepto
+            </p>
+            <Link
+              href="/new-query"
+              className="inline-flex items-center gap-2 px-6 py-3 text-white rounded-2xl transition-all hover:scale-105"
+              style={{
+                background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+                boxShadow: '0px 4px 14px rgba(201, 183, 243, 0.3)'
+              }}
+            >
+              <Plus className="size-5" />
+              Crear concepto
+            </Link>
           </div>
         ) : viewMode === 'grid' ? (
           // Grid View - Grouped by Area
@@ -215,31 +320,52 @@ export default function LibraryPage() {
               <div key={areaName}>
                 <div className="flex items-center gap-3 mb-4">
                   <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: getAreaColor(areaName) + '30' }}
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg"
+                    style={{
+                      backgroundColor: getAreaColor(areaName) + '30',
+                      boxShadow: `0px 2px 6px ${getAreaColor(areaName)}20`
+                    }}
                   >
                     {areas.find(a => a.name === areaName)?.icon || '📚'}
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-900">{areaName}</h2>
-                  <span className="text-sm text-gray-500">({concepts.length})</span>
+                  <h2 className="text-xl font-bold" style={{ color: '#1E1E1E' }}>{areaName}</h2>
+                  <span
+                    className="text-sm px-3 py-1 rounded-full"
+                    style={{ backgroundColor: '#F6F6F6', color: '#646464' }}
+                  >
+                    {concepts.length}
+                  </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {concepts.map(concept => (
                     <Link
                       key={concept.id}
                       href={`/study?topic=${encodeURIComponent(concept.name)}`}
-                      className="bg-white rounded-xl p-4 shadow-soft border border-gray-100 hover:border-purple-200 transition-all hover:shadow-md group"
+                      className="rounded-2xl p-5 transition-all hover:scale-[1.02] group"
+                      style={{
+                        backgroundColor: 'white',
+                        boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
+                        border: '1px solid #E6E6E6'
+                      }}
                     >
                       <div className="flex items-start justify-between mb-3">
                         {getStatusIcon(concept.status)}
-                        <span className="text-xs text-gray-400 capitalize">{concept.level}</span>
+                        <span
+                          className="text-xs px-2 py-1 rounded-lg capitalize"
+                          style={{ backgroundColor: '#F6F6F6', color: '#646464' }}
+                        >
+                          {concept.level}
+                        </span>
                       </div>
-                      <h3 className="font-medium text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+                      <h3
+                        className="font-semibold mb-3 group-hover:text-purple-600 transition-colors"
+                        style={{ color: '#1E1E1E' }}
+                      >
                         {concept.name}
                       </h3>
                       <div className="flex items-center justify-between">
                         <span
-                          className="text-xs px-2 py-1 rounded-full"
+                          className="text-xs px-3 py-1.5 rounded-xl font-medium"
                           style={{
                             backgroundColor: getAreaColor(concept.area, concept) + '20',
                             color: getAreaColor(concept.area, concept)
@@ -248,7 +374,13 @@ export default function LibraryPage() {
                           {concept.area.split(' ')[0]}
                         </span>
                         {concept.isGenerated && (
-                          <span className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
+                          <span
+                            className="text-xs px-3 py-1.5 rounded-xl font-medium"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(201, 183, 243, 0.2) 0%, rgba(214, 201, 245, 0.2) 100%)',
+                              color: '#9575CD'
+                            }}
+                          >
                             IA
                           </span>
                         )}
@@ -261,31 +393,52 @@ export default function LibraryPage() {
           </div>
         ) : (
           // List View
-          <div className="bg-white rounded-2xl shadow-soft border border-gray-100 overflow-hidden">
+          <div
+            className="rounded-3xl overflow-hidden"
+            style={{
+              backgroundColor: 'white',
+              boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
+            }}
+          >
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-100">
+              <thead
+                style={{
+                  backgroundColor: '#F6F6F6',
+                  borderBottom: '1px solid #E6E6E6'
+                }}
+              >
                 <tr>
-                  <th className="text-left p-4 text-sm font-semibold text-gray-600">Concepto</th>
-                  <th className="text-left p-4 text-sm font-semibold text-gray-600">Area</th>
-                  <th className="text-left p-4 text-sm font-semibold text-gray-600">Nivel</th>
-                  <th className="text-left p-4 text-sm font-semibold text-gray-600">Estado</th>
+                  <th className="text-left p-4 text-sm font-semibold" style={{ color: '#646464' }}>Concepto</th>
+                  <th className="text-left p-4 text-sm font-semibold" style={{ color: '#646464' }}>Area</th>
+                  <th className="text-left p-4 text-sm font-semibold" style={{ color: '#646464' }}>Nivel</th>
+                  <th className="text-left p-4 text-sm font-semibold" style={{ color: '#646464' }}>Estado</th>
                   <th className="p-4"></th>
                 </tr>
               </thead>
               <tbody>
                 {filteredConcepts.map(concept => (
-                  <tr key={concept.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                  <tr
+                    key={concept.id}
+                    className="hover:bg-gray-50 transition-colors"
+                    style={{ borderBottom: '1px solid #E6E6E6' }}
+                  >
                     <td className="p-4">
-                      <span className="font-medium text-gray-900">{concept.name}</span>
+                      <span className="font-semibold" style={{ color: '#1E1E1E' }}>{concept.name}</span>
                       {concept.isGenerated && (
-                        <span className="ml-2 text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
+                        <span
+                          className="ml-2 text-xs px-2 py-0.5 rounded-lg"
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(201, 183, 243, 0.2) 0%, rgba(214, 201, 245, 0.2) 100%)',
+                            color: '#9575CD'
+                          }}
+                        >
                           IA
                         </span>
                       )}
                     </td>
                     <td className="p-4">
                       <span
-                        className="text-sm px-2 py-1 rounded-full"
+                        className="text-sm px-3 py-1.5 rounded-xl font-medium"
                         style={{
                           backgroundColor: getAreaColor(concept.area, concept) + '20',
                           color: getAreaColor(concept.area, concept)
@@ -294,14 +447,16 @@ export default function LibraryPage() {
                         {concept.area}
                       </span>
                     </td>
-                    <td className="p-4 text-sm text-gray-600 capitalize">{concept.level}</td>
+                    <td className="p-4 text-sm capitalize" style={{ color: '#646464' }}>{concept.level}</td>
                     <td className="p-4">{getStatusIcon(concept.status)}</td>
                     <td className="p-4">
                       <Link
                         href={`/study?topic=${encodeURIComponent(concept.name)}`}
-                        className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+                        className="flex items-center gap-1 text-sm font-medium transition-all hover:scale-105"
+                        style={{ color: '#C9B7F3' }}
                       >
                         Estudiar
+                        <ArrowRight className="size-4" />
                       </Link>
                     </td>
                   </tr>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, BookOpen, Network, GitBranch, User, Plus, FolderOpen, Search, Brain, LogOut } from 'lucide-react';
+import { Home, BookOpen, Network, GitBranch, User, Plus, FolderOpen, Search, Brain, LogOut, Flame } from 'lucide-react';
 import { useKnowledge } from '@/lib/store/knowledge-context';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -47,7 +47,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, href: '/dashboard' },
-    { id: 'new-query', label: 'Nueva Consulta', icon: Plus, href: '/new-query' },
+    { id: 'new-query', label: 'Nueva Consulta', icon: Plus, href: '/new-query', highlight: true },
     { id: 'library', label: 'Biblioteca', icon: FolderOpen, href: '/library' },
     { id: 'graph', label: 'Grafo', icon: Network, href: '/graph' },
     { id: 'tree', label: 'Ruta', icon: GitBranch, href: '/tree' },
@@ -57,67 +57,145 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen`}>
-      <div className="p-6 border-b border-gray-200">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+    <div
+      className={`${isCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 flex flex-col h-screen`}
+      style={{
+        backgroundColor: 'white',
+        borderRight: '1px solid #E6E6E6'
+      }}
+    >
+      {/* Logo */}
+      <div
+        className="p-6"
+        style={{ borderBottom: '1px solid #E6E6E6' }}
+      >
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-2xl flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+              boxShadow: '0px 2px 8px rgba(201, 183, 243, 0.3)'
+            }}
+          >
             <Brain className="size-5 text-white" />
           </div>
           {!isCollapsed && (
-            <span className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent">
+            <span
+              className="text-xl font-bold"
+              style={{ color: '#C9B7F3' }}
+            >
               KnowledgeFlow
             </span>
           )}
         </Link>
       </div>
 
+      {/* Search */}
       {!isCollapsed && (
-        <div className="p-4 border-b border-gray-200">
+        <div
+          className="p-4"
+          style={{ borderBottom: '1px solid #E6E6E6' }}
+        >
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 size-4" />
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4"
+              style={{ color: '#646464' }}
+            />
             <input
               type="text"
               placeholder="Buscar concepto..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2"
+              style={{
+                backgroundColor: '#F6F6F6',
+                border: '1px solid #E6E6E6',
+                color: '#1E1E1E'
+              }}
             />
           </div>
         </div>
       )}
 
+      {/* Navigation */}
       <nav className="flex-1 p-4">
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           {menuItems.map((item) => (
             <li key={item.id}>
               <Link
                 href={item.href}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive(item.href)
-                    ? 'bg-purple-100 text-purple-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                  isActive(item.href) ? 'scale-[1.02]' : 'hover:scale-[1.02]'
                 }`}
+                style={{
+                  background: isActive(item.href)
+                    ? 'linear-gradient(135deg, rgba(201, 183, 243, 0.2) 0%, rgba(214, 201, 245, 0.2) 100%)'
+                    : item.highlight && !isActive(item.href)
+                    ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)'
+                    : 'transparent',
+                  color: isActive(item.href)
+                    ? '#9575CD'
+                    : item.highlight && !isActive(item.href)
+                    ? 'white'
+                    : '#646464',
+                  boxShadow: item.highlight && !isActive(item.href)
+                    ? '0px 2px 8px rgba(201, 183, 243, 0.3)'
+                    : 'none'
+                }}
               >
                 <item.icon className="size-5" />
-                {!isCollapsed && <span>{item.label}</span>}
+                {!isCollapsed && (
+                  <span className="font-medium">{item.label}</span>
+                )}
               </Link>
             </li>
           ))}
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-gray-200">
+      {/* Footer */}
+      <div
+        className="p-4"
+        style={{ borderTop: '1px solid #E6E6E6' }}
+      >
         {!isCollapsed && (
           <>
             {session?.user ? (
               <>
-                <div className="bg-purple-50 rounded-lg p-4 mb-3">
-                  <p className="text-sm text-purple-900 mb-2">Racha de estudio</p>
-                  <p className="text-purple-700 font-semibold">{studyStreak} dias consecutivos</p>
+                {/* Study Streak */}
+                <div
+                  className="rounded-2xl p-4 mb-3"
+                  style={{
+                    background: 'linear-gradient(135deg, #FFE8CC 0%, #FFF4E6 100%)',
+                    border: '2px solid #FFD5A5'
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Flame className="size-4" style={{ color: '#FF9D5D' }} />
+                    <p className="text-sm font-medium" style={{ color: '#1E1E1E' }}>Racha de estudio</p>
+                  </div>
+                  <p className="text-lg font-bold" style={{ color: '#CC7E4A' }}>
+                    {studyStreak} dias consecutivos 🔥
+                  </p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 truncate mb-2">{session.user.email}</p>
+
+                {/* User Info */}
+                <div
+                  className="rounded-2xl p-4"
+                  style={{ backgroundColor: '#F6F6F6' }}
+                >
+                  <p
+                    className="text-xs truncate mb-3"
+                    style={{ color: '#646464' }}
+                  >
+                    {session.user.email}
+                  </p>
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+                    style={{
+                      backgroundColor: 'rgba(255, 177, 177, 0.2)',
+                      color: '#E57373',
+                      border: '1px solid rgba(255, 177, 177, 0.5)'
+                    }}
                   >
                     <LogOut className="size-4" />
                     Cerrar sesion
@@ -127,7 +205,12 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
             ) : (
               <Link
                 href="/login"
-                className="block w-full px-4 py-3 text-center text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                className="block w-full px-4 py-3 text-center rounded-2xl font-medium transition-all hover:scale-[1.02]"
+                style={{
+                  background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+                  color: 'white',
+                  boxShadow: '0px 4px 14px rgba(201, 183, 243, 0.3)'
+                }}
               >
                 Iniciar sesion
               </Link>

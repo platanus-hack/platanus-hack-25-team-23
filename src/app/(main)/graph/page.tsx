@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { createClient } from "@/lib/supabase/client"
-import { ZoomIn, ZoomOut, Maximize2, Eye } from "lucide-react"
+import { ZoomIn, ZoomOut, Maximize2, Sliders, Eye, Palette } from "lucide-react"
 import * as d3 from 'd3'
 import Link from 'next/link'
 
@@ -16,6 +16,7 @@ interface GraphNode {
   level: 'beginner' | 'intermediate' | 'advanced'
   isYouNode?: boolean
   isAreaNode?: boolean
+  distanceFromArea?: number
   x?: number
   y?: number
 }
@@ -43,13 +44,27 @@ export default function GraphPage() {
   const [graphLinks, setGraphLinks] = useState<GraphLink[]>([])
   const [areas, setAreas] = useState<Area[]>([])
   const [loading, setLoading] = useState(true)
+  const [showControls, setShowControls] = useState(false)
+  const [nodeSpacing, setNodeSpacing] = useState(150)
+
+  // Default areas
+  const defaultAreas: Area[] = [
+    { id: 'desarrollo-profesional', name: 'Desarrollo Profesional', color: '#3b82f6', icon: '💼' },
+    { id: 'salud-bienestar', name: 'Salud y Bienestar', color: '#22c55e', icon: '🏃' },
+    { id: 'finanzas', name: 'Finanzas Personales', color: '#eab308', icon: '💰' },
+    { id: 'relaciones', name: 'Relaciones y Familia', color: '#ec4899', icon: '❤️' },
+    { id: 'hobbies', name: 'Hobbies y Creatividad', color: '#8b5cf6', icon: '🎨' },
+    { id: 'educacion', name: 'Educación Continua', color: '#f97316', icon: '📚' },
+    { id: 'crecimiento-personal', name: 'Crecimiento Personal', color: '#9333ea', icon: '🌱' },
+  ]
+
+  const activeAreas = areas.length > 0 ? areas : defaultAreas
 
   // Load graph data from API
   useEffect(() => {
     async function loadGraphData() {
       if (!session?.user) {
         // For demo mode, use notes from context
-        // Filter out incomplete notes (no slug or temp slug)
         const validNotes = notes.filter(note =>
           note.slug &&
           note.slug !== 'temp' &&
@@ -70,15 +85,12 @@ export default function GraphPage() {
           }))
         ]
 
-        // Create links from "Yo" to each valid note
         const demoLinks: GraphLink[] = validNotes.map(note => ({
           source: 'you',
           target: note.slug
         }))
 
-        // Add edges from context (these are created when notes are generated)
         edges.forEach(edge => {
-          // Only add if both source and target exist in nodes
           const sourceExists = demoNodes.some(n => n.id === edge.source)
           const targetExists = demoNodes.some(n => n.id === edge.target)
           if (sourceExists && targetExists) {
@@ -89,7 +101,6 @@ export default function GraphPage() {
           }
         })
 
-        // Add links between notes based on linkedTerms
         validNotes.forEach(note => {
           if (note.linkedTerms) {
             note.linkedTerms.forEach(term => {
@@ -107,8 +118,6 @@ export default function GraphPage() {
           }
         })
 
-        console.log('Demo mode - nodes:', demoNodes.length, 'links:', demoLinks.length, 'validNotes:', validNotes.length)
-
         setGraphNodes(demoNodes)
         setGraphLinks(demoLinks)
         setLoading(false)
@@ -117,7 +126,6 @@ export default function GraphPage() {
 
       const supabase = createClient()
 
-      // Load areas
       const { data: areasData } = await supabase
         .from('areas')
         .select('*')
@@ -127,24 +135,20 @@ export default function GraphPage() {
         setAreas(areasData)
       }
 
-      // Load concepts
       const { data: concepts } = await supabase
         .from('concepts')
         .select('*, areas(name, color)')
         .eq('user_id', session.user.id)
 
-      // Load relationships
       const { data: relationships } = await supabase
         .from('concept_relationships')
         .select('*')
         .eq('user_id', session.user.id)
 
-      // Build nodes
       const nodes: GraphNode[] = [
         { id: 'you', name: 'Yo', status: 'understood', area: '', level: 'intermediate', isYouNode: true }
       ]
 
-      // Add area nodes
       if (areasData) {
         areasData.forEach(area => {
           nodes.push({
@@ -159,7 +163,6 @@ export default function GraphPage() {
         })
       }
 
-      // Add concept nodes
       if (concepts) {
         concepts.forEach(concept => {
           nodes.push({
@@ -173,17 +176,14 @@ export default function GraphPage() {
         })
       }
 
-      // Build links
       const links: GraphLink[] = []
 
-      // Link you to areas
       if (areasData) {
         areasData.forEach(area => {
           links.push({ source: 'you', target: `area-${area.id}` })
         })
       }
 
-      // Link concepts to their areas
       if (concepts) {
         concepts.forEach(concept => {
           if (concept.area_id) {
@@ -192,7 +192,6 @@ export default function GraphPage() {
         })
       }
 
-      // Add relationship links
       if (relationships) {
         relationships.forEach(rel => {
           links.push({
@@ -212,19 +211,19 @@ export default function GraphPage() {
   }, [session, notes, edges])
 
   const getNodeColor = (node: GraphNode) => {
-    if (node.isYouNode) return '#6366f1'
+    if (node.isYouNode) return '#C9B7F3'
     if (node.isAreaNode) {
-      return node.areaColor || '#C9B7F3'
+      return node.areaColor || '#D6C9F5'
     }
 
     if (viewMode === 'status') {
       switch (node.status) {
         case 'understood': return '#A3E4B6'
         case 'in-progress': return '#FFE9A9'
-        default: return '#E6E6E6'
+        default: return '#D1D5DB'
       }
     } else {
-      return node.areaColor || '#C9B7F3'
+      return node.areaColor || '#D6C9F5'
     }
   }
 
@@ -241,14 +240,12 @@ export default function GraphPage() {
     const width = container.clientWidth
     const height = container.clientHeight
 
-    // Clear previous
     d3.select(svgRef.current).selectAll('*').remove()
 
     const svg = d3.select(svgRef.current)
       .attr('width', width)
       .attr('height', height)
 
-    // Create zoom behavior
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.3, 3])
       .on('zoom', (event) => {
@@ -259,25 +256,22 @@ export default function GraphPage() {
 
     const g = svg.append('g')
 
-    // Create simulation
     const simulation = d3.forceSimulation(graphNodes as d3.SimulationNodeDatum[])
       .force('link', d3.forceLink(graphLinks)
         .id((d: any) => d.id)
-        .distance(80))
-      .force('charge', d3.forceManyBody().strength(-300))
+        .distance(nodeSpacing))
+      .force('charge', d3.forceManyBody().strength(-(nodeSpacing * 5)))
       .force('center', d3.forceCenter(width / 2, height / 2))
       .force('collision', d3.forceCollide().radius((d: any) => getNodeRadius(d) + 10))
 
-    // Draw links
     const link = g.append('g')
       .selectAll('line')
       .data(graphLinks)
       .join('line')
       .attr('stroke', '#E6E6E6')
       .attr('stroke-width', 2)
-      .attr('stroke-opacity', 0.6)
+      .attr('stroke-opacity', 0.7)
 
-    // Draw nodes
     const node = g.append('g')
       .selectAll('g')
       .data(graphNodes)
@@ -299,26 +293,45 @@ export default function GraphPage() {
           d.fy = null
         }) as any)
 
-    // Node circles
     node.append('circle')
       .attr('r', d => getNodeRadius(d))
       .attr('fill', d => getNodeColor(d))
       .attr('stroke', '#fff')
-      .attr('stroke-width', 2)
+      .attr('stroke-width', 2.5)
       .on('click', (event, d) => {
         setSelectedNode(d)
       })
+      .on('mouseenter', function(event, d) {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('r', getNodeRadius(d) + 5)
 
-    // Node labels
+        link.attr('stroke-opacity', (l: any) => {
+          const sourceId = typeof l.source === 'string' ? l.source : l.source.id
+          const targetId = typeof l.target === 'string' ? l.target : l.target.id
+          return (sourceId === d.id || targetId === d.id) ? 1 : 0.2
+        })
+      })
+      .on('mouseleave', function(event, d) {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('r', getNodeRadius(d))
+
+        link.attr('stroke-opacity', 0.7)
+      })
+
     node.append('text')
       .text(d => d.isYouNode ? 'Yo' : (d.name.length > 15 ? d.name.slice(0, 12) + '...' : d.name))
       .attr('text-anchor', 'middle')
       .attr('dy', d => getNodeRadius(d) + 16)
-      .attr('fill', '#646464')
+      .attr('fill', '#374151')
       .attr('font-size', '12px')
       .attr('font-weight', '500')
+      .attr('pointer-events', 'none')
+      .style('user-select', 'none')
 
-    // Update positions on simulation tick
     simulation.on('tick', () => {
       link
         .attr('x1', (d: any) => d.source.x)
@@ -329,128 +342,376 @@ export default function GraphPage() {
       node.attr('transform', (d: any) => `translate(${d.x},${d.y})`)
     })
 
-    // Initial zoom to fit
     svg.call(zoom.transform, d3.zoomIdentity.translate(0, 0).scale(0.8))
 
     return () => {
       simulation.stop()
     }
-  }, [graphNodes, graphLinks, viewMode, loading])
+  }, [graphNodes, graphLinks, viewMode, loading, nodeSpacing])
+
+  const handleZoomIn = () => {
+    const svg = d3.select(svgRef.current)
+    svg.transition().call(d3.zoom().scaleBy as any, 1.3)
+  }
+
+  const handleZoomOut = () => {
+    const svg = d3.select(svgRef.current)
+    svg.transition().call(d3.zoom().scaleBy as any, 0.7)
+  }
+
+  const handleResetView = () => {
+    const svg = d3.select(svgRef.current)
+    svg.transition().call(d3.zoom().transform as any, d3.zoomIdentity)
+  }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Grafo de Conocimiento</h1>
-          <p className="text-sm text-gray-500">Explora tus conceptos y conexiones</p>
+    <div
+      className="flex-1 flex flex-col relative overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}
+    >
+      {/* View Mode Toggle - Centered at top */}
+      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-10">
+        <div
+          className="p-2 rounded-3xl flex gap-2"
+          style={{
+            background: 'white',
+            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)'
+          }}
+        >
+          <button
+            onClick={() => setViewMode('status')}
+            className="px-5 py-3 rounded-2xl transition-all flex items-center gap-2 font-medium"
+            style={{
+              background: viewMode === 'status'
+                ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)'
+                : 'transparent',
+              color: viewMode === 'status' ? 'white' : '#646464',
+              boxShadow: viewMode === 'status' ? '0px 2px 8px rgba(201, 183, 243, 0.3)' : 'none'
+            }}
+          >
+            <Eye className="size-4" />
+            <span className="text-sm">Vista por Estado</span>
+          </button>
+          <button
+            onClick={() => setViewMode('area')}
+            className="px-5 py-3 rounded-2xl transition-all flex items-center gap-2 font-medium"
+            style={{
+              background: viewMode === 'area'
+                ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)'
+                : 'transparent',
+              color: viewMode === 'area' ? 'white' : '#646464',
+              boxShadow: viewMode === 'area' ? '0px 2px 8px rgba(201, 183, 243, 0.3)' : 'none'
+            }}
+          >
+            <Palette className="size-4" />
+            <span className="text-sm">Vista por Area</span>
+          </button>
         </div>
-        <div className="flex items-center gap-4">
-          {/* View Mode Toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('status')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'status' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
-              }`}
+      </div>
+
+      {/* Zoom Controls - Right side */}
+      <div className="absolute top-6 right-6 z-10 flex flex-col gap-3">
+        <button
+          onClick={handleZoomIn}
+          className="p-3 bg-white rounded-2xl hover:scale-110 transition-all"
+          style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)' }}
+          title="Zoom In"
+        >
+          <ZoomIn className="size-5" style={{ color: '#646464' }} />
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="p-3 bg-white rounded-2xl hover:scale-110 transition-all"
+          style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)' }}
+          title="Zoom Out"
+        >
+          <ZoomOut className="size-5" style={{ color: '#646464' }} />
+        </button>
+        <button
+          onClick={handleResetView}
+          className="p-3 bg-white rounded-2xl hover:scale-110 transition-all"
+          style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)' }}
+          title="Reset View"
+        >
+          <Maximize2 className="size-5" style={{ color: '#646464' }} />
+        </button>
+
+        {/* Spacing Control Toggle */}
+        <button
+          onClick={() => setShowControls(!showControls)}
+          className="p-3 rounded-2xl hover:scale-110 transition-all"
+          style={{
+            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
+            background: showControls ? 'linear-gradient(135deg, #A3D4FF 0%, #CADFFF 100%)' : 'white'
+          }}
+          title="Ajustar Espaciado"
+        >
+          <Sliders
+            className="size-5"
+            style={{ color: showControls ? 'white' : '#646464' }}
+          />
+        </button>
+      </div>
+
+      {/* Spacing Control Slider */}
+      {showControls && (
+        <div
+          className="absolute top-28 right-6 z-10 p-5 rounded-3xl"
+          style={{
+            background: 'white',
+            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
+            width: '280px'
+          }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <div
+              className="p-2 rounded-xl"
+              style={{ backgroundColor: 'rgba(163, 212, 255, 0.2)' }}
             >
-              Por Estado
-            </button>
-            <button
-              onClick={() => setViewMode('area')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'area' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
-              }`}
+              <Sliders className="size-4" style={{ color: '#5A8FCC' }} />
+            </div>
+            <h4 className="font-semibold" style={{ color: '#1E1E1E' }}>
+              Espaciado de Nodos
+            </h4>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex justify-between text-xs mb-2" style={{ color: '#646464' }}>
+              <span>Pegados</span>
+              <span>Dispersos</span>
+            </div>
+
+            <input
+              type="range"
+              min="50"
+              max="300"
+              step="10"
+              value={nodeSpacing}
+              onChange={(e) => setNodeSpacing(Number(e.target.value))}
+              className="w-full h-2 rounded-full appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #A3D4FF 0%, #A3D4FF ${((nodeSpacing - 50) / 250) * 100}%, #E6E6E6 ${((nodeSpacing - 50) / 250) * 100}%, #E6E6E6 100%)`
+              }}
+            />
+
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium" style={{ color: '#646464' }}>
+                Distancia: {nodeSpacing}px
+              </span>
+              <button
+                onClick={() => setNodeSpacing(150)}
+                className="text-xs px-3 py-1.5 rounded-full transition-all hover:scale-105"
+                style={{
+                  background: 'linear-gradient(135deg, #A3D4FF 0%, #CADFFF 100%)',
+                  color: 'white',
+                  boxShadow: '0px 2px 6px rgba(163, 212, 255, 0.3)'
+                }}
+              >
+                Restaurar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic Legend - Left side */}
+      <div
+        className="absolute top-6 left-6 z-10 p-5 rounded-3xl"
+        style={{
+          background: 'white',
+          boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
+          maxWidth: '280px'
+        }}
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <div
+            className="p-2 rounded-xl"
+            style={{
+              backgroundColor: viewMode === 'status'
+                ? 'rgba(201, 183, 243, 0.2)'
+                : 'rgba(163, 212, 255, 0.2)'
+            }}
+          >
+            {viewMode === 'status' ? (
+              <Eye className="size-4" style={{ color: '#9575CD' }} />
+            ) : (
+              <Palette className="size-4" style={{ color: '#5A8FCC' }} />
+            )}
+          </div>
+          <h3 className="font-semibold" style={{ color: '#1E1E1E' }}>
+            {viewMode === 'status' ? 'Estados' : 'Areas de Conocimiento'}
+          </h3>
+        </div>
+
+        {viewMode === 'status' ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-5 h-5 rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, #A3E4B6 0%, #B9E2B1 100%)',
+                  boxShadow: '0px 2px 6px rgba(163, 228, 182, 0.3)'
+                }}
+              />
+              <span className="text-sm font-medium" style={{ color: '#1E1E1E' }}>
+                Entendido
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-5 h-5 rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, #FFE9A9 0%, #FFF4D4 100%)',
+                  boxShadow: '0px 2px 6px rgba(255, 233, 169, 0.3)'
+                }}
+              />
+              <span className="text-sm font-medium" style={{ color: '#1E1E1E' }}>
+                En progreso
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-5 h-5 rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, #D1D5DB 0%, #E5E7EB 100%)',
+                  boxShadow: '0px 2px 6px rgba(209, 213, 219, 0.3)'
+                }}
+              />
+              <span className="text-sm font-medium" style={{ color: '#1E1E1E' }}>
+                Pendiente
+              </span>
+            </div>
+
+            <div
+              className="border-t pt-3 mt-3"
+              style={{ borderColor: '#E6E6E6' }}
             >
-              Por Area
-            </button>
+              <p className="text-xs mb-2 font-medium" style={{ color: '#646464' }}>
+                Tipos de Conexion
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-0.5" style={{ backgroundColor: '#6366f1' }} />
+                  <span className="text-xs" style={{ color: '#646464' }}>Prerrequisito</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-0.5" style={{ backgroundColor: '#8b5cf6' }} />
+                  <span className="text-xs" style={{ color: '#646464' }}>Relacionado</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-0.5" style={{ backgroundColor: '#d1d5db' }} />
+                  <span className="text-xs" style={{ color: '#646464' }}>Menciona</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {activeAreas.slice(0, 5).map((area) => (
+              <div key={area.id} className="flex items-center gap-3">
+                <div
+                  className="w-5 h-5 rounded-full"
+                  style={{
+                    backgroundColor: area.color,
+                    boxShadow: `0px 2px 6px ${area.color}50`
+                  }}
+                />
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-base">{area.icon}</span>
+                  <span className="text-xs font-medium" style={{ color: '#1E1E1E' }}>
+                    {area.name}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {activeAreas.length > 5 && (
+              <div className="text-xs text-center pt-2" style={{ color: '#646464' }}>
+                +{activeAreas.length - 5} areas mas
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Instructions Panel - Bottom left */}
+      <div
+        className="absolute bottom-6 left-6 z-10 p-5 rounded-3xl max-w-xs"
+        style={{
+          background: 'linear-gradient(135deg, #D6C9F5 0%, #E6DEF9 100%)',
+          boxShadow: '0px 4px 14px rgba(214, 201, 245, 0.3)'
+        }}
+      >
+        <div className="flex items-start gap-3">
+          <span className="text-2xl">💡</span>
+          <div>
+            <p className="text-sm font-medium mb-1" style={{ color: '#1E1E1E' }}>
+              Como navegar?
+            </p>
+            <p className="text-xs" style={{ color: 'rgba(30, 30, 30, 0.7)' }}>
+              <strong>Arrastra</strong> los nodos • <strong>Rueda del mouse</strong> para zoom • <strong>Click</strong> para ver contenido
+            </p>
           </div>
         </div>
       </div>
 
       {/* Graph Container */}
       <div ref={containerRef} className="flex-1 relative">
-        <svg ref={svgRef} className="w-full h-full" />
-
-        {/* Legend */}
-        <div className="absolute bottom-4 left-4 bg-white rounded-xl p-4 shadow-lg border border-gray-200">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">
-            {viewMode === 'status' ? 'Estado' : 'Areas'}
-          </h4>
-          {viewMode === 'status' ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#A3E4B6' }} />
-                <span className="text-sm text-gray-600">Dominado</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#FFE9A9' }} />
-                <span className="text-sm text-gray-600">En progreso</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full" style={{ backgroundColor: '#E6E6E6' }} />
-                <span className="text-sm text-gray-600">Pendiente</span>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {areas.length > 0 ? areas.slice(0, 5).map(area => (
-                <div key={area.id} className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: area.color }}
-                  />
-                  <span className="text-sm text-gray-600">{area.name}</span>
-                </div>
-              )) : (
-                <span className="text-sm text-gray-500">Sin areas definidas</span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Selected Node Panel */}
-        {selectedNode && !selectedNode.isYouNode && !selectedNode.isAreaNode && (
-          <div className="absolute top-4 right-4 bg-white rounded-xl p-4 shadow-lg border border-gray-200 w-72">
-            <div className="flex items-start justify-between mb-3">
-              <h4 className="font-semibold text-gray-900">{selectedNode.name}</h4>
-              <button
-                onClick={() => setSelectedNode(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                x
-              </button>
-            </div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Area:</span>
-                <span className="text-gray-900">{selectedNode.area}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Nivel:</span>
-                <span className="text-gray-900 capitalize">{selectedNode.level}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Estado:</span>
-                <span className={`capitalize ${
-                  selectedNode.status === 'understood' ? 'text-green-600' :
-                  selectedNode.status === 'in-progress' ? 'text-yellow-600' :
-                  'text-gray-600'
-                }`}>
-                  {selectedNode.status === 'understood' ? 'Dominado' :
-                   selectedNode.status === 'in-progress' ? 'En progreso' : 'Pendiente'}
-                </span>
-              </div>
-            </div>
-            <Link
-              href={`/study?topic=${encodeURIComponent(selectedNode.name)}`}
-              className="mt-4 w-full block text-center py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
-            >
-              Estudiar
-            </Link>
-          </div>
-        )}
+        <svg ref={svgRef} className="w-full h-full" style={{ cursor: 'grab' }} />
       </div>
+
+      {/* Selected Node Panel - Right side */}
+      {selectedNode && !selectedNode.isYouNode && !selectedNode.isAreaNode && (
+        <div
+          className="absolute bottom-6 right-6 z-10 p-5 rounded-3xl w-72"
+          style={{
+            background: 'white',
+            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)'
+          }}
+        >
+          <div className="flex items-start justify-between mb-4">
+            <h4 className="font-semibold" style={{ color: '#1E1E1E' }}>{selectedNode.name}</h4>
+            <button
+              onClick={() => setSelectedNode(null)}
+              className="w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:scale-110"
+              style={{ backgroundColor: '#E6E6E6', color: '#646464' }}
+            >
+              ×
+            </button>
+          </div>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span style={{ color: '#646464' }}>Area:</span>
+              <span style={{ color: '#1E1E1E' }}>{selectedNode.area}</span>
+            </div>
+            <div className="flex justify-between">
+              <span style={{ color: '#646464' }}>Nivel:</span>
+              <span className="capitalize" style={{ color: '#1E1E1E' }}>{selectedNode.level}</span>
+            </div>
+            <div className="flex justify-between">
+              <span style={{ color: '#646464' }}>Estado:</span>
+              <span className="capitalize" style={{
+                color: selectedNode.status === 'understood' ? '#22c55e' :
+                       selectedNode.status === 'in-progress' ? '#eab308' :
+                       '#646464'
+              }}>
+                {selectedNode.status === 'understood' ? 'Dominado' :
+                 selectedNode.status === 'in-progress' ? 'En progreso' : 'Pendiente'}
+              </span>
+            </div>
+          </div>
+          <Link
+            href={`/study?topic=${encodeURIComponent(selectedNode.name)}`}
+            className="mt-4 w-full block text-center py-3 rounded-2xl font-medium transition-all hover:scale-[1.02]"
+            style={{
+              background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+              color: 'white',
+              boxShadow: '0px 2px 8px rgba(201, 183, 243, 0.3)'
+            }}
+          >
+            Estudiar
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

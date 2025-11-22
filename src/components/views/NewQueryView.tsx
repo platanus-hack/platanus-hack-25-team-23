@@ -14,24 +14,37 @@ interface LevelSelectorProps {
 
 function LevelSelector({ currentLevel, onLevelChange }: LevelSelectorProps) {
   const levels = [
-    { id: 'beginner', label: 'Principiante', description: 'Explicaciones simples y basicas' },
-    { id: 'intermediate', label: 'Intermedio', description: 'Balance entre teoria y practica' },
-    { id: 'expert', label: 'Avanzado', description: 'Contenido tecnico y detallado' },
+    { id: 'beginner', label: 'Principiante', description: 'Explicaciones simples y basicas', icon: '🌱' },
+    { id: 'intermediate', label: 'Intermedio', description: 'Balance entre teoria y practica', icon: '📚' },
+    { id: 'expert', label: 'Avanzado', description: 'Contenido tecnico y detallado', icon: '🎓' },
   ] as const;
 
   return (
-    <div className="flex gap-2 bg-white rounded-2xl p-1.5 shadow-soft border border-gray-200">
+    <div
+      className="flex gap-2 rounded-3xl p-2"
+      style={{
+        backgroundColor: 'white',
+        boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
+        border: '1px solid #E6E6E6'
+      }}
+    >
       {levels.map((level) => (
         <button
           key={level.id}
           onClick={() => onLevelChange(level.id)}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-            currentLevel === level.id
-              ? 'bg-purple-100 text-purple-700'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
+          className="px-5 py-2.5 rounded-2xl text-sm font-medium transition-all duration-200 flex items-center gap-2"
+          style={{
+            background: currentLevel === level.id
+              ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)'
+              : 'transparent',
+            color: currentLevel === level.id ? 'white' : '#646464',
+            boxShadow: currentLevel === level.id
+              ? '0px 2px 8px rgba(201, 183, 243, 0.3)'
+              : 'none'
+          }}
           title={level.description}
         >
+          <span>{level.icon}</span>
           {level.label}
         </button>
       ))}
@@ -108,7 +121,10 @@ export function NewQueryView() {
   const nextSteps = streamingNote?.nextSteps || [];
 
   return (
-    <div className="flex-1 overflow-y-auto" style={{ backgroundColor: '#F6F8FA' }}>
+    <div
+      className="flex-1 overflow-y-auto"
+      style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}
+    >
       <div className="max-w-4xl mx-auto px-8 py-12">
         {/* Header */}
         <div className="text-center mb-12">
