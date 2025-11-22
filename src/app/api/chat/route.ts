@@ -110,42 +110,38 @@ export async function POST(req: Request) {
           // STATIC DEBUG STREAM - REMOVED
           // console.log('API: Starting STATIC stream (DATA STREAM PROTOCOL)...');
           
-          console.log('API: Starting agent stream...');
+          console.log('API: Starting agent stream (Token Level)...');
           
-          // Convert UI messages to Agent messages if needed
-          // DeepAgents expects { role, content }
+          // Convert UI messages to Agent messages
           const agentMessages = messages.map((m: any) => ({ 
               role: m.role, 
               content: m.content || (m.parts ? m.parts.map((p:any) => p.text).join('') : '') 
           }));
-          console.log('API: Agent messages prepared:', agentMessages.length);
 
-          const agentStream = await agent.stream({
-            messages: agentMessages,
-          });
+          // Use streamEvents to get token-level updates
+          const eventStream = await agent.streamEvents(
+            { messages: agentMessages },
+            { version: 'v2' }
+          );
 
           let chunkCount = 0;
-          for await (const chunk of agentStream) {
-            chunkCount++;
-            console.log(`API: Chunk ${chunkCount} keys:`, Object.keys(chunk));
-            
-            const modelChunk = chunk.model_request || chunk.agent;
-            if (modelChunk) {
-                console.log('API: Model chunk found. Messages:', modelChunk.messages?.length);
-            }
-
-            if (modelChunk && modelChunk.messages && modelChunk.messages.length > 0) {
-              const msg = modelChunk.messages[0];
-              const content = msg.kwargs?.content || msg.content; 
-              console.log('API: Message content type:', typeof content);
-              
-              if (content && typeof content === 'string') {
-                console.log('API: Enqueuing content:', content.slice(0, 50) + '...');
-                controller.enqueue(encoder.encode(`0:${JSON.stringify(content)}\n`));
-              }
+          for await (const event of eventStream) {
+            if (event.event === 'on_chat_model_stream') {
+                // This is a token chunk from the LLM
+                const token = event.data.chunk.content;
+                if (token) {
+                    // console.log('API: Token:', token); // Too noisy for production logs
+                    controller.enqueue(encoder.encode(`0:${JSON.stringify(token)}\n`));
+                    chunkCount++;
+                }
+            } else if (event.event === 'on_tool_start') {
+                console.log('API: Tool Start:', event.name);
+                // Optional: Send tool status to UI if needed
+            } else if (event.event === 'on_tool_end') {
+                console.log('API: Tool End:', event.name);
             }
           }
-          console.log(`API: Stream finished. Total chunks: ${chunkCount}`);
+          console.log(`API: Stream finished. Total token chunks: ${chunkCount}`);
           controller.close();
         } catch (e) {
           console.error('Stream Error:', e);

@@ -19,6 +19,7 @@ I have successfully transformed **KnowledgeFlow** into a "Deep Agent" system wit
     -   `read_file`: To get context.
     -   `write_file`: To create knowledge.
 -   **Loop**: Enabled `maxSteps: 10` to allow the agent to "Think -> Search -> Write -> Link".
+-   **Token Streaming**: Implemented `streamEvents` to ensure smooth, word-by-word responses instead of large chunks.
 
 ### 3. Generative UI (`src/components/views/ChatView.tsx`)
 -   **AI Elements**: Migrated to the `ai-elements` component library for a polished, modern chat interface.

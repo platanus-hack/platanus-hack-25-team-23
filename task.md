@@ -22,4 +22,5 @@
     - [x] Install `ai-elements` components
     - [x] Refactor `ChatView` to use `ai-elements`
     - [x] Implement `useManualChat` hook for reliable streaming
+    - [x] Fix token streaming (switch to `streamEvents`)
     - [x] Verify end-to-end functionality
