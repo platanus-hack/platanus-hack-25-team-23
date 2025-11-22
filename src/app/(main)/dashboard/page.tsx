@@ -38,7 +38,7 @@ function CircularProgress({ percentage, color, size = 100, strokeWidth = 8 }: { 
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#e5e7eb"
+          stroke="var(--border)"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -173,18 +173,18 @@ export default function DashboardPage() {
 
   return (
     <div
-      className="flex-1 overflow-y-auto"
-      style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}
+      className="flex-1 overflow-y-auto transition-colors duration-300"
+      style={{ backgroundColor: 'var(--background)' }}
     >
       <div className="max-w-7xl mx-auto p-8 space-y-8">
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-5xl font-bold mb-2" style={{ color: '#1E1E1E' }}>
+            <h1 className="text-5xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
               Hola! 👋
             </h1>
-            <p className="text-lg" style={{ color: '#646464' }}>
+            <p className="text-lg" style={{ color: 'var(--muted-foreground)' }}>
               Continua tu camino de aprendizaje con calma y enfoque
             </p>
           </div>
@@ -228,8 +228,8 @@ export default function DashboardPage() {
                 {loading ? '-' : `${progressPercent}%`}
               </span>
             </div>
-            <h3 className="font-semibold mb-1 relative z-10" style={{ color: '#1E1E1E' }}>Progreso Global</h3>
-            <p className="text-sm relative z-10" style={{ color: '#646464' }}>
+            <h3 className="font-semibold mb-1 relative z-10" style={{ color: 'var(--foreground)' }}>Progreso Global</h3>
+            <p className="text-sm relative z-10" style={{ color: 'var(--muted-foreground)' }}>
               {loading ? '-' : `${stats.understood_concepts} de ${stats.total_concepts} temas`}
             </p>
             <div className="mt-4 h-2.5 rounded-full overflow-hidden relative z-10" style={{ backgroundColor: 'rgba(255, 255, 255, 0.5)' }}>
@@ -267,8 +267,8 @@ export default function DashboardPage() {
                 {loading ? '-' : stats.in_progress_concepts}
               </span>
             </div>
-            <h3 className="font-semibold mb-1 relative z-10" style={{ color: '#1E1E1E' }}>En Progreso</h3>
-            <p className="text-sm relative z-10" style={{ color: '#646464' }}>Temas activos ahora</p>
+            <h3 className="font-semibold mb-1 relative z-10" style={{ color: 'var(--foreground)' }}>En Progreso</h3>
+            <p className="text-sm relative z-10" style={{ color: 'var(--muted-foreground)' }}>Temas activos ahora</p>
             {stats.in_progress_concepts > 0 && (
               <Link
                 href="/tree"
@@ -309,8 +309,8 @@ export default function DashboardPage() {
                 {loading ? '-' : `${remainingHours}h`}
               </span>
             </div>
-            <h3 className="font-semibold mb-1 relative z-10" style={{ color: '#1E1E1E' }}>Tiempo Restante</h3>
-            <p className="text-sm relative z-10" style={{ color: '#646464' }}>{completedHours}h completadas</p>
+            <h3 className="font-semibold mb-1 relative z-10" style={{ color: 'var(--foreground)' }}>Tiempo Restante</h3>
+            <p className="text-sm relative z-10" style={{ color: 'var(--muted-foreground)' }}>{completedHours}h completadas</p>
             <div className="mt-4 h-2.5 rounded-full overflow-hidden relative z-10" style={{ backgroundColor: 'rgba(255, 255, 255, 0.5)' }}>
               <div
                 className="h-full rounded-full transition-all duration-1000 relative"
@@ -342,8 +342,8 @@ export default function DashboardPage() {
                 {loading ? '-' : streak}
               </span>
             </div>
-            <h3 className="font-semibold mb-1 relative z-10" style={{ color: '#1E1E1E' }}>Racha Actual</h3>
-            <p className="text-sm relative z-10" style={{ color: '#646464' }}>dias consecutivos 🔥</p>
+            <h3 className="font-semibold mb-1 relative z-10" style={{ color: 'var(--foreground)' }}>Racha Actual</h3>
+            <p className="text-sm relative z-10" style={{ color: 'var(--muted-foreground)' }}>dias consecutivos 🔥</p>
             <Link
               href="/profile"
               className="mt-4 text-sm font-medium hover:underline relative z-10 block"
@@ -415,10 +415,10 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-3xl font-bold mb-2" style={{ color: '#1E1E1E' }}>
+                <h2 className="text-3xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
                   Progreso por Area
                 </h2>
-                <p style={{ color: '#646464' }}>
+                <p style={{ color: 'var(--muted-foreground)' }}>
                   Visualiza tu avance en cada area de conocimiento
                 </p>
               </div>
@@ -442,7 +442,7 @@ export default function DashboardPage() {
                   href="/tree"
                   className="rounded-3xl p-6 cursor-pointer group transition-all duration-300 hover:scale-105"
                   style={{
-                    backgroundColor: 'white',
+                    backgroundColor: 'var(--card)',
                     boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
                     border: `2px solid ${area.color}20`
                   }}
@@ -458,10 +458,10 @@ export default function DashboardPage() {
 
                   <div className="text-center">
                     <div className="text-3xl mb-2">{area.icon || '📚'}</div>
-                    <h3 className="font-semibold mb-2 text-xs leading-tight" style={{ color: '#1E1E1E' }}>
+                    <h3 className="font-semibold mb-2 text-xs leading-tight" style={{ color: 'var(--foreground)' }}>
                       {area.name}
                     </h3>
-                    <p className="text-xs mb-2" style={{ color: '#646464' }}>
+                    <p className="text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
                       {area.understood || 0}/{area.total || 0} temas
                     </p>
 
@@ -485,7 +485,7 @@ export default function DashboardPage() {
         {/* Recommendations */}
         {(stats.in_progress_concepts > 0 || recentNotes.length > 0) && (
           <div>
-            <h2 className="text-3xl font-bold mb-6" style={{ color: '#1E1E1E' }}>
+            <h2 className="text-3xl font-bold mb-6" style={{ color: 'var(--foreground)' }}>
               Recomendaciones para ti
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -507,10 +507,10 @@ export default function DashboardPage() {
                       <TrendingUp className="size-7" style={{ color: '#B89C3C' }} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold mb-2 text-lg" style={{ color: '#1E1E1E' }}>
+                      <h3 className="font-semibold mb-2 text-lg" style={{ color: 'var(--foreground)' }}>
                         Temas en progreso
                       </h3>
-                      <p className="text-sm mb-4" style={{ color: '#646464' }}>
+                      <p className="text-sm mb-4" style={{ color: 'var(--muted-foreground)' }}>
                         Tienes {stats.in_progress_concepts} tema(s) en progreso. Continua para completarlos!
                       </p>
                       <Link
@@ -518,7 +518,7 @@ export default function DashboardPage() {
                         className="inline-block px-5 py-3 bg-white rounded-2xl hover:scale-105 transition-all duration-300"
                         style={{ boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)' }}
                       >
-                        <span className="font-medium" style={{ color: '#1E1E1E' }}>Ver todos</span>
+                        <span className="font-medium" style={{ color: 'var(--foreground)' }}>Ver todos</span>
                       </Link>
                     </div>
                   </div>
@@ -542,10 +542,10 @@ export default function DashboardPage() {
                       <Star className="size-7" style={{ color: '#5A8FCC' }} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold mb-2 text-lg" style={{ color: '#1E1E1E' }}>
+                      <h3 className="font-semibold mb-2 text-lg" style={{ color: 'var(--foreground)' }}>
                         Tus notas recientes
                       </h3>
-                      <p className="text-sm mb-4" style={{ color: '#646464' }}>
+                      <p className="text-sm mb-4" style={{ color: 'var(--muted-foreground)' }}>
                         Revisa lo que has aprendido recientemente
                       </p>
                       <div className="space-y-2">
@@ -556,7 +556,7 @@ export default function DashboardPage() {
                             className="block px-5 py-3 bg-white rounded-2xl hover:scale-105 transition-all duration-300"
                             style={{ boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)' }}
                           >
-                            <span className="font-medium" style={{ color: '#1E1E1E' }}>{note.title}</span>
+                            <span className="font-medium" style={{ color: 'var(--foreground)' }}>{note.title}</span>
                           </Link>
                         ))}
                       </div>
@@ -586,10 +586,10 @@ export default function DashboardPage() {
                 <MapPin className="size-7" style={{ color: '#9575CD' }} />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1" style={{ color: '#1E1E1E' }}>
+                <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--foreground)' }}>
                   Explorar Grafo
                 </h3>
-                <p className="text-sm" style={{ color: '#646464' }}>
+                <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                   Visualiza conexiones
                 </p>
               </div>
@@ -612,10 +612,10 @@ export default function DashboardPage() {
                 <BookOpen className="size-7" style={{ color: '#5A8FCC' }} />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1" style={{ color: '#1E1E1E' }}>
+                <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--foreground)' }}>
                   Biblioteca
                 </h3>
-                <p className="text-sm" style={{ color: '#646464' }}>
+                <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                   Gestiona areas y temas
                 </p>
               </div>
@@ -638,10 +638,10 @@ export default function DashboardPage() {
                 <Target className="size-7" style={{ color: '#5FA857' }} />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1" style={{ color: '#1E1E1E' }}>
+                <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--foreground)' }}>
                   Ver Ruta
                 </h3>
-                <p className="text-sm" style={{ color: '#646464' }}>
+                <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                   Planifica tu progreso
                 </p>
               </div>
@@ -654,7 +654,7 @@ export default function DashboardPage() {
           <div
             className="rounded-3xl p-8 text-center"
             style={{
-              backgroundColor: 'white',
+              backgroundColor: 'var(--card)',
               boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
             }}
           >
@@ -664,8 +664,8 @@ export default function DashboardPage() {
             >
               <BookOpen className="size-10" style={{ color: '#C9B7F3' }} />
             </div>
-            <h3 className="text-xl font-semibold mb-2" style={{ color: '#1E1E1E' }}>Sin notas aun</h3>
-            <p className="mb-6" style={{ color: '#646464' }}>Empieza a aprender creando tu primera nota</p>
+            <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Sin notas aun</h3>
+            <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>Empieza a aprender creando tu primera nota</p>
             <Link
               href="/new-query"
               className="inline-flex items-center gap-2 px-8 py-4 text-white rounded-3xl hover:scale-105 transition-all duration-300"

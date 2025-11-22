@@ -2,6 +2,7 @@
 
 import { Sidebar } from "@/components/views/Sidebar"
 import { KnowledgeProvider } from "@/lib/store/knowledge-context"
+import { ThemeProvider } from "@/lib/store/theme-context"
 import { Toaster } from "@/components/ui/sonner"
 
 export default function MainLayout({
@@ -10,14 +11,16 @@ export default function MainLayout({
   children: React.ReactNode
 }) {
   return (
-    <KnowledgeProvider>
-      <div className="h-screen flex bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
-      </div>
-      <Toaster />
-    </KnowledgeProvider>
+    <ThemeProvider>
+      <KnowledgeProvider>
+        <div className="h-screen flex bg-background transition-colors duration-300">
+          <Sidebar />
+          <main className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </div>
+        <Toaster />
+      </KnowledgeProvider>
+    </ThemeProvider>
   )
 }

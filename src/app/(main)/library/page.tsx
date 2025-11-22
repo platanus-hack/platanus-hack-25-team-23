@@ -362,7 +362,7 @@ export default function LibraryPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-3xl">{folder.icon}</span>
-                  <h3 className="font-bold text-lg" style={{ color: '#1E1E1E' }}>
+                  <h3 className="font-bold text-lg" style={{ color: 'var(--foreground)' }}>
                     {folder.name}
                   </h3>
                   <span
@@ -417,7 +417,7 @@ export default function LibraryPage() {
               <Link
                 key={note.id}
                 href={`/study?topic=${encodeURIComponent(note.title)}`}
-                className="block p-5 bg-white rounded-2xl hover:scale-[1.01] transition-all cursor-pointer"
+                className="block p-5 rounded-2xl hover:scale-[1.01] transition-all cursor-pointer"
                 style={{
                   boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)',
                   border: '2px solid transparent'
@@ -441,7 +441,7 @@ export default function LibraryPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-semibold" style={{ color: '#1E1E1E' }}>
+                        <h4 className="font-semibold" style={{ color: 'var(--foreground)' }}>
                           {note.title}
                         </h4>
                         <span
@@ -452,7 +452,7 @@ export default function LibraryPage() {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs" style={{ color: '#646464' }}>
+                      <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--muted-foreground)' }}>
                         <span className="flex items-center gap-1">
                           📝 {note.wordCount} palabras
                         </span>
@@ -476,27 +476,27 @@ export default function LibraryPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}>
+      <div className="flex-1 flex items-center justify-center transition-colors duration-300" style={{ backgroundColor: 'var(--background)' }}>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-purple-300 rounded-full animate-spin mx-auto mb-4" style={{ borderTopColor: '#C9B7F3' }} />
-          <p style={{ color: '#646464' }}>Cargando biblioteca...</p>
+          <p style={{ color: 'var(--muted-foreground)' }}>Cargando biblioteca...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 overflow-y-auto" style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}>
+    <div className="flex-1 overflow-y-auto transition-colors duration-300" style={{ backgroundColor: 'var(--background)' }}>
       <div className="max-w-6xl mx-auto px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-4xl font-bold mb-2 flex items-center gap-3" style={{ color: '#1E1E1E' }}>
+              <h1 className="text-4xl font-bold mb-2 flex items-center gap-3" style={{ color: 'var(--foreground)' }}>
                 <FolderOpen className="size-10" style={{ color: '#C9B7F3' }} />
                 Biblioteca Inteligente
               </h1>
-              <p className="text-lg" style={{ color: '#646464' }}>
+              <p className="text-lg" style={{ color: 'var(--muted-foreground)' }}>
                 Tus notas organizadas automáticamente por la IA según temas y relaciones
               </p>
             </div>
@@ -533,12 +533,12 @@ export default function LibraryPage() {
           <div className="grid grid-cols-4 gap-5 mb-6">
             <div
               className="p-5 rounded-3xl transition-all hover:scale-105 duration-300"
-              style={{ backgroundColor: 'white', boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)' }}
+              style={{ backgroundColor: 'var(--card)', boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)' }}
             >
-              <div className="text-3xl font-bold mb-1" style={{ color: '#646464' }}>
+              <div className="text-3xl font-bold mb-1" style={{ color: 'var(--muted-foreground)' }}>
                 {stats.total}
               </div>
-              <div className="text-sm" style={{ color: '#646464' }}>Notas totales</div>
+              <div className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Notas totales</div>
             </div>
             <div
               className="p-5 rounded-3xl transition-all hover:scale-105 duration-300"
@@ -593,7 +593,7 @@ export default function LibraryPage() {
               <Sparkles className="size-6" style={{ color: '#9575CD' }} />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-lg mb-2" style={{ color: '#1E1E1E' }}>
+              <h3 className="font-semibold text-lg mb-2" style={{ color: 'var(--foreground)' }}>
                 Organización Automática Activada
               </h3>
               <p className="text-sm" style={{ color: 'rgba(30, 30, 30, 0.7)' }}>
@@ -613,7 +613,7 @@ export default function LibraryPage() {
 
         {/* Folders */}
         <div className="space-y-4">
-          <h2 className="text-lg font-medium mb-4" style={{ color: '#1E1E1E' }}>
+          <h2 className="text-lg font-medium mb-4" style={{ color: 'var(--foreground)' }}>
             Carpetas organizadas por la IA
           </h2>
 
@@ -624,7 +624,7 @@ export default function LibraryPage() {
             <div
               className="text-center py-12 rounded-3xl"
               style={{
-                backgroundColor: 'white',
+                backgroundColor: 'var(--card)',
                 boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
               }}
             >
@@ -634,10 +634,10 @@ export default function LibraryPage() {
               >
                 <FolderOpen className="size-10" style={{ color: '#C9B7F3' }} />
               </div>
-              <h3 className="text-xl font-semibold mb-2" style={{ color: '#1E1E1E' }}>
+              <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
                 Aún no tienes notas
               </h3>
-              <p className="mb-6" style={{ color: '#646464' }}>
+              <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>
                 Crea tu primera nota y Nodi la organizará automáticamente
               </p>
               <Link

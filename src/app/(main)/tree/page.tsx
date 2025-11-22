@@ -256,8 +256,8 @@ export default function TreePage() {
         return (
           <div
             key={area.id}
-            className="bg-white rounded-3xl overflow-hidden"
-            style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)' }}
+            className="rounded-3xl overflow-hidden"
+            style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)', backgroundColor: 'var(--card)' }}
           >
             {/* Area Header */}
             <div
@@ -275,8 +275,8 @@ export default function TreePage() {
                   </button>
                   <span className="text-4xl">{area.icon}</span>
                   <div>
-                    <h3 className="text-xl font-bold" style={{ color: '#1E1E1E' }}>{area.name}</h3>
-                    <p className="text-sm mt-1" style={{ color: '#646464' }}>
+                    <h3 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>{area.name}</h3>
+                    <p className="text-sm mt-1" style={{ color: 'var(--muted-foreground)' }}>
                       {areaCompleted} de {pathNodes.length} temas completados
                     </p>
                   </div>
@@ -284,7 +284,7 @@ export default function TreePage() {
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="text-3xl font-bold" style={{ color: area.color }}>{areaProgress}%</p>
-                    <p className="text-sm" style={{ color: '#646464' }}>Progreso</p>
+                    <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Progreso</p>
                   </div>
                   <div className="w-32 h-4 rounded-full overflow-hidden" style={{ backgroundColor: `${area.color}20` }}>
                     <div
@@ -340,7 +340,7 @@ export default function TreePage() {
                                   >
                                     {getStatusIcon(node.status)}
                                   </div>
-                                  <h4 className="font-semibold text-lg" style={{ color: '#1E1E1E' }}>{node.name}</h4>
+                                  <h4 className="font-semibold text-lg" style={{ color: 'var(--foreground)' }}>{node.name}</h4>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                   <span className="px-3 py-1.5 text-xs rounded-full font-medium capitalize"
@@ -501,33 +501,33 @@ export default function TreePage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#F6F8FA' }}>
+      <div className="flex-1 flex items-center justify-center transition-colors duration-300" style={{ backgroundColor: 'var(--background)' }}>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-purple-300 rounded-full animate-spin mx-auto mb-4" style={{ borderTopColor: '#C9B7F3' }} />
-          <p style={{ color: '#646464' }}>Cargando ruta...</p>
+          <p style={{ color: 'var(--muted-foreground)' }}>Cargando ruta...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F6F8FA' }}>
+    <div className="flex-1 flex flex-col overflow-hidden transition-colors duration-300" style={{ backgroundColor: 'var(--background)' }}>
       {/* Header */}
-      <div className="px-8 py-6" style={{ background: 'white' }}>
+      <div className="px-8 py-6" style={{ background: 'var(--card)' }}>
         <div className="mb-6">
-          <h2 className="text-4xl font-bold flex items-center gap-3" style={{ color: '#1E1E1E' }}>
+          <h2 className="text-4xl font-bold flex items-center gap-3" style={{ color: 'var(--foreground)' }}>
             <div className="p-3 rounded-2xl" style={{ backgroundColor: 'rgba(201, 183, 243, 0.2)' }}>
               <MapPin className="size-8" style={{ color: '#9575CD' }} />
             </div>
             Ruta de Aprendizaje
           </h2>
-          <p className="text-lg mt-2" style={{ color: '#646464' }}>Tu roadmap educativo personalizado</p>
+          <p className="text-lg mt-2" style={{ color: 'var(--muted-foreground)' }}>Tu roadmap educativo personalizado</p>
         </div>
 
         {/* Area filter + View mode toggle */}
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <Filter className="size-5" style={{ color: '#646464' }} />
+            <Filter className="size-5" style={{ color: 'var(--muted-foreground)' }} />
             <select
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
@@ -621,7 +621,7 @@ export default function TreePage() {
               <Sparkles className="size-6" style={{ color: '#9575CD' }} />
             </div>
             <div className="flex-1">
-              <p className="font-semibold mb-2 flex items-center gap-2" style={{ color: '#1E1E1E' }}>
+              <p className="font-semibold mb-2 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
                 <span className="text-xl">🎯</span>Siguientes Pasos Recomendados
               </p>
               <div className="flex gap-3 flex-wrap">
@@ -644,7 +644,7 @@ export default function TreePage() {
           <label className="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-2xl hover:bg-gray-50 transition-all">
             <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)}
               className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
-            <span className="text-sm font-medium" style={{ color: '#646464' }}>Mostrar completados</span>
+            <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>Mostrar completados</span>
           </label>
           <div className="flex-1" />
           <Link href="/graph" className="px-5 py-2 rounded-2xl font-medium transition-all hover:scale-105"

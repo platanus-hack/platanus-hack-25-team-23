@@ -690,8 +690,8 @@ export default function GraphPage() {
 
   return (
     <div
-      className="flex-1 flex flex-col relative overflow-hidden h-full"
-      style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}
+      className="flex-1 flex flex-col relative overflow-hidden h-full transition-colors duration-300"
+      style={{ backgroundColor: 'var(--background)' }}
     >
       {/* Graph Container - MUST be first for proper z-index stacking */}
       <div
@@ -714,7 +714,7 @@ export default function GraphPage() {
         <div
           className="p-2 rounded-3xl flex gap-2"
           style={{
-            background: 'white',
+            background: 'var(--card)',
             boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)'
           }}
         >
@@ -753,27 +753,27 @@ export default function GraphPage() {
       <div className="absolute top-6 right-6 z-10 flex flex-col gap-3">
         <button
           onClick={handleZoomIn}
-          className="p-3 bg-white rounded-2xl hover:scale-110 transition-all"
+          className="p-3 rounded-2xl hover:scale-110 transition-all"
           style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)' }}
           title="Zoom In"
         >
-          <ZoomIn className="size-5" style={{ color: '#646464' }} />
+          <ZoomIn className="size-5" style={{ color: 'var(--muted-foreground)' }} />
         </button>
         <button
           onClick={handleZoomOut}
-          className="p-3 bg-white rounded-2xl hover:scale-110 transition-all"
+          className="p-3 rounded-2xl hover:scale-110 transition-all"
           style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)' }}
           title="Zoom Out"
         >
-          <ZoomOut className="size-5" style={{ color: '#646464' }} />
+          <ZoomOut className="size-5" style={{ color: 'var(--muted-foreground)' }} />
         </button>
         <button
           onClick={handleResetView}
-          className="p-3 bg-white rounded-2xl hover:scale-110 transition-all"
+          className="p-3 rounded-2xl hover:scale-110 transition-all"
           style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)' }}
           title="Reset View"
         >
-          <Maximize2 className="size-5" style={{ color: '#646464' }} />
+          <Maximize2 className="size-5" style={{ color: 'var(--muted-foreground)' }} />
         </button>
 
         {/* Spacing Control Toggle */}
@@ -823,7 +823,7 @@ export default function GraphPage() {
           ref={controlsRef}
           className="absolute top-28 right-6 z-10 p-5 rounded-3xl"
           style={{
-            background: 'white',
+            background: 'var(--card)',
             boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
             width: '280px'
           }}
@@ -835,13 +835,13 @@ export default function GraphPage() {
             >
               <Sliders className="size-4" style={{ color: '#5A8FCC' }} />
             </div>
-            <h4 className="font-semibold" style={{ color: '#1E1E1E' }}>
+            <h4 className="font-semibold" style={{ color: 'var(--foreground)' }}>
               Espaciado de Nodos
             </h4>
           </div>
 
           <div className="space-y-3">
-            <div className="flex justify-between text-xs mb-2" style={{ color: '#646464' }}>
+            <div className="flex justify-between text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
               <span>Pegados</span>
               <span>Dispersos</span>
             </div>
@@ -860,7 +860,7 @@ export default function GraphPage() {
             />
 
             <div className="flex justify-between items-center">
-              <span className="text-xs font-medium" style={{ color: '#646464' }}>
+              <span className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>
                 Distancia: {sliderValue}px
               </span>
               <button
@@ -888,7 +888,7 @@ export default function GraphPage() {
           ref={filtersRef}
           className="absolute z-10 p-5 rounded-3xl"
           style={{
-            background: 'white',
+            background: 'var(--card)',
             boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
             width: '300px',
             top: showControls ? '250px' : '160px',
@@ -903,7 +903,7 @@ export default function GraphPage() {
               >
                 <Filter className="size-4" style={{ color: '#9575CD' }} />
               </div>
-              <h4 className="font-semibold" style={{ color: '#1E1E1E' }}>
+              <h4 className="font-semibold" style={{ color: 'var(--foreground)' }}>
                 Filtros
               </h4>
             </div>
@@ -915,7 +915,7 @@ export default function GraphPage() {
                   setFilterStatus(null)
                 }}
                 className="text-xs px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-1"
-                style={{ color: '#646464' }}
+                style={{ color: 'var(--muted-foreground)' }}
               >
                 <X className="size-3" />
                 Limpiar
@@ -926,7 +926,7 @@ export default function GraphPage() {
           <div className="space-y-4">
             {/* Area Filter */}
             <div>
-              <label className="text-xs font-medium mb-2 block" style={{ color: '#646464' }}>
+              <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted-foreground)' }}>
                 Area
               </label>
               <div className="flex flex-wrap gap-2">
@@ -951,7 +951,7 @@ export default function GraphPage() {
 
             {/* Level Filter */}
             <div>
-              <label className="text-xs font-medium mb-2 block" style={{ color: '#646464' }}>
+              <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted-foreground)' }}>
                 Nivel
               </label>
               <div className="flex gap-2">
@@ -980,7 +980,7 @@ export default function GraphPage() {
 
             {/* Status Filter */}
             <div>
-              <label className="text-xs font-medium mb-2 block" style={{ color: '#646464' }}>
+              <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted-foreground)' }}>
                 Estado
               </label>
               <div className="flex gap-2">
@@ -1025,7 +1025,7 @@ export default function GraphPage() {
       <div
         className="absolute top-6 left-6 z-10 p-5 rounded-3xl"
         style={{
-          background: 'white',
+          background: 'var(--card)',
           boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
           maxWidth: '280px'
         }}
@@ -1045,7 +1045,7 @@ export default function GraphPage() {
               <Palette className="size-4" style={{ color: '#5A8FCC' }} />
             )}
           </div>
-          <h3 className="font-semibold" style={{ color: '#1E1E1E' }}>
+          <h3 className="font-semibold" style={{ color: 'var(--foreground)' }}>
             {viewMode === 'status' ? 'Estados' : 'Areas de Conocimiento'}
           </h3>
         </div>
@@ -1060,7 +1060,7 @@ export default function GraphPage() {
                   boxShadow: '0px 2px 6px rgba(163, 228, 182, 0.3)'
                 }}
               />
-              <span className="text-sm font-medium" style={{ color: '#1E1E1E' }}>
+              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                 Entendido
               </span>
             </div>
@@ -1072,7 +1072,7 @@ export default function GraphPage() {
                   boxShadow: '0px 2px 6px rgba(255, 233, 169, 0.3)'
                 }}
               />
-              <span className="text-sm font-medium" style={{ color: '#1E1E1E' }}>
+              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                 En progreso
               </span>
             </div>
@@ -1084,7 +1084,7 @@ export default function GraphPage() {
                   boxShadow: '0px 2px 6px rgba(209, 213, 219, 0.3)'
                 }}
               />
-              <span className="text-sm font-medium" style={{ color: '#1E1E1E' }}>
+              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                 Pendiente
               </span>
             </div>
@@ -1093,21 +1093,21 @@ export default function GraphPage() {
               className="border-t pt-3 mt-3"
               style={{ borderColor: '#E6E6E6' }}
             >
-              <p className="text-xs mb-2 font-medium" style={{ color: '#646464' }}>
+              <p className="text-xs mb-2 font-medium" style={{ color: 'var(--muted-foreground)' }}>
                 Tipos de Conexion
               </p>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-0.5" style={{ backgroundColor: '#6366f1' }} />
-                  <span className="text-xs" style={{ color: '#646464' }}>Prerrequisito</span>
+                  <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Prerrequisito</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-0.5" style={{ backgroundColor: '#8b5cf6' }} />
-                  <span className="text-xs" style={{ color: '#646464' }}>Relacionado</span>
+                  <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Relacionado</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-0.5" style={{ backgroundColor: '#d1d5db' }} />
-                  <span className="text-xs" style={{ color: '#646464' }}>Menciona</span>
+                  <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Menciona</span>
                 </div>
               </div>
             </div>
@@ -1125,14 +1125,14 @@ export default function GraphPage() {
                 />
                 <div className="flex items-center gap-2 flex-1">
                   <span className="text-base">{area.icon}</span>
-                  <span className="text-xs font-medium" style={{ color: '#1E1E1E' }}>
+                  <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
                     {area.name}
                   </span>
                 </div>
               </div>
             ))}
             {activeAreas.length > 5 && (
-              <div className="text-xs text-center pt-2" style={{ color: '#646464' }}>
+              <div className="text-xs text-center pt-2" style={{ color: 'var(--muted-foreground)' }}>
                 +{activeAreas.length - 5} areas mas
               </div>
             )}
@@ -1151,7 +1151,7 @@ export default function GraphPage() {
         <div className="flex items-start gap-3">
           <span className="text-2xl">💡</span>
           <div>
-            <p className="text-sm font-medium mb-1" style={{ color: '#1E1E1E' }}>
+            <p className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>
               Como navegar?
             </p>
             <p className="text-xs" style={{ color: 'rgba(30, 30, 30, 0.7)' }}>
@@ -1166,12 +1166,12 @@ export default function GraphPage() {
         <div
           className="absolute bottom-6 right-6 z-10 p-5 rounded-3xl w-72"
           style={{
-            background: 'white',
+            background: 'var(--card)',
             boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)'
           }}
         >
           <div className="flex items-start justify-between mb-4">
-            <h4 className="font-semibold" style={{ color: '#1E1E1E' }}>{selectedNode.name}</h4>
+            <h4 className="font-semibold" style={{ color: 'var(--foreground)' }}>{selectedNode.name}</h4>
             <button
               onClick={() => setSelectedNode(null)}
               className="w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:scale-110"
@@ -1182,15 +1182,15 @@ export default function GraphPage() {
           </div>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span style={{ color: '#646464' }}>Area:</span>
-              <span style={{ color: '#1E1E1E' }}>{selectedNode.area}</span>
+              <span style={{ color: 'var(--muted-foreground)' }}>Area:</span>
+              <span style={{ color: 'var(--foreground)' }}>{selectedNode.area}</span>
             </div>
             <div className="flex justify-between">
-              <span style={{ color: '#646464' }}>Nivel:</span>
-              <span className="capitalize" style={{ color: '#1E1E1E' }}>{selectedNode.level}</span>
+              <span style={{ color: 'var(--muted-foreground)' }}>Nivel:</span>
+              <span className="capitalize" style={{ color: 'var(--foreground)' }}>{selectedNode.level}</span>
             </div>
             <div className="flex justify-between">
-              <span style={{ color: '#646464' }}>Estado:</span>
+              <span style={{ color: 'var(--muted-foreground)' }}>Estado:</span>
               <span className="capitalize" style={{
                 color: selectedNode.status === 'understood' ? '#22c55e' :
                        selectedNode.status === 'in-progress' ? '#eab308' :
