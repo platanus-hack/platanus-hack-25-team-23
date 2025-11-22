@@ -55,8 +55,8 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
           <Image
             src="/logo.png"
             alt="BrainFlow"
-            width={36}
-            height={36}
+            width={44}
+            height={44}
             className="object-contain"
           />
           {!isCollapsed && (
