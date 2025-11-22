@@ -10,11 +10,9 @@ export async function POST(request: Request) {
     const { topic, parentTopic } = await request.json()
     const supabase = await createClient()
 
-    // Check auth
+    // Check auth - optional for demo mode
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Note: Auth is optional to allow demo mode without login
 
     const prompt = NOTE_GENERATION_PROMPT
       .replace('{{TOPIC}}', topic)
@@ -33,24 +31,23 @@ export async function POST(request: Request) {
       onFinish: async ({ object }) => {
         if (!object) return
 
-        // Save to database when stream finishes
-        const slug = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+        // Save to database when stream finishes (only if user is authenticated)
+        if (user) {
+          const slug = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
-        const { data: note, error: insertError } = await supabase
-          .from('notes')
-          .insert({
-            user_id: user.id,
-            title: object.title,
-            slug: slug,
-            content: object.content,
-            status: 'new'
-          })
-          .select()
-          .single()
-        
-        // We can't return the DB result in the stream easily, 
-        // but the client will have the object.
-        // The client might need to fetch the ID later or we assume slug is ID for now.
+          await supabase
+            .from('notes')
+            .insert({
+              user_id: user.id,
+              title: object.title,
+              slug: slug,
+              content: object.content,
+              status: 'new'
+            })
+            .select()
+            .single()
+        }
+        // Note: Without auth, notes are only stored in client memory
       }
     }).toTextStreamResponse()
 

@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Nunito:wght@400;500;600&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -7,7 +8,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -45,96 +46,139 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  /* Slate 50/900 based theme for high contrast */
-  --background: oklch(0.98 0.01 240); /* Slate 50 */
-  --foreground: oklch(0.15 0.02 240); /* Slate 900 */
-  
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 240);
-  
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 240);
-  
-  --primary: oklch(0.45 0.2 270); /* Indigo 600 #4F46E5 */
-  --primary-foreground: oklch(0.98 0.01 240);
-  
-  --secondary: oklch(0.96 0.01 240); /* Slate 100 */
-  --secondary-foreground: oklch(0.20 0.02 240);
-  
-  --muted: oklch(0.96 0.01 240);
-  --muted-foreground: oklch(0.40 0.02 240); /* Darker muted text for better readability */
-  
-  --accent: oklch(0.96 0.01 240);
-  --accent-foreground: oklch(0.20 0.02 240);
-  
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.98 0.01 240);
+  /* Prototipo Design System Colors */
+  --color-green-calm: #b9e2b1;
+  --color-blue-soft: #a3d4ff;
+  --color-yellow-motivator: #f8e99c;
+  --color-pink-motivational: #fac7d7;
+  --color-lavender: #d6c9f5;
+  --color-gray-ui: #f6f6f6;
+  --color-gray-light: #e6e6e6;
+  --color-gray-text: #646464;
+  --color-white-pure: #fff;
+  --color-black-soft: #1e1e1e;
 
-  --border: oklch(0.85 0.01 240);
-  --input: oklch(0.85 0.01 240);
-  --ring: oklch(0.45 0.2 270);
-  
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  
-  --sidebar: oklch(0.98 0.01 240);
-  --sidebar-foreground: oklch(0.15 0.02 240);
-  --sidebar-primary: oklch(0.45 0.2 270);
-  --sidebar-primary-foreground: oklch(0.98 0.01 240);
-  --sidebar-accent: oklch(0.96 0.01 240);
-  --sidebar-accent-foreground: oklch(0.20 0.02 240);
-  --sidebar-border: oklch(0.85 0.01 240);
-  --sidebar-ring: oklch(0.45 0.2 270);
+  /* Status Colors */
+  --color-status-done: #a3e4b6;
+  --color-status-warning: #ffe9a9;
+  --color-status-error: #ffb1b1;
+  --color-status-highlight: #ffeca4;
+  --color-status-new: #cadfff;
+
+  /* Area Colors (7 Life Areas) */
+  --color-blue-cool: #7fbfff;
+  --color-green-health: #a7deae;
+  --color-yellow-light: #ffef84;
+  --color-pink-emotional: #f7b9c8;
+  --color-purple-neuro: #c9b7f3;
+  --color-orange-creative: #ffd5a5;
+
+  /* Fonts */
+  --font-titles: "Poppins", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-ui: "Nunito", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-size: 16px;
+
+  /* Theme */
+  --radius: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+
+  --background: #fafbfc;
+  --foreground: var(--color-black-soft);
+
+  --card: var(--color-white-pure);
+  --card-foreground: var(--color-black-soft);
+
+  --popover: var(--color-white-pure);
+  --popover-foreground: var(--color-black-soft);
+
+  --primary: var(--color-lavender);
+  --primary-foreground: var(--color-black-soft);
+
+  --secondary: var(--color-blue-soft);
+  --secondary-foreground: var(--color-black-soft);
+
+  --muted: var(--color-gray-ui);
+  --muted-foreground: var(--color-gray-text);
+
+  --accent: var(--color-yellow-motivator);
+  --accent-foreground: var(--color-black-soft);
+
+  --destructive: var(--color-status-error);
+  --destructive-foreground: var(--color-black-soft);
+
+  --border: var(--color-gray-light);
+  --input: transparent;
+  --input-background: var(--color-gray-ui);
+  --switch-background: var(--color-gray-light);
+  --ring: var(--color-lavender);
+
+  --chart-1: var(--color-blue-soft);
+  --chart-2: var(--color-green-calm);
+  --chart-3: var(--color-lavender);
+  --chart-4: var(--color-pink-motivational);
+  --chart-5: var(--color-yellow-motivator);
+
+  /* Shadows */
+  --shadow-soft: 0px 4px 14px rgba(0, 0, 0, 0.06);
+  --shadow-medium: 0px 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-strong: 0px 12px 32px rgba(0, 0, 0, 0.12);
+
+  /* Sidebar */
+  --sidebar: var(--color-white-pure);
+  --sidebar-foreground: var(--color-black-soft);
+  --sidebar-primary: var(--color-lavender);
+  --sidebar-primary-foreground: var(--color-black-soft);
+  --sidebar-accent: var(--color-gray-ui);
+  --sidebar-accent-foreground: var(--color-black-soft);
+  --sidebar-border: var(--color-gray-light);
+  --sidebar-ring: var(--color-lavender);
 }
 
 .dark {
-  /* Slate 900/50 */
-  --background: oklch(0.10 0.02 240); /* Slate 950 #020617 */
-  --foreground: oklch(0.98 0.01 240); /* Slate 50 */
-  
-  --card: oklch(0.13 0.02 240); /* Slate 900 */
-  --card-foreground: oklch(0.98 0.01 240);
-  
-  --popover: oklch(0.13 0.02 240);
-  --popover-foreground: oklch(0.98 0.01 240);
-  
-  --primary: oklch(0.55 0.2 270); /* Indigo 500 */
-  --primary-foreground: oklch(0.98 0.01 240);
-  
-  --secondary: oklch(0.20 0.02 240); /* Slate 800 */
-  --secondary-foreground: oklch(0.98 0.01 240);
-  
-  --muted: oklch(0.20 0.02 240);
-  --muted-foreground: oklch(0.70 0.02 240); /* Lighter muted text */
-  
-  --accent: oklch(0.20 0.02 240);
-  --accent-foreground: oklch(0.98 0.01 240);
-  
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+
+  --card: oklch(0.18 0 0);
+  --card-foreground: oklch(0.985 0 0);
+
+  --popover: oklch(0.18 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+
+  --primary: oklch(0.7 0.15 300);
+  --primary-foreground: oklch(0.985 0 0);
+
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+
   --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.98 0.01 240);
-  
-  --border: oklch(0.20 0.02 240);
-  --input: oklch(0.20 0.02 240);
-  --ring: oklch(0.55 0.2 270);
-  
+  --destructive-foreground: oklch(0.985 0 0);
+
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.7 0.15 300);
+
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  
-  --sidebar: oklch(0.13 0.02 240);
-  --sidebar-foreground: oklch(0.98 0.01 240);
-  --sidebar-primary: oklch(0.55 0.2 270);
-  --sidebar-primary-foreground: oklch(0.98 0.01 240);
-  --sidebar-accent: oklch(0.20 0.02 240);
-  --sidebar-accent-foreground: oklch(0.98 0.01 240);
-  --sidebar-border: oklch(0.20 0.02 240);
-  --sidebar-ring: oklch(0.55 0.2 270);
+
+  --sidebar: oklch(0.18 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.7 0.15 300);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: oklch(0.7 0.15 300);
 }
 
 @layer base {
@@ -143,5 +187,151 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body);
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-titles);
+  }
+
+  button, .btn {
+    font-family: var(--font-ui);
+  }
+}
+
+/* Custom utility classes */
+.shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+
+.shadow-medium {
+  box-shadow: var(--shadow-medium);
+}
+
+.shadow-strong {
+  box-shadow: var(--shadow-strong);
+}
+
+/* Cognitive status colors */
+.bg-cognitive-done {
+  background-color: var(--color-status-done);
+}
+
+.bg-cognitive-progress {
+  background-color: var(--color-status-warning);
+}
+
+.bg-cognitive-pending {
+  background-color: var(--color-gray-light);
+}
+
+.bg-cognitive-highlight {
+  background-color: var(--color-status-highlight);
+}
+
+.bg-cognitive-new {
+  background-color: var(--color-status-new);
+}
+
+/* Area colors */
+.bg-area-desarrollo {
+  background-color: var(--color-blue-cool);
+}
+
+.bg-area-salud {
+  background-color: var(--color-green-health);
+}
+
+.bg-area-finanzas {
+  background-color: var(--color-yellow-light);
+}
+
+.bg-area-relaciones {
+  background-color: var(--color-pink-emotional);
+}
+
+.bg-area-hobbies {
+  background-color: var(--color-orange-creative);
+}
+
+.bg-area-educacion {
+  background-color: var(--color-blue-soft);
+}
+
+.bg-area-crecimiento {
+  background-color: var(--color-purple-neuro);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-gray-ui);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gray-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-text);
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Streaming cursor animation */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-blink {
+  animation: blink 0.8s ease-in-out infinite;
+}
+
+/* Subtle pulse for streaming content */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.95; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 1.5s ease-in-out infinite;
 }
