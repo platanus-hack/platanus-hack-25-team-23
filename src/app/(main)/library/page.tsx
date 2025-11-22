@@ -284,10 +284,29 @@ export default function LibraryPage() {
     return contextFolders
   }, [filteredNotes, lastOrganized, areas])
 
+  // Filter journal entries by search query
+  const filteredJournalEntries = useMemo(() => {
+    if (!searchQuery.trim()) return journalEntries
+    const query = searchQuery.toLowerCase()
+    return journalEntries.filter(entry => {
+      const entryText = [
+        entry.pilesAffirmation,
+        entry.freeThoughts,
+        entry.daily_intention,
+        entry.lesson,
+        ...(entry.gratitude || []),
+        ...(entry.best_moments || []),
+        ...(entry.make_great || []),
+        ...(entry.pilesItems?.map(i => i.text) || [])
+      ].filter(Boolean).join(' ').toLowerCase()
+      return entryText.includes(query) || entry.date.includes(query)
+    })
+  }, [journalEntries, searchQuery])
+
   // Group journal entries by year > month > entries (hierarchical structure like Calendar > 2025 > 09 > 2025-09-12)
   const journalHierarchy = useMemo(() => {
     const hierarchy: Record<string, Record<string, JournalEntry[]>> = {}
-    journalEntries.forEach(entry => {
+    filteredJournalEntries.forEach(entry => {
       const year = entry.date.substring(0, 4) // YYYY
       const month = entry.date.substring(5, 7) // MM
       if (!hierarchy[year]) {
@@ -305,7 +324,13 @@ export default function LibraryPage() {
       })
     })
     return hierarchy
-  }, [journalEntries])
+  }, [filteredJournalEntries])
+
+  // Filter folders to hide empty ones when searching
+  const displayFolders = useMemo(() => {
+    if (!searchQuery.trim()) return folders
+    return folders.filter(folder => folder.notes.length > 0)
+  }, [folders, searchQuery])
 
   // Toggle folder expansion
   const toggleFolder = (folderId: string) => {
@@ -659,7 +684,11 @@ export default function LibraryPage() {
             </div>
             {searchQuery && (
               <p className="mt-2 text-sm" style={{ color: '#6D6D6D' }}>
-                {filteredNotes.length} resultado{filteredNotes.length !== 1 ? 's' : ''} para "{searchQuery}"
+                {filteredNotes.length + filteredJournalEntries.length} resultado{(filteredNotes.length + filteredJournalEntries.length) !== 1 ? 's' : ''} para "{searchQuery}"
+                {filteredNotes.length > 0 && ` (${filteredNotes.length} notas`}
+                {filteredNotes.length > 0 && filteredJournalEntries.length > 0 && ', '}
+                {filteredJournalEntries.length > 0 && `${filteredJournalEntries.length} journal)`}
+                {filteredNotes.length > 0 && filteredJournalEntries.length === 0 && ')'}
               </p>
             )}
           </div>
@@ -1216,8 +1245,40 @@ export default function LibraryPage() {
             </div>
           )}
 
-          {folders.length > 0 ? (
-            folders.map(folder => renderFolder(folder))
+          {displayFolders.length > 0 ? (
+            displayFolders.map(folder => renderFolder(folder))
+          ) : searchQuery.trim() ? (
+            /* No results state */
+            <div
+              className="text-center py-12 rounded-3xl"
+              style={{
+                backgroundColor: 'var(--card)',
+                boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
+              }}
+            >
+              <div
+                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: '#F6F5F2' }}
+              >
+                <Search className="size-10" style={{ color: '#9A9A9A' }} />
+              </div>
+              <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+                Sin resultados
+              </h3>
+              <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>
+                No se encontraron notas para "{searchQuery}"
+              </p>
+              <button
+                onClick={() => setSearchQuery('')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl transition-all hover:scale-105"
+                style={{
+                  backgroundColor: '#FFD9D9',
+                  color: '#222222'
+                }}
+              >
+                Limpiar busqueda
+              </button>
+            </div>
           ) : (
             /* Empty State */
             <div
@@ -1234,10 +1295,10 @@ export default function LibraryPage() {
                 <FolderOpen className="size-10" style={{ color: '#C9B7F3' }} />
               </div>
               <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
-                Aún no tienes notas
+                Aun no tienes notas
               </h3>
               <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>
-                Crea tu primera nota y Nodi la organizará automáticamente
+                Crea tu primera nota y sera organizada automaticamente
               </p>
               <Link
                 href="/new-query"
