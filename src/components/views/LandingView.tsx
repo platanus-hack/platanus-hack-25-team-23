@@ -2,89 +2,96 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Sparkles, ArrowRight, CheckCircle, BookOpen, Network, Lightbulb, Calendar, Target } from 'lucide-react';
+import { ArrowRight, Sparkles, Brain, Network, BookOpen, Target } from 'lucide-react';
 
 export function LandingView() {
   const features = [
     {
-      icon: <BookOpen className="size-8" style={{ color: '#A0B9FF' }} />,
-      title: 'Notas Inteligentes',
-      description: 'Crea y organiza conocimiento que se conecta automaticamente entre si.'
+      icon: '📝',
+      iconBg: '#FFF0E6',
+      title: 'Tracking Screen',
+      description: 'Take control with intuitive knowledge tracking'
     },
     {
-      icon: <Network className="size-8" style={{ color: '#D6C3FF' }} />,
-      title: 'Grafo de Conocimiento',
-      description: 'Visualiza tus ideas en un mapa interactivo que crece contigo.'
+      icon: '🎯',
+      iconBg: '#FFD9D9',
+      title: 'Score Screen',
+      description: 'Your learning score is every effort matters'
     },
     {
-      icon: <Calendar className="size-8" style={{ color: '#B0F2B4' }} />,
-      title: 'Diario Personal',
-      description: 'Reflexiona cada dia con un journal que te ayuda a crecer.'
+      icon: '📈',
+      iconBg: '#E6DAFF',
+      title: 'Progress Screen',
+      description: 'Every step brings you closer to mastery'
     },
     {
-      icon: <Target className="size-8" style={{ color: '#FFB7B7' }} />,
-      title: 'Seguimiento de Metas',
-      description: 'Organiza tus tareas y ve tu progreso con claridad.'
+      icon: '🧠',
+      iconBg: '#CFE4FF',
+      title: 'Monitoring Screen',
+      description: 'Track your progress and stay on top'
     }
   ];
 
   const steps = [
     {
-      number: '1',
-      title: 'Escribe lo que aprendes',
-      description: 'Cualquier concepto, idea o reflexion'
+      number: '01',
+      title: 'Escribe tu tema',
+      description: 'Cualquier concepto que quieras aprender'
     },
     {
-      number: '2',
-      title: 'BrainFlow conecta todo',
-      description: 'La IA encuentra relaciones automaticamente'
+      number: '02',
+      title: 'BrainFlow conecta',
+      description: 'La IA encuentra relaciones y crea tu mapa'
     },
     {
-      number: '3',
-      title: 'Visualiza y crece',
-      description: 'Tu segundo cerebro evoluciona contigo'
+      number: '03',
+      title: 'Aprende y crece',
+      description: 'Visualiza tu progreso sin ansiedad'
     }
   ];
 
   return (
     <div
-      className="flex-1 overflow-y-auto min-h-screen"
-      style={{ backgroundColor: '#F5F7FB' }}
+      className="min-h-screen"
+      style={{ backgroundColor: '#F6F5F2' }}
     >
-      {/* Header/Navbar */}
-      <header className="max-w-6xl mx-auto px-8 py-6">
+      {/* Header */}
+      <header className="max-w-6xl mx-auto px-6 py-5">
         <nav className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image
               src="/logo.png"
               alt="BrainFlow"
-              width={48}
-              height={48}
+              width={44}
+              height={44}
               className="object-contain"
             />
-            <span className="text-2xl font-bold" style={{ color: '#5B4B8A' }}>
+            <span
+              className="text-xl font-semibold"
+              style={{
+                color: '#222222',
+                fontFamily: 'Manrope, sans-serif',
+                letterSpacing: '-0.02em'
+              }}
+            >
               BrainFlow
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="px-6 py-2.5 rounded-xl font-medium transition-all hover:scale-105"
-              style={{
-                color: '#5B4B8A',
-                backgroundColor: 'transparent'
-              }}
+              className="px-5 py-2.5 rounded-xl font-medium text-sm transition-all hover:bg-[#FFF0E6]"
+              style={{ color: '#6D6D6D' }}
             >
               Iniciar Sesion
             </Link>
             <Link
-              href="/register"
-              className="px-6 py-2.5 rounded-xl font-medium transition-all hover:scale-105"
+              href="/login"
+              className="px-5 py-2.5 rounded-xl font-medium text-sm transition-all hover:opacity-90"
               style={{
-                background: 'linear-gradient(135deg, #D6C3FF 0%, #A0B9FF 100%)',
-                color: 'white',
-                boxShadow: '0px 4px 14px rgba(214, 195, 255, 0.4)'
+                backgroundColor: '#FFD9D9',
+                color: '#222222'
               }}
             >
               Registrarse
@@ -94,163 +101,106 @@ export function LandingView() {
       </header>
 
       {/* Hero Section */}
-      <section className="max-w-6xl mx-auto px-8 py-16">
-        <div className="text-center mb-16">
-          {/* Mascot */}
-          <div className="mb-8">
-            <Image
-              src="/logo.png"
-              alt="BrainFlow Mascot"
-              width={140}
-              height={140}
-              className="object-contain mx-auto"
-            />
-          </div>
+      <section className="max-w-6xl mx-auto px-6 pt-12 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Left Content */}
+          <div>
+            <div className="mb-8">
+              <Image
+                src="/logo.png"
+                alt="BrainFlow Mascot"
+                width={80}
+                height={80}
+                className="object-contain animate-float"
+              />
+            </div>
 
-          <h1
-            className="text-5xl md:text-6xl font-bold mb-6 leading-tight"
-            style={{ color: '#2D2D2D' }}
-          >
-            Tu segundo cerebro,
-            <br />
-            <span style={{
-              background: 'linear-gradient(135deg, #D6C3FF 0%, #A0B9FF 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>
-              simple y poderoso
-            </span>
-          </h1>
-
-          <p
-            className="text-xl mb-10 max-w-2xl mx-auto leading-relaxed"
-            style={{ color: '#6B6B6B' }}
-          >
-            Organiza tus ideas, conecta tu conocimiento y crece cada dia
-            con un espacio diseñado para la claridad mental.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link
-              href="/register"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-semibold text-lg transition-all hover:scale-105"
+            <h1
+              className="text-4xl md:text-5xl font-bold mb-6 leading-tight"
               style={{
-                background: 'linear-gradient(135deg, #D6C3FF 0%, #A0B9FF 100%)',
-                color: 'white',
-                boxShadow: '0px 8px 24px rgba(214, 195, 255, 0.4)'
+                color: '#222222',
+                fontFamily: 'Manrope, sans-serif',
+                letterSpacing: '-0.03em'
               }}
             >
-              <Sparkles className="size-5" />
-              Comenzar Gratis
-              <ArrowRight className="size-5" />
-            </Link>
+              <span style={{ fontStyle: 'italic', fontWeight: 800 }}>BrainFlow's</span> knowledge
+              <br />
+              system provides leading-
+              <br />
+              edge learning that syncs
+              <br />
+              directly to your mind.
+            </h1>
 
-            <Link
-              href="/new-query"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-semibold text-lg transition-all hover:scale-105"
-              style={{
-                backgroundColor: 'white',
-                color: '#5B4B8A',
-                border: '2px solid #D6C3FF',
-                boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.05)'
-              }}
+            <p
+              className="text-lg mb-8 leading-relaxed"
+              style={{ color: '#6D6D6D' }}
             >
-              Explorar Demo
-            </Link>
-          </div>
-
-          {/* Trust badges */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm" style={{ color: '#8B8B8B' }}>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="size-5" style={{ color: '#B0F2B4' }} />
-              <span>100% Gratis</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="size-5" style={{ color: '#B0F2B4' }} />
-              <span>Sin tarjeta de credito</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="size-5" style={{ color: '#B0F2B4' }} />
-              <span>Privado y seguro</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="max-w-6xl mx-auto px-8 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4" style={{ color: '#2D2D2D' }}>
-            Todo lo que necesitas para pensar mejor
-          </h2>
-          <p style={{ color: '#6B6B6B' }}>
-            Herramientas simples pero poderosas para tu crecimiento personal
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="rounded-3xl p-8 transition-all hover:scale-[1.02]"
-              style={{
-                backgroundColor: 'white',
-                border: '1px solid #E8E0FF',
-                boxShadow: '0px 4px 20px rgba(214, 195, 255, 0.15)'
-              }}
-            >
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6"
-                style={{ backgroundColor: '#F5F7FB' }}
-              >
-                {feature.icon}
-              </div>
-              <h3 className="text-xl font-semibold mb-3" style={{ color: '#2D2D2D' }}>
-                {feature.title}
-              </h3>
-              <p style={{ color: '#6B6B6B' }}>
-                {feature.description}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* How it Works */}
-      <section className="max-w-6xl mx-auto px-8 py-16">
-        <div
-          className="rounded-3xl p-12"
-          style={{
-            background: 'linear-gradient(135deg, #E8E0FF 0%, #D6E4FF 100%)',
-            boxShadow: '0px 8px 32px rgba(214, 195, 255, 0.2)'
-          }}
-        >
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4" style={{ color: '#2D2D2D' }}>
-              Como funciona?
-            </h2>
-            <p style={{ color: '#5B4B8A' }}>
-              Simple como deberia ser
+              Tu segundo cerebro, simple y poderoso. Aprende cualquier tema
+              con claridad mental y sin ansiedad.
             </p>
+
+            <div className="flex flex-wrap gap-4">
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-medium transition-all hover:translate-y-[-2px]"
+                style={{
+                  backgroundColor: '#FFD9D9',
+                  color: '#222222',
+                  boxShadow: '0px 4px 20px rgba(255, 217, 217, 0.4)'
+                }}
+              >
+                <Sparkles className="size-4" />
+                Comenzar Gratis
+                <ArrowRight className="size-4" />
+              </Link>
+
+              <Link
+                href="/new-query"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-medium transition-all hover:bg-[#FFF0E6]"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#6D6D6D',
+                  border: '1px solid #EEEBE6'
+                }}
+              >
+                Explorar Demo
+              </Link>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {steps.map((step, index) => (
-              <div key={index} className="text-center">
+          {/* Right - Feature Cards */}
+          <div className="grid grid-cols-2 gap-4">
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className="p-5 rounded-2xl transition-all hover:translate-y-[-2px]"
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  boxShadow: '0px 2px 12px rgba(0, 0, 0, 0.03)'
+                }}
+              >
                 <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
+                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 text-lg"
+                  style={{ backgroundColor: feature.iconBg }}
+                >
+                  {feature.icon}
+                </div>
+                <h3
+                  className="font-semibold mb-1"
                   style={{
-                    background: 'linear-gradient(135deg, #D6C3FF 0%, #A0B9FF 100%)',
-                    boxShadow: '0px 4px 14px rgba(214, 195, 255, 0.4)'
+                    color: '#222222',
+                    fontSize: '15px',
+                    fontFamily: 'Manrope, sans-serif'
                   }}
                 >
-                  <span className="text-2xl font-bold text-white">{step.number}</span>
-                </div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: '#2D2D2D' }}>
-                  {step.title}
+                  {feature.title}
                 </h3>
-                <p style={{ color: '#5B4B8A' }}>
-                  {step.description}
+                <p
+                  className="text-sm leading-relaxed"
+                  style={{ color: '#6D6D6D' }}
+                >
+                  {feature.description}
                 </p>
               </div>
             ))}
@@ -258,67 +208,241 @@ export function LandingView() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="max-w-6xl mx-auto px-8 py-16">
-        <div
-          className="rounded-3xl p-12 text-center"
-          style={{
-            backgroundColor: 'white',
-            border: '2px solid #D6C3FF',
-            boxShadow: '0px 8px 32px rgba(214, 195, 255, 0.15)'
-          }}
-        >
-          <div className="mb-6">
-            <Image
-              src="/logo.png"
-              alt="BrainFlow"
-              width={80}
-              height={80}
-              className="object-contain mx-auto"
-            />
+      {/* Features Showcase */}
+      <section
+        className="py-20"
+        style={{ backgroundColor: '#FFFCF9' }}
+      >
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2
+              className="text-3xl font-bold mb-4"
+              style={{
+                color: '#222222',
+                fontFamily: 'Manrope, sans-serif',
+                letterSpacing: '-0.02em'
+              }}
+            >
+              Todo lo que necesitas para aprender mejor
+            </h2>
+            <p style={{ color: '#6D6D6D' }}>
+              Herramientas simples pero poderosas para tu crecimiento personal
+            </p>
           </div>
 
-          <h2 className="text-3xl font-bold mb-4" style={{ color: '#2D2D2D' }}>
-            Listo para empezar?
-          </h2>
-          <p className="mb-8 max-w-lg mx-auto" style={{ color: '#6B6B6B' }}>
-            Dale claridad a tu mente. Comienza tu segundo cerebro hoy.
-          </p>
+          {/* Feature Pills */}
+          <div className="flex flex-wrap justify-center gap-3 mb-16">
+            {[
+              { icon: <Brain className="size-4" />, label: 'Notas con IA', bg: '#E6DAFF' },
+              { icon: <Network className="size-4" />, label: 'Grafo de conocimiento', bg: '#CFE4FF' },
+              { icon: <BookOpen className="size-4" />, label: 'Journal diario', bg: '#FFF0E6' },
+              { icon: <Target className="size-4" />, label: 'Progreso visual', bg: '#D4F5E9' },
+            ].map((pill, i) => (
+              <div
+                key={i}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full"
+                style={{ backgroundColor: pill.bg }}
+              >
+                {pill.icon}
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: '#222222' }}
+                >
+                  {pill.label}
+                </span>
+              </div>
+            ))}
+          </div>
 
-          <Link
-            href="/register"
-            className="inline-flex items-center gap-2 px-10 py-4 rounded-2xl font-semibold text-lg transition-all hover:scale-105"
+          {/* Mobile Previews - Kenko Style */}
+          <div className="flex justify-center gap-6 overflow-x-auto pb-4">
+            {[1, 2, 3].map((_, i) => (
+              <div
+                key={i}
+                className="flex-shrink-0 w-64 rounded-3xl p-4 pt-8"
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  boxShadow: '0px 8px 30px rgba(0, 0, 0, 0.06)'
+                }}
+              >
+                {/* Phone Notch */}
+                <div
+                  className="w-20 h-6 mx-auto rounded-full mb-6"
+                  style={{ backgroundColor: '#222222' }}
+                />
+
+                {/* Content */}
+                <div className="space-y-4">
+                  <div
+                    className="h-3 rounded-full"
+                    style={{ backgroundColor: '#EEEBE6', width: '60%' }}
+                  />
+                  <div
+                    className="h-16 rounded-2xl"
+                    style={{ backgroundColor: i === 0 ? '#FFF0E6' : i === 1 ? '#E6DAFF' : '#D4F5E9' }}
+                  />
+                  <div className="space-y-2">
+                    <div
+                      className="h-2 rounded-full"
+                      style={{ backgroundColor: '#EEEBE6' }}
+                    />
+                    <div
+                      className="h-2 rounded-full"
+                      style={{ backgroundColor: '#EEEBE6', width: '80%' }}
+                    />
+                  </div>
+                  <div
+                    className="h-12 rounded-xl"
+                    style={{ backgroundColor: i === 0 ? '#FFD9D9' : i === 1 ? '#CFE4FF' : '#FFF0E6' }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How it Works */}
+      <section className="py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <div
+            className="rounded-3xl p-10 md:p-16"
+            style={{ backgroundColor: '#FFF0E6' }}
+          >
+            <div className="text-center mb-12">
+              <h2
+                className="text-3xl font-bold mb-4"
+                style={{
+                  color: '#222222',
+                  fontFamily: 'Manrope, sans-serif'
+                }}
+              >
+                Como funciona?
+              </h2>
+              <p style={{ color: '#6D6D6D' }}>
+                Simple como deberia ser
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {steps.map((step, index) => (
+                <div key={index} className="text-center">
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
+                    style={{ backgroundColor: '#FFD9D9' }}
+                  >
+                    <span
+                      className="text-lg font-bold"
+                      style={{ color: '#222222' }}
+                    >
+                      {step.number}
+                    </span>
+                  </div>
+                  <h3
+                    className="font-semibold mb-2"
+                    style={{
+                      color: '#222222',
+                      fontFamily: 'Manrope, sans-serif'
+                    }}
+                  >
+                    {step.title}
+                  </h3>
+                  <p
+                    className="text-sm"
+                    style={{ color: '#6D6D6D' }}
+                  >
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <div
+            className="rounded-3xl p-10 md:p-16 text-center"
             style={{
-              background: 'linear-gradient(135deg, #D6C3FF 0%, #A0B9FF 100%)',
-              color: 'white',
-              boxShadow: '0px 8px 24px rgba(214, 195, 255, 0.4)'
+              backgroundColor: '#FFFFFF',
+              boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.04)'
             }}
           >
-            <Sparkles className="size-5" />
-            Crear mi cuenta gratis
-            <ArrowRight className="size-5" />
-          </Link>
+            <div className="mb-6">
+              <Image
+                src="/logo.png"
+                alt="BrainFlow"
+                width={64}
+                height={64}
+                className="object-contain mx-auto"
+              />
+            </div>
+
+            <h2
+              className="text-3xl font-bold mb-4"
+              style={{
+                color: '#222222',
+                fontFamily: 'Manrope, sans-serif'
+              }}
+            >
+              Listo para empezar?
+            </h2>
+            <p
+              className="mb-8 max-w-md mx-auto"
+              style={{ color: '#6D6D6D' }}
+            >
+              Tu mente esta a punto de aprender sin ansiedad.
+              Dale claridad a tu segundo cerebro.
+            </p>
+
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-medium transition-all hover:translate-y-[-2px]"
+              style={{
+                backgroundColor: '#FFD9D9',
+                color: '#222222',
+                boxShadow: '0px 4px 20px rgba(255, 217, 217, 0.4)'
+              }}
+            >
+              <Sparkles className="size-4" />
+              Crear mi cuenta gratis
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="max-w-6xl mx-auto px-8 py-8">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8" style={{ borderTop: '1px solid #E8E0FF' }}>
-          <div className="flex items-center gap-2">
-            <Image
-              src="/logo.png"
-              alt="BrainFlow"
-              width={24}
-              height={24}
-              className="object-contain"
-            />
-            <span className="font-medium" style={{ color: '#5B4B8A' }}>
-              BrainFlow
-            </span>
+      <footer className="py-8">
+        <div className="max-w-6xl mx-auto px-6">
+          <div
+            className="flex flex-col md:flex-row items-center justify-between gap-4 pt-6"
+            style={{ borderTop: '1px solid #EEEBE6' }}
+          >
+            <div className="flex items-center gap-2">
+              <Image
+                src="/logo.png"
+                alt="BrainFlow"
+                width={24}
+                height={24}
+                className="object-contain"
+              />
+              <span
+                className="font-medium"
+                style={{ color: '#222222' }}
+              >
+                BrainFlow
+              </span>
+            </div>
+            <p
+              className="text-sm"
+              style={{ color: '#9A9A9A' }}
+            >
+              Tu segundo cerebro, simple y poderoso
+            </p>
           </div>
-          <p className="text-sm" style={{ color: '#8B8B8B' }}>
-            Tu segundo cerebro, simple y poderoso
-          </p>
         </div>
       </footer>
     </div>

@@ -26,6 +26,9 @@ export interface JournalEntry {
   best_moments: string[]
   lesson: string
 
+  // Free Thoughts
+  free_thoughts: string
+
   // Quote
   quote: {
     text: string
@@ -124,6 +127,7 @@ function createEmptyEntry(date: string, type: JournalEntry['type'] = 'daily'): P
     make_great: ['', '', ''],
     best_moments: ['', '', ''],
     lesson: '',
+    free_thoughts: '',
     quote: null,
     tasks: [],
     mood: null,

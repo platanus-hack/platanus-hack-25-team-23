@@ -32,16 +32,23 @@ export default function StudyPage() {
 
   if (!currentNote && !isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
+      <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
         <div className="text-center">
-          <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <BookOpen className="size-10 text-purple-600" />
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+            style={{ backgroundColor: '#E6DAFF' }}
+          >
+            <BookOpen className="size-10" style={{ color: '#9575CD' }} />
           </div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">Sin nota seleccionada</h2>
-          <p className="text-gray-600 mb-6">Genera una nueva nota para empezar a aprender</p>
+          <h2 className="text-2xl font-semibold mb-4" style={{ color: 'var(--foreground)' }}>Sin nota seleccionada</h2>
+          <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>Genera una nueva nota para empezar a aprender</p>
           <Link
             href="/new-query"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 text-white rounded-2xl hover:scale-105 transition-all duration-300"
+            style={{
+              background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+              boxShadow: '0px 4px 14px rgba(201, 183, 243, 0.3)'
+            }}
           >
             Nueva Consulta
           </Link>
@@ -51,36 +58,45 @@ export default function StudyPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-gray-50">
+    <div className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--background)' }}>
       <div className="max-w-4xl mx-auto px-8 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button
             onClick={() => router.back()}
-            className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+            className="w-10 h-10 rounded-xl flex items-center justify-center hover:scale-105 transition-all duration-300"
+            style={{
+              backgroundColor: 'var(--card)',
+              border: '2px solid #EEEBE6'
+            }}
           >
-            <ArrowLeft className="size-5 text-gray-600" />
+            <ArrowLeft className="size-5" style={{ color: 'var(--muted-foreground)' }} />
           </button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
               {isLoading ? 'Generando...' : currentNote?.title}
             </h1>
             {currentNote?.status && (
-              <span className={`inline-flex items-center gap-1 text-sm mt-1 ${
-                currentNote.status === 'understood' ? 'text-green-600' :
-                currentNote.status === 'read' ? 'text-yellow-600' :
-                'text-blue-600'
-              }`}>
+              <span className={`inline-flex items-center gap-1 text-sm mt-1`}
+                style={{
+                  color: currentNote.status === 'understood' ? '#10B981' :
+                    currentNote.status === 'read' ? '#F59E0B' : '#3B82F6'
+                }}
+              >
                 {currentNote.status === 'understood' && <CheckCircle className="size-4" />}
                 {currentNote.status === 'understood' ? 'Dominado' :
-                 currentNote.status === 'read' ? 'En progreso' : 'Nuevo'}
+                  currentNote.status === 'read' ? 'En progreso' : 'Nuevo'}
               </span>
             )}
           </div>
           {currentNote && currentNote.status !== 'understood' && (
             <button
               onClick={handleMarkUnderstood}
-              className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-xl hover:bg-green-200 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl hover:scale-105 transition-all duration-300"
+              style={{
+                backgroundColor: '#D4F5E9',
+                color: '#10B981'
+              }}
             >
               <CheckCircle className="size-5" />
               Marcar como dominado
@@ -89,11 +105,18 @@ export default function StudyPage() {
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-2xl shadow-soft border border-gray-100 p-8">
+        <div
+          className="rounded-3xl p-8"
+          style={{
+            backgroundColor: 'var(--card)',
+            border: '2px solid #EEEBE6',
+            boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.04)'
+          }}
+        >
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <Loader2 className="size-12 text-purple-600 animate-spin mb-4" />
-              <p className="text-gray-600">Generando contenido...</p>
+              <Loader2 className="size-12 animate-spin mb-4" style={{ color: '#C9B7F3' }} />
+              <p style={{ color: 'var(--muted-foreground)' }}>Generando contenido...</p>
             </div>
           ) : currentNote?.content ? (
             <div className="prose prose-lg max-w-none">
@@ -104,22 +127,23 @@ export default function StudyPage() {
                     <a
                       href={href}
                       onClick={(e) => handleLinkClick(e, href || '')}
-                      className="text-purple-600 hover:text-purple-700 underline cursor-pointer font-medium"
+                      className="underline cursor-pointer font-medium hover:opacity-80 transition-opacity"
+                      style={{ color: '#9575CD' }}
                     >
                       {children}
                     </a>
                   ),
                   h1: ({ children }) => (
-                    <h1 className="text-3xl font-bold text-gray-900 mb-6 mt-8 first:mt-0">{children}</h1>
+                    <h1 className="text-3xl font-bold mb-6 mt-8 first:mt-0" style={{ color: 'var(--foreground)' }}>{children}</h1>
                   ),
                   h2: ({ children }) => (
-                    <h2 className="text-2xl font-semibold text-gray-900 mb-4 mt-6">{children}</h2>
+                    <h2 className="text-2xl font-semibold mb-4 mt-6" style={{ color: 'var(--foreground)' }}>{children}</h2>
                   ),
                   h3: ({ children }) => (
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3 mt-5">{children}</h3>
+                    <h3 className="text-xl font-semibold mb-3 mt-5" style={{ color: 'var(--foreground)' }}>{children}</h3>
                   ),
                   p: ({ children }) => (
-                    <p className="text-gray-700 leading-relaxed mb-4">{children}</p>
+                    <p className="leading-relaxed mb-4" style={{ color: 'var(--foreground)' }}>{children}</p>
                   ),
                   ul: ({ children }) => (
                     <ul className="space-y-2 mb-4 list-none">{children}</ul>
@@ -129,39 +153,39 @@ export default function StudyPage() {
                     // Handle special callouts
                     if (text.startsWith('& ')) {
                       return (
-                        <li className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                          <span className="text-blue-600 text-xl">Key</span>
-                          <span className="text-gray-700">{text.slice(2)}</span>
+                        <li className="flex items-start gap-3 p-4 rounded-xl" style={{ backgroundColor: '#CFE4FF', border: '1px solid #A3D4FF' }}>
+                          <span style={{ color: '#5A8FCC' }} className="text-xl">Key</span>
+                          <span style={{ color: 'var(--foreground)' }}>{text.slice(2)}</span>
                         </li>
                       )
                     }
                     if (text.startsWith('! ')) {
                       return (
-                        <li className="flex items-start gap-3 p-4 bg-yellow-50 rounded-xl border border-yellow-100">
-                          <span className="text-yellow-600 text-xl">!</span>
-                          <span className="text-gray-700">{text.slice(2)}</span>
+                        <li className="flex items-start gap-3 p-4 rounded-xl" style={{ backgroundColor: '#FFF0E6', border: '1px solid #FFD5A5' }}>
+                          <span style={{ color: '#CC7E4A' }} className="text-xl">!</span>
+                          <span style={{ color: 'var(--foreground)' }}>{text.slice(2)}</span>
                         </li>
                       )
                     }
                     if (text.startsWith('Ex: ')) {
                       return (
-                        <li className="flex items-start gap-3 p-4 bg-green-50 rounded-xl border border-green-100">
-                          <span className="text-green-600 text-xl">Example</span>
-                          <span className="text-gray-700">{text.slice(4)}</span>
+                        <li className="flex items-start gap-3 p-4 rounded-xl" style={{ backgroundColor: '#D4F5E9', border: '1px solid #A3E4B6' }}>
+                          <span style={{ color: '#10B981' }} className="text-xl">Example</span>
+                          <span style={{ color: 'var(--foreground)' }}>{text.slice(4)}</span>
                         </li>
                       )
                     }
                     if (text.startsWith('? ')) {
                       return (
-                        <li className="flex items-start gap-3 p-4 bg-purple-50 rounded-xl border border-purple-100">
-                          <span className="text-purple-600 text-xl">?</span>
-                          <span className="text-gray-700">{text.slice(2)}</span>
+                        <li className="flex items-start gap-3 p-4 rounded-xl" style={{ backgroundColor: '#E6DAFF', border: '1px solid #D6C9F5' }}>
+                          <span style={{ color: '#9575CD' }} className="text-xl">?</span>
+                          <span style={{ color: 'var(--foreground)' }}>{text.slice(2)}</span>
                         </li>
                       )
                     }
                     return (
-                      <li className="flex items-start gap-2 text-gray-700">
-                        <span className="text-purple-400 mt-1">-</span>
+                      <li className="flex items-start gap-2" style={{ color: 'var(--foreground)' }}>
+                        <span className="mt-1" style={{ color: '#C9B7F3' }}>-</span>
                         <span>{children}</span>
                       </li>
                     )
@@ -170,22 +194,25 @@ export default function StudyPage() {
                     const isInline = !className
                     if (isInline) {
                       return (
-                        <code className="bg-gray-100 text-purple-600 px-2 py-0.5 rounded text-sm font-mono">
+                        <code
+                          className="px-2 py-0.5 rounded text-sm font-mono"
+                          style={{ backgroundColor: '#F6F5F2', color: '#9575CD' }}
+                        >
                           {children}
                         </code>
                       )
                     }
                     return (
-                      <code className="block bg-gray-900 text-gray-100 p-4 rounded-xl overflow-x-auto font-mono text-sm">
+                      <code className="block p-4 rounded-xl overflow-x-auto font-mono text-sm" style={{ backgroundColor: '#222222', color: '#F6F5F2' }}>
                         {children}
                       </code>
                     )
                   },
                   pre: ({ children }) => (
-                    <pre className="bg-gray-900 rounded-xl overflow-hidden mb-4">{children}</pre>
+                    <pre className="rounded-xl overflow-hidden mb-4" style={{ backgroundColor: '#222222' }}>{children}</pre>
                   ),
                   blockquote: ({ children }) => (
-                    <blockquote className="border-l-4 border-purple-300 pl-4 italic text-gray-600 my-4">
+                    <blockquote className="pl-4 italic my-4" style={{ borderLeft: '4px solid #E6DAFF', color: 'var(--muted-foreground)' }}>
                       {children}
                     </blockquote>
                   ),
@@ -195,7 +222,7 @@ export default function StudyPage() {
               </ReactMarkdown>
             </div>
           ) : (
-            <p className="text-gray-500">Sin contenido disponible</p>
+            <p style={{ color: 'var(--muted-foreground)' }}>Sin contenido disponible</p>
           )}
         </div>
 
@@ -203,15 +230,24 @@ export default function StudyPage() {
         <div className="flex gap-4 mt-6">
           <Link
             href="/graph"
-            className="flex-1 p-4 bg-white rounded-xl border border-gray-200 hover:border-purple-300 transition-colors text-center"
+            className="flex-1 p-4 rounded-xl text-center hover:scale-[1.02] transition-all duration-300"
+            style={{
+              backgroundColor: 'var(--card)',
+              border: '2px solid #EEEBE6',
+              color: 'var(--foreground)'
+            }}
           >
-            <span className="text-gray-700">Ver en el Grafo</span>
+            <span>Ver en el Grafo</span>
           </Link>
           <Link
             href="/new-query"
-            className="flex-1 p-4 bg-purple-100 rounded-xl hover:bg-purple-200 transition-colors text-center"
+            className="flex-1 p-4 rounded-xl text-center hover:scale-[1.02] transition-all duration-300"
+            style={{
+              background: 'linear-gradient(135deg, #E6DAFF 0%, #D6C9F5 100%)',
+              color: '#6B5B95'
+            }}
           >
-            <span className="text-purple-700">Nueva Consulta</span>
+            <span className="font-medium">Nueva Consulta</span>
           </Link>
         </div>
       </div>

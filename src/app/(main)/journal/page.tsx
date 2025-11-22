@@ -18,7 +18,8 @@ import {
   Trash2,
   Circle,
   CheckCircle2,
-  CalendarDays
+  CalendarDays,
+  PenLine
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -45,6 +46,7 @@ export default function JournalPage() {
   const [makeGreat, setMakeGreat] = useState(['', '', ''])
   const [bestMoments, setBestMoments] = useState(['', '', ''])
   const [lesson, setLesson] = useState('')
+  const [freeThoughts, setFreeThoughts] = useState('')
   const [quote, setQuote] = useState<{ text: string; author: string } | null>(null)
   const [mood, setMood] = useState<number | null>(null)
   const [tasks, setTasks] = useState<JournalTask[]>([])
@@ -65,6 +67,7 @@ export default function JournalPage() {
         setMakeGreat(entry.make_great || ['', '', ''])
         setBestMoments(entry.best_moments || ['', '', ''])
         setLesson(entry.lesson || '')
+        setFreeThoughts(entry.free_thoughts || '')
         setQuote(entry.quote)
         setMood(entry.mood)
         setTasks(entry.tasks || [])
@@ -76,6 +79,7 @@ export default function JournalPage() {
         setMakeGreat(['', '', ''])
         setBestMoments(['', '', ''])
         setLesson('')
+        setFreeThoughts('')
         setMood(null)
         setIsComplete(false)
 
@@ -125,6 +129,7 @@ export default function JournalPage() {
       make_great: makeGreat,
       best_moments: bestMoments,
       lesson,
+      free_thoughts: freeThoughts,
       quote,
       mood,
       tasks,
@@ -132,7 +137,7 @@ export default function JournalPage() {
     }, 'daily')
 
     setHasChanges(false)
-  }, [session, currentDate, gratitude, dailyIntention, makeGreat, bestMoments, lesson, quote, mood, tasks, isComplete, createOrUpdateEntry])
+  }, [session, currentDate, gratitude, dailyIntention, makeGreat, bestMoments, lesson, freeThoughts, quote, mood, tasks, isComplete, createOrUpdateEntry])
 
   // Trigger auto-save on changes
   useEffect(() => {
@@ -151,7 +156,7 @@ export default function JournalPage() {
         clearTimeout(autoSaveTimeoutRef.current)
       }
     }
-  }, [hasChanges, gratitude, dailyIntention, makeGreat, bestMoments, lesson, mood, tasks, isComplete, session?.user, saveEntry])
+  }, [hasChanges, gratitude, dailyIntention, makeGreat, bestMoments, lesson, freeThoughts, mood, tasks, isComplete, session?.user, saveEntry])
 
   // Navigation
   const { prev, next } = getAdjacentDates(currentDate, allowFutureDates)
@@ -546,6 +551,43 @@ export default function JournalPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Free Thoughts Section */}
+        <div
+          className="rounded-3xl p-6 mb-6"
+          style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div
+              className="p-2 rounded-xl"
+              style={{ backgroundColor: 'rgba(207, 228, 255, 0.4)' }}
+            >
+              <PenLine className="size-5" style={{ color: '#5A8FCC' }} />
+            </div>
+            <h2 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
+              Pensamientos Libres
+            </h2>
+          </div>
+
+          <textarea
+            value={freeThoughts}
+            onChange={(e) => {
+              setFreeThoughts(e.target.value)
+              handleChange()
+            }}
+            placeholder="Escribe lo que quieras... ideas, reflexiones, notas mentales, lo que sea que pase por tu mente hoy."
+            rows={6}
+            className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
+            style={{
+              backgroundColor: 'var(--background)',
+              border: '1px solid var(--border)',
+              color: 'var(--foreground)'
+            }}
+          />
+          <p className="text-xs mt-2" style={{ color: 'var(--muted-foreground)' }}>
+            Un espacio para escribir sin estructura. Solo tu y tus pensamientos.
+          </p>
         </div>
 
         {/* Quote Section */}
