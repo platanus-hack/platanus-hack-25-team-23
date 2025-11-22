@@ -212,15 +212,14 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                 {searchResults.length > 0 ? (
                   <>
                     {searchResults.map((result) => (
-                      <button
+                      <Link
                         key={result.id}
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleResultClick(result);
+                        href={result.href}
+                        onClick={() => {
+                          setSearchQuery('');
+                          setShowResults(false);
                         }}
-                        className="w-full p-3 text-left hover:bg-[#F6F5F2] transition-colors flex items-start gap-3 cursor-pointer"
+                        className="w-full p-3 text-left hover:bg-[#F6F5F2] transition-colors flex items-start gap-3 cursor-pointer block"
                         style={{ borderBottom: '1px solid #EEEBE6' }}
                       >
                         <div
@@ -245,22 +244,19 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                             </p>
                           )}
                         </div>
-                      </button>
+                      </Link>
                     ))}
-                    <button
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowResults(false);
+                    <Link
+                      href={`/library?search=${encodeURIComponent(searchQuery)}`}
+                      onClick={() => {
                         setSearchQuery('');
-                        router.push(`/library?search=${encodeURIComponent(searchQuery)}`);
+                        setShowResults(false);
                       }}
-                      className="w-full p-3 text-center text-sm font-medium hover:bg-[#FFF0E6] transition-colors cursor-pointer"
+                      className="w-full p-3 text-center text-sm font-medium hover:bg-[#FFF0E6] transition-colors cursor-pointer block"
                       style={{ color: '#6D6D6D' }}
                     >
                       Ver todos en Biblioteca
-                    </button>
+                    </Link>
                   </>
                 ) : (
                   <div className="p-4 text-center">
