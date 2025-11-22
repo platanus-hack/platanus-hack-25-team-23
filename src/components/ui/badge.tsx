@@ -5,22 +5,38 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden",
+  "inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1.5 [&>svg]:pointer-events-none transition-all duration-200",
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90",
+          "bg-[#FFD9D9] text-[#222222]",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
+          "bg-[#E6DAFF] text-[#222222]",
+        warm:
+          "bg-[#FFF0E6] text-[#222222]",
+        mint:
+          "bg-[#D4F5E9] text-[#222222]",
+        blue:
+          "bg-[#CFE4FF] text-[#222222]",
         destructive:
-          "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "bg-[#FFEEEE] text-[#D46A6A]",
         outline:
-          "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+          "border border-[#EEEBE6] bg-white text-[#6D6D6D]",
+        success:
+          "bg-[#E3F5EA] text-[#2E7D4A]",
+        warning:
+          "bg-[#FFF4E0] text-[#B8860B]",
+      },
+      size: {
+        default: "px-3 py-1 text-xs",
+        sm: "px-2 py-0.5 text-[10px]",
+        lg: "px-4 py-1.5 text-sm",
       },
     },
     defaultVariants: {
       variant: "default",
+      size: "default",
     },
   }
 )
@@ -28,6 +44,7 @@ const badgeVariants = cva(
 function Badge({
   className,
   variant,
+  size,
   asChild = false,
   ...props
 }: React.ComponentProps<"span"> &
@@ -37,7 +54,7 @@ function Badge({
   return (
     <Comp
       data-slot="badge"
-      className={cn(badgeVariants({ variant }), className)}
+      className={cn(badgeVariants({ variant, size }), className)}
       {...props}
     />
   )

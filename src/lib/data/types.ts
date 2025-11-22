@@ -1,4 +1,4 @@
-// Data types for KnowledgeFlow platform
+// Data types for BrainFlow platform
 
 export type NodeStatus = 'pending' | 'in-progress' | 'understood';
 export type CalloutType = 'note' | 'important' | 'critical' | 'question' | 'example' | 'observation';

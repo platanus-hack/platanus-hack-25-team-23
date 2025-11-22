@@ -18,22 +18,25 @@ export function GraphPanel() {
         {
           selector: 'node',
           style: {
-            'background-color': '#3B82F6',
+            'background-color': '#C9B7F3',
             'label': 'data(label)',
-            'color': '#F8FAFC',
-            'font-size': '12px',
+            'color': '#222222',
+            'font-size': '11px',
+            'font-weight': 500,
             'text-valign': 'bottom',
-            'text-margin-y': 5,
-            'width': 20,
-            'height': 20
+            'text-margin-y': 8,
+            'width': 24,
+            'height': 24,
+            'border-width': 2,
+            'border-color': '#FFFFFF'
           }
         },
         {
           selector: 'edge',
           style: {
             'width': 2,
-            'line-color': '#475569',
-            'target-arrow-color': '#475569',
+            'line-color': '#EEEBE6',
+            'target-arrow-color': '#EEEBE6',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier'
           }
@@ -41,25 +44,41 @@ export function GraphPanel() {
         {
           selector: 'node[status = "understood"]',
           style: {
-            'background-color': '#22C55E',
-            'line-color': '#22C55E',
-            'target-arrow-color': '#22C55E'
+            'background-color': '#A3E4B6',
+            'border-color': '#FFFFFF'
+          }
+        },
+        {
+          selector: 'node[status = "read"]',
+          style: {
+            'background-color': '#FFE9A9',
+            'border-color': '#FFFFFF'
           }
         },
         {
           selector: '.highlighted',
           style: {
-            'background-color': '#FBBF24',
-            'line-color': '#FBBF24',
-            'target-arrow-color': '#FBBF24',
-            'transition-property': 'background-color, line-color, target-arrow-color',
-            'transition-duration': 0.5
+            'background-color': '#FFD9D9',
+            'border-color': '#FFFFFF',
+            'border-width': 3,
+            'width': 32,
+            'height': 32,
+            'transition-property': 'background-color, border-width, width, height',
+            'transition-duration': 0.3
+          }
+        },
+        {
+          selector: 'node:active',
+          style: {
+            'overlay-opacity': 0,
+            'overlay-color': 'transparent'
           }
         }
       ],
       layout: {
         name: 'cose',
-        animate: true
+        animate: true,
+        animationDuration: 500
       }
     })
 
@@ -72,7 +91,7 @@ export function GraphPanel() {
     if (!cyRef.current) return
 
     const cy = cyRef.current
-    
+
     // Add new nodes
     notes.forEach(note => {
       const existingNode = cy.$id(note.id || note.slug)
@@ -104,7 +123,7 @@ export function GraphPanel() {
     if (notes.length > 0) {
       cy.layout({ name: 'cose', animate: true }).run()
     }
-    
+
     // Highlight current note
     if (currentNote) {
       cy.elements().removeClass('highlighted')
@@ -120,6 +139,13 @@ export function GraphPanel() {
   }, [notes, edges, currentNote, selectNote])
 
   return (
-    <div ref={containerRef} className="h-full w-full bg-slate-950" />
+    <div
+      ref={containerRef}
+      className="h-full w-full rounded-tl-3xl"
+      style={{
+        backgroundColor: '#F6F5F2',
+        cursor: 'grab'
+      }}
+    />
   )
 }

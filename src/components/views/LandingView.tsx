@@ -1,187 +1,450 @@
 "use client"
 
 import Link from 'next/link';
-import { Brain, Lightbulb, Map, Zap, ArrowRight, CheckCircle } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowRight, Sparkles, Brain, Network, BookOpen, Target } from 'lucide-react';
 
 export function LandingView() {
   const features = [
     {
-      icon: <Brain className="size-8 text-purple-600" />,
-      title: 'IA Pedagogica',
-      description: 'No es un resumen. Es una explicacion real adaptada a tu nivel.'
+      icon: '📝',
+      iconBg: '#FFF0E6',
+      title: 'Tracking Screen',
+      description: 'Take control with intuitive knowledge tracking'
     },
     {
-      icon: <Map className="size-8 text-blue-600" />,
-      title: 'Mapa de Conocimiento Automatico',
-      description: 'Visualiza prerrequisitos y siguiente pasos sin pensar.'
+      icon: '🎯',
+      iconBg: '#FFD9D9',
+      title: 'Score Screen',
+      description: 'Your learning score is every effort matters'
     },
     {
-      icon: <Zap className="size-8 text-yellow-600" />,
-      title: 'Click = Aprender',
-      description: 'Cualquier termino desconocido se abre al instante, sin distracciones.'
+      icon: '📈',
+      iconBg: '#E6DAFF',
+      title: 'Progress Screen',
+      description: 'Every step brings you closer to mastery'
     },
     {
-      icon: <Lightbulb className="size-8 text-green-600" />,
-      title: 'Notas Automaticas',
-      description: 'Tipo Obsidian pero se crean solas y ya estan conectadas.'
+      icon: '🧠',
+      iconBg: '#CFE4FF',
+      title: 'Monitoring Screen',
+      description: 'Track your progress and stay on top'
     }
   ];
 
-  const problems = [
-    'Abro mil pestanas cuando estudio algo nuevo',
-    'No se que necesito saber primero',
-    'Olvido lo que ya aprendi',
-    'Obsidian es genial pero muy tecnico'
+  const steps = [
+    {
+      number: '01',
+      title: 'Escribe tu tema',
+      description: 'Cualquier concepto que quieras aprender'
+    },
+    {
+      number: '02',
+      title: 'BrainFlow conecta',
+      description: 'La IA encuentra relaciones y crea tu mapa'
+    },
+    {
+      number: '03',
+      title: 'Aprende y crece',
+      description: 'Visualiza tu progreso sin ansiedad'
+    }
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-gradient-to-br from-purple-50 via-white to-blue-50 min-h-screen">
-      {/* Hero Section */}
-      <div className="max-w-6xl mx-auto px-8 py-16">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-purple-600 to-purple-700 rounded-full mb-6 shadow-xl">
-            <Brain className="size-12 text-white" />
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: '#F6F5F2' }}
+    >
+      {/* Header */}
+      <header className="max-w-6xl mx-auto px-6 py-5">
+        <nav className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/logo.png"
+              alt="BrainFlow"
+              width={44}
+              height={44}
+              className="object-contain"
+            />
+            <span
+              className="text-xl font-semibold"
+              style={{
+                color: '#222222',
+                fontFamily: 'Manrope, sans-serif',
+                letterSpacing: '-0.02em'
+              }}
+            >
+              BrainFlow
+            </span>
           </div>
 
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            Tu Segundo Cerebro con IA
-          </h1>
-
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Deja de perderte en mil pestanas. Aprende cualquier tema con un mapa visual,
-            explicaciones pedagogicas y conceptos conectados automaticamente.
-          </p>
-
-          <div className="flex gap-4 justify-center mb-12">
+          <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all shadow-lg hover:shadow-xl text-lg"
+              className="px-5 py-2.5 rounded-xl font-medium text-sm transition-all hover:bg-[#FFF0E6]"
+              style={{ color: '#6D6D6D' }}
             >
               Iniciar Sesion
-              <ArrowRight className="size-5" />
             </Link>
+            <Link
+              href="/login"
+              className="px-5 py-2.5 rounded-xl font-medium text-sm transition-all hover:opacity-90"
+              style={{
+                backgroundColor: '#FFD9D9',
+                color: '#222222'
+              }}
+            >
+              Registrarse
+            </Link>
+          </div>
+        </nav>
+      </header>
+
+      {/* Hero Section */}
+      <section className="max-w-6xl mx-auto px-6 pt-12 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Left Content */}
+          <div>
+            <div className="mb-8">
+              <Image
+                src="/logo.png"
+                alt="BrainFlow Mascot"
+                width={80}
+                height={80}
+                className="object-contain animate-float"
+              />
+            </div>
+
+            <h1
+              className="text-4xl md:text-5xl font-bold mb-6 leading-tight"
+              style={{
+                color: '#222222',
+                fontFamily: 'Manrope, sans-serif',
+                letterSpacing: '-0.03em'
+              }}
+            >
+              <span style={{ fontStyle: 'italic', fontWeight: 800 }}>BrainFlow's</span> knowledge
+              <br />
+              system provides leading-
+              <br />
+              edge learning that syncs
+              <br />
+              directly to your mind.
+            </h1>
+
+            <p
+              className="text-lg mb-8 leading-relaxed"
+              style={{ color: '#6D6D6D' }}
+            >
+              Tu segundo cerebro, simple y poderoso. Aprende cualquier tema
+              con claridad mental y sin ansiedad.
+            </p>
+
+            <div className="flex flex-wrap gap-4">
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-medium transition-all hover:translate-y-[-2px]"
+                style={{
+                  backgroundColor: '#FFD9D9',
+                  color: '#222222',
+                  boxShadow: '0px 4px 20px rgba(255, 217, 217, 0.4)'
+                }}
+              >
+                <Sparkles className="size-4" />
+                Comenzar Gratis
+                <ArrowRight className="size-4" />
+              </Link>
+
+              <Link
+                href="/new-query"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-medium transition-all hover:bg-[#FFF0E6]"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#6D6D6D',
+                  border: '1px solid #EEEBE6'
+                }}
+              >
+                Explorar Demo
+              </Link>
+            </div>
+          </div>
+
+          {/* Right - Feature Cards */}
+          <div className="grid grid-cols-2 gap-4">
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className="p-5 rounded-2xl transition-all hover:translate-y-[-2px]"
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  boxShadow: '0px 2px 12px rgba(0, 0, 0, 0.03)'
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 text-lg"
+                  style={{ backgroundColor: feature.iconBg }}
+                >
+                  {feature.icon}
+                </div>
+                <h3
+                  className="font-semibold mb-1"
+                  style={{
+                    color: '#222222',
+                    fontSize: '15px',
+                    fontFamily: 'Manrope, sans-serif'
+                  }}
+                >
+                  {feature.title}
+                </h3>
+                <p
+                  className="text-sm leading-relaxed"
+                  style={{ color: '#6D6D6D' }}
+                >
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Showcase */}
+      <section
+        className="py-20"
+        style={{ backgroundColor: '#FFFCF9' }}
+      >
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2
+              className="text-3xl font-bold mb-4"
+              style={{
+                color: '#222222',
+                fontFamily: 'Manrope, sans-serif',
+                letterSpacing: '-0.02em'
+              }}
+            >
+              Todo lo que necesitas para aprender mejor
+            </h2>
+            <p style={{ color: '#6D6D6D' }}>
+              Herramientas simples pero poderosas para tu crecimiento personal
+            </p>
+          </div>
+
+          {/* Feature Pills */}
+          <div className="flex flex-wrap justify-center gap-3 mb-16">
+            {[
+              { icon: <Brain className="size-4" />, label: 'Notas con IA', bg: '#E6DAFF' },
+              { icon: <Network className="size-4" />, label: 'Grafo de conocimiento', bg: '#CFE4FF' },
+              { icon: <BookOpen className="size-4" />, label: 'Journal diario', bg: '#FFF0E6' },
+              { icon: <Target className="size-4" />, label: 'Progreso visual', bg: '#D4F5E9' },
+            ].map((pill, i) => (
+              <div
+                key={i}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full"
+                style={{ backgroundColor: pill.bg }}
+              >
+                {pill.icon}
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: '#222222' }}
+                >
+                  {pill.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile Previews - Kenko Style */}
+          <div className="flex justify-center gap-6 overflow-x-auto pb-4">
+            {[1, 2, 3].map((_, i) => (
+              <div
+                key={i}
+                className="flex-shrink-0 w-64 rounded-3xl p-4 pt-8"
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  boxShadow: '0px 8px 30px rgba(0, 0, 0, 0.06)'
+                }}
+              >
+                {/* Phone Notch */}
+                <div
+                  className="w-20 h-6 mx-auto rounded-full mb-6"
+                  style={{ backgroundColor: '#222222' }}
+                />
+
+                {/* Content */}
+                <div className="space-y-4">
+                  <div
+                    className="h-3 rounded-full"
+                    style={{ backgroundColor: '#EEEBE6', width: '60%' }}
+                  />
+                  <div
+                    className="h-16 rounded-2xl"
+                    style={{ backgroundColor: i === 0 ? '#FFF0E6' : i === 1 ? '#E6DAFF' : '#D4F5E9' }}
+                  />
+                  <div className="space-y-2">
+                    <div
+                      className="h-2 rounded-full"
+                      style={{ backgroundColor: '#EEEBE6' }}
+                    />
+                    <div
+                      className="h-2 rounded-full"
+                      style={{ backgroundColor: '#EEEBE6', width: '80%' }}
+                    />
+                  </div>
+                  <div
+                    className="h-12 rounded-xl"
+                    style={{ backgroundColor: i === 0 ? '#FFD9D9' : i === 1 ? '#CFE4FF' : '#FFF0E6' }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How it Works */}
+      <section className="py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <div
+            className="rounded-3xl p-10 md:p-16"
+            style={{ backgroundColor: '#FFF0E6' }}
+          >
+            <div className="text-center mb-12">
+              <h2
+                className="text-3xl font-bold mb-4"
+                style={{
+                  color: '#222222',
+                  fontFamily: 'Manrope, sans-serif'
+                }}
+              >
+                Como funciona?
+              </h2>
+              <p style={{ color: '#6D6D6D' }}>
+                Simple como deberia ser
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {steps.map((step, index) => (
+                <div key={index} className="text-center">
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
+                    style={{ backgroundColor: '#FFD9D9' }}
+                  >
+                    <span
+                      className="text-lg font-bold"
+                      style={{ color: '#222222' }}
+                    >
+                      {step.number}
+                    </span>
+                  </div>
+                  <h3
+                    className="font-semibold mb-2"
+                    style={{
+                      color: '#222222',
+                      fontFamily: 'Manrope, sans-serif'
+                    }}
+                  >
+                    {step.title}
+                  </h3>
+                  <p
+                    className="text-sm"
+                    style={{ color: '#6D6D6D' }}
+                  >
+                    {step.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20">
+        <div className="max-w-6xl mx-auto px-6">
+          <div
+            className="rounded-3xl p-10 md:p-16 text-center"
+            style={{
+              backgroundColor: '#FFFFFF',
+              boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.04)'
+            }}
+          >
+            <div className="mb-6">
+              <Image
+                src="/logo.png"
+                alt="BrainFlow"
+                width={64}
+                height={64}
+                className="object-contain mx-auto"
+              />
+            </div>
+
+            <h2
+              className="text-3xl font-bold mb-4"
+              style={{
+                color: '#222222',
+                fontFamily: 'Manrope, sans-serif'
+              }}
+            >
+              Listo para empezar?
+            </h2>
+            <p
+              className="mb-8 max-w-md mx-auto"
+              style={{ color: '#6D6D6D' }}
+            >
+              Tu mente esta a punto de aprender sin ansiedad.
+              Dale claridad a tu segundo cerebro.
+            </p>
 
             <Link
-              href="/new-query"
-              className="px-8 py-4 border-2 border-purple-600 text-purple-600 rounded-xl hover:bg-purple-50 transition-all text-lg"
+              href="/login"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-medium transition-all hover:translate-y-[-2px]"
+              style={{
+                backgroundColor: '#FFD9D9',
+                color: '#222222',
+                boxShadow: '0px 4px 20px rgba(255, 217, 217, 0.4)'
+              }}
             >
-              Probar sin cuenta
+              <Sparkles className="size-4" />
+              Crear mi cuenta gratis
+              <ArrowRight className="size-4" />
             </Link>
           </div>
-
-          <div className="flex items-center justify-center gap-8 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="size-5 text-green-600" />
-              <span>Sin registrarse</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="size-5 text-green-600" />
-              <span>100% gratis</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="size-5 text-green-600" />
-              <span>Para cualquier tema</span>
-            </div>
-          </div>
         </div>
+      </section>
 
-        {/* Problem Statement */}
-        <div className="mb-16">
-          <h3 className="text-2xl font-semibold text-gray-900 text-center mb-8">El problema que todos tenemos:</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-            {problems.map((problem, index) => (
-              <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                <span className="text-red-600 text-xl">X</span>
-                <p className="text-gray-700">{problem}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Features Grid */}
-        <div className="mb-16">
-          <h3 className="text-2xl font-semibold text-gray-900 text-center mb-8">La solucion:</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {features.map((feature, index) => (
-              <div key={index} className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-purple-600 transition-all hover:shadow-lg">
-                <div className="mb-4">{feature.icon}</div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h4>
-                <p className="text-gray-600">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* How it Works */}
-        <div className="bg-white rounded-2xl p-8 border-2 border-purple-200 shadow-lg">
-          <h3 className="text-2xl font-semibold text-gray-900 text-center mb-8">Como funciona?</h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">1</span>
-              </div>
-              <h4 className="font-semibold text-gray-900 mb-2">Escribe un tema</h4>
-              <p className="text-gray-600">Ej: "Machine Learning", "Fotosintesis", "Calculo"</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">2</span>
-              </div>
-              <h4 className="font-semibold text-gray-900 mb-2">La IA genera</h4>
-              <p className="text-gray-600">Explicacion + conceptos clickeables + mapa visual</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">3</span>
-              </div>
-              <h4 className="font-semibold text-gray-900 mb-2">Aprende expandiendo</h4>
-              <p className="text-gray-600">Click en terminos - se abren explicaciones contextuales</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Comparison */}
-        <div className="mt-16">
-          <h3 className="text-2xl font-semibold text-gray-900 text-center mb-8">No somos como los demas</h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gray-50 rounded-lg p-6 text-center border border-gray-200">
-              <h4 className="font-semibold text-gray-900 mb-3">ChatGPT</h4>
-              <p className="text-gray-600 mb-4">Te da respuestas pero sin estructura ni conexiones</p>
-              <span className="text-yellow-600">Te pierdes facil</span>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-6 text-center border border-gray-200">
-              <h4 className="font-semibold text-gray-900 mb-3">Obsidian</h4>
-              <p className="text-gray-600 mb-4">Genial pero manual, tecnico y vacio al inicio</p>
-              <span className="text-yellow-600">Solo para expertos</span>
-            </div>
-
-            <div className="bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg p-6 text-center border-2 border-purple-600">
-              <h4 className="font-semibold text-gray-900 mb-3">BrainFlow IA</h4>
-              <p className="text-gray-700 mb-4">Automatico, visual, pedagogico y para cualquiera</p>
-              <span className="text-green-600 font-medium">El mejor de ambos</span>
-            </div>
-          </div>
-        </div>
-
-        {/* CTA Final */}
-        <div className="mt-16 text-center">
-          <h3 className="text-2xl font-semibold text-gray-900 mb-4">Listo para empezar?</h3>
-          <p className="text-gray-600 mb-6">Escribe cualquier tema y mira la magia</p>
-          <Link
-            href="/new-query"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all shadow-lg hover:shadow-xl text-lg"
+      {/* Footer */}
+      <footer className="py-8">
+        <div className="max-w-6xl mx-auto px-6">
+          <div
+            className="flex flex-col md:flex-row items-center justify-between gap-4 pt-6"
+            style={{ borderTop: '1px solid #EEEBE6' }}
           >
-            <Brain className="size-5" />
-            Crear mi primer mapa de conocimiento
-            <ArrowRight className="size-5" />
-          </Link>
+            <div className="flex items-center gap-2">
+              <Image
+                src="/logo.png"
+                alt="BrainFlow"
+                width={24}
+                height={24}
+                className="object-contain"
+              />
+              <span
+                className="font-medium"
+                style={{ color: '#222222' }}
+              >
+                BrainFlow
+              </span>
+            </div>
+            <p
+              className="text-sm"
+              style={{ color: '#9A9A9A' }}
+            >
+              Tu segundo cerebro, simple y poderoso
+            </p>
+          </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

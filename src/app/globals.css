@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Nunito:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&family=Poppins:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -46,167 +46,200 @@
 }
 
 :root {
-  /* Prototipo Design System Colors */
-  --color-green-calm: #b9e2b1;
-  --color-blue-soft: #a3d4ff;
-  --color-yellow-motivator: #f8e99c;
-  --color-pink-motivational: #fac7d7;
-  --color-lavender: #d6c9f5;
-  --color-gray-ui: #f6f6f6;
-  --color-gray-light: #e6e6e6;
-  --color-gray-text: #646464;
-  --color-white-pure: #fff;
-  --color-black-soft: #1e1e1e;
+  /* ============================================
+     BRAINFLOW DESIGN SYSTEM - KENKO INSPIRED
+     "Tu mente está a punto de aprender sin ansiedad"
+     ============================================ */
 
-  /* Status Colors */
-  --color-status-done: #a3e4b6;
-  --color-status-warning: #ffe9a9;
-  --color-status-error: #ffb1b1;
-  --color-status-highlight: #ffeca4;
-  --color-status-new: #cadfff;
+  /* Core Brand Colors - Warm & Calming */
+  --color-cream: #F6F5F2;
+  --color-warm-white: #FFFCF9;
+  --color-peach: #FFF0E6;
+  --color-peach-soft: #FFE8DC;
+  --color-coral-soft: #FFD9D9;
 
-  /* Area Colors (7 Life Areas) */
-  --color-blue-cool: #7fbfff;
-  --color-green-health: #a7deae;
-  --color-yellow-light: #ffef84;
-  --color-pink-emotional: #f7b9c8;
-  --color-purple-neuro: #c9b7f3;
-  --color-orange-creative: #ffd5a5;
+  /* Accent Colors - Educational & Empathetic */
+  --color-lavender: #E6DAFF;
+  --color-lavender-deep: #D4C4F5;
+  --color-blue-info: #CFE4FF;
+  --color-blue-soft: #E3F0FF;
+  --color-mint: #D4F5E9;
+  --color-mint-soft: #E8FAF3;
 
-  /* Fonts */
-  --font-titles: "Poppins", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* Text Colors - Never Pure Black */
+  --color-text-primary: #222222;
+  --color-text-secondary: #6D6D6D;
+  --color-text-muted: #9A9A9A;
+  --color-text-light: #B8B8B8;
+
+  /* UI Colors */
+  --color-border-soft: #EEEBE6;
+  --color-border-medium: #E0DDD8;
+  --color-surface: #FFFFFF;
+  --color-surface-warm: #FDFBF8;
+
+  /* Status Colors - Soft & Non-Alarming */
+  --color-success: #B8E5C8;
+  --color-success-soft: #E3F5EA;
+  --color-warning: #FFE4B8;
+  --color-warning-soft: #FFF4E0;
+  --color-error: #FFCACA;
+  --color-error-soft: #FFEEEE;
+  --color-info: #C4DEFF;
+  --color-info-soft: #E8F2FF;
+
+  /* Icon/Accent Colors (from Kenko reference) */
+  --color-icon-orange: #F5A962;
+  --color-icon-coral: #F5978A;
+  --color-icon-pink: #F5B8D0;
+  --color-icon-peach: #FFD4B8;
+
+  /* Fonts - Clean & Human */
+  --font-display: "Manrope", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-titles: "Manrope", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --font-ui: "Nunito", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --font-size: 16px;
+  --font-ui: "Poppins", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
-  /* Theme */
-  --radius: 1rem;
-  --radius-lg: 1.5rem;
-  --radius-xl: 2rem;
+  /* Spacing & Radius - Rounded & Soft */
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-full: 9999px;
 
-  --background: #fafbfc;
-  --foreground: var(--color-black-soft);
+  /* Shadows - Very Diffuse, Barely There */
+  --shadow-xs: 0px 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-soft: 0px 4px 20px rgba(0, 0, 0, 0.04);
+  --shadow-medium: 0px 8px 30px rgba(0, 0, 0, 0.06);
+  --shadow-elevated: 0px 12px 40px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0px 2px 12px rgba(0, 0, 0, 0.03);
 
-  --card: var(--color-white-pure);
-  --card-foreground: var(--color-black-soft);
+  /* ============================================
+     THEME VARIABLES
+     ============================================ */
 
-  --popover: var(--color-white-pure);
-  --popover-foreground: var(--color-black-soft);
+  --background: var(--color-cream);
+  --foreground: var(--color-text-primary);
+
+  --card: var(--color-surface);
+  --card-foreground: var(--color-text-primary);
+
+  --popover: var(--color-surface);
+  --popover-foreground: var(--color-text-primary);
 
   --primary: var(--color-lavender);
-  --primary-foreground: var(--color-black-soft);
+  --primary-foreground: var(--color-text-primary);
 
-  --secondary: var(--color-blue-soft);
-  --secondary-foreground: var(--color-black-soft);
+  --secondary: var(--color-peach);
+  --secondary-foreground: var(--color-text-primary);
 
-  --muted: var(--color-gray-ui);
-  --muted-foreground: var(--color-gray-text);
+  --muted: var(--color-cream);
+  --muted-foreground: var(--color-text-secondary);
 
-  --accent: var(--color-yellow-motivator);
-  --accent-foreground: var(--color-black-soft);
+  --accent: var(--color-coral-soft);
+  --accent-foreground: var(--color-text-primary);
 
-  --destructive: var(--color-status-error);
-  --destructive-foreground: var(--color-black-soft);
+  --destructive: var(--color-error);
+  --destructive-foreground: var(--color-text-primary);
 
-  --border: var(--color-gray-light);
+  --border: var(--color-border-soft);
   --input: transparent;
-  --input-background: var(--color-gray-ui);
-  --switch-background: var(--color-gray-light);
-  --ring: var(--color-lavender);
+  --input-background: var(--color-surface-warm);
+  --switch-background: var(--color-border-medium);
+  --ring: var(--color-lavender-deep);
 
-  --chart-1: var(--color-blue-soft);
-  --chart-2: var(--color-green-calm);
+  --chart-1: var(--color-blue-info);
+  --chart-2: var(--color-mint);
   --chart-3: var(--color-lavender);
-  --chart-4: var(--color-pink-motivational);
-  --chart-5: var(--color-yellow-motivator);
+  --chart-4: var(--color-peach);
+  --chart-5: var(--color-coral-soft);
 
-  /* Shadows */
-  --shadow-soft: 0px 4px 14px rgba(0, 0, 0, 0.06);
-  --shadow-medium: 0px 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-strong: 0px 12px 32px rgba(0, 0, 0, 0.12);
-
-  /* Sidebar */
-  --sidebar: var(--color-white-pure);
-  --sidebar-foreground: var(--color-black-soft);
+  /* Sidebar - Clean & Minimal */
+  --sidebar: var(--color-surface);
+  --sidebar-foreground: var(--color-text-primary);
   --sidebar-primary: var(--color-lavender);
-  --sidebar-primary-foreground: var(--color-black-soft);
-  --sidebar-accent: var(--color-gray-ui);
-  --sidebar-accent-foreground: var(--color-black-soft);
-  --sidebar-border: var(--color-gray-light);
-  --sidebar-ring: var(--color-lavender);
+  --sidebar-primary-foreground: var(--color-text-primary);
+  --sidebar-accent: var(--color-peach);
+  --sidebar-accent-foreground: var(--color-text-primary);
+  --sidebar-border: var(--color-border-soft);
+  --sidebar-ring: var(--color-lavender-deep);
 }
 
 .dark {
-  /* Dark mode - matching design system */
-  --color-black-soft: #E8E8E8;
-  --color-gray-text: #A0A0A0;
-  --color-gray-light: #2A2A2A;
-  --color-gray-ui: #1E1E1E;
-  --color-white-pure: #121212;
+  /* Dark mode - Warm & Cozy */
+  --color-cream: #1A1917;
+  --color-warm-white: #201F1D;
+  --color-peach: #2A2520;
+  --color-surface: #242220;
+  --color-surface-warm: #2A2825;
 
-  --background: #0D0D0D;
-  --foreground: #E8E8E8;
+  --color-text-primary: #F0EDE8;
+  --color-text-secondary: #A8A5A0;
+  --color-text-muted: #787570;
 
-  --card: #1A1A1A;
-  --card-foreground: #E8E8E8;
+  --color-border-soft: #333028;
+  --color-border-medium: #3D3A32;
 
-  --popover: #1A1A1A;
-  --popover-foreground: #E8E8E8;
+  --color-lavender: #3D3555;
+  --color-lavender-deep: #5A4D7A;
 
-  --primary: #B8A4E8;
-  --primary-foreground: #1A1A1A;
+  --background: #141312;
+  --foreground: #F0EDE8;
 
-  --secondary: #2A2A2A;
-  --secondary-foreground: #E8E8E8;
+  --card: #1E1D1B;
+  --card-foreground: #F0EDE8;
 
-  --muted: #252525;
-  --muted-foreground: #888888;
+  --popover: #1E1D1B;
+  --popover-foreground: #F0EDE8;
 
-  --accent: #3D3D3D;
-  --accent-foreground: #E8E8E8;
+  --primary: #5A4D7A;
+  --primary-foreground: #F0EDE8;
 
-  --destructive: #FF6B6B;
-  --destructive-foreground: #1A1A1A;
+  --secondary: #2A2520;
+  --secondary-foreground: #F0EDE8;
 
-  --border: #2A2A2A;
-  --input: #2A2A2A;
-  --input-background: #1E1E1E;
-  --switch-background: #3D3D3D;
-  --ring: #B8A4E8;
+  --muted: #242220;
+  --muted-foreground: #888580;
 
-  --chart-1: #7FBFFF;
-  --chart-2: #7DD98B;
-  --chart-3: #B8A4E8;
-  --chart-4: #F5A3B5;
-  --chart-5: #F5D485;
+  --accent: #3D3028;
+  --accent-foreground: #F0EDE8;
 
-  /* Shadows for dark mode */
-  --shadow-soft: 0px 4px 14px rgba(0, 0, 0, 0.3);
-  --shadow-medium: 0px 8px 24px rgba(0, 0, 0, 0.4);
-  --shadow-strong: 0px 12px 32px rgba(0, 0, 0, 0.5);
+  --destructive: #8B4444;
+  --destructive-foreground: #F0EDE8;
+
+  --border: #2A2825;
+  --input: #2A2825;
+  --input-background: #1E1D1B;
+  --switch-background: #3D3A32;
+  --ring: #5A4D7A;
+
+  --shadow-soft: 0px 4px 20px rgba(0, 0, 0, 0.3);
+  --shadow-medium: 0px 8px 30px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0px 12px 40px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0px 2px 12px rgba(0, 0, 0, 0.2);
 
   /* Sidebar */
-  --sidebar: #1A1A1A;
-  --sidebar-foreground: #E8E8E8;
-  --sidebar-primary: #B8A4E8;
-  --sidebar-primary-foreground: #1A1A1A;
-  --sidebar-accent: #252525;
-  --sidebar-accent-foreground: #E8E8E8;
-  --sidebar-border: #2A2A2A;
-  --sidebar-ring: #B8A4E8;
+  --sidebar: #1E1D1B;
+  --sidebar-foreground: #F0EDE8;
+  --sidebar-primary: #5A4D7A;
+  --sidebar-primary-foreground: #F0EDE8;
+  --sidebar-accent: #2A2825;
+  --sidebar-accent-foreground: #F0EDE8;
+  --sidebar-border: #2A2825;
+  --sidebar-ring: #5A4D7A;
 }
 
 /* Dark mode scrollbar */
 .dark ::-webkit-scrollbar-track {
-  background: #1E1E1E;
+  background: #1E1D1B;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #3D3D3D;
+  background: #3D3A32;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #555555;
+  background: #4D4A42;
 }
 
 @layer base {
@@ -214,12 +247,21 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+    font-feature-settings: "cv11", "ss01";
+    font-variation-settings: "opsz" 32;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-titles);
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    font-weight: 700;
+    letter-spacing: -0.03em;
   }
 
   button, .btn {
@@ -227,7 +269,15 @@
   }
 }
 
-/* Custom utility classes */
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Shadows */
+.shadow-xs {
+  box-shadow: var(--shadow-xs);
+}
+
 .shadow-soft {
   box-shadow: var(--shadow-soft);
 }
@@ -236,84 +286,90 @@
   box-shadow: var(--shadow-medium);
 }
 
-.shadow-strong {
-  box-shadow: var(--shadow-strong);
+.shadow-elevated {
+  box-shadow: var(--shadow-elevated);
 }
 
-/* Cognitive status colors */
-.bg-cognitive-done {
-  background-color: var(--color-status-done);
+.shadow-card {
+  box-shadow: var(--shadow-card);
 }
 
-.bg-cognitive-progress {
-  background-color: var(--color-status-warning);
+/* Background utilities */
+.bg-cream { background-color: var(--color-cream); }
+.bg-warm-white { background-color: var(--color-warm-white); }
+.bg-peach { background-color: var(--color-peach); }
+.bg-peach-soft { background-color: var(--color-peach-soft); }
+.bg-coral-soft { background-color: var(--color-coral-soft); }
+.bg-lavender { background-color: var(--color-lavender); }
+.bg-blue-info { background-color: var(--color-blue-info); }
+.bg-mint { background-color: var(--color-mint); }
+.bg-surface { background-color: var(--color-surface); }
+.bg-surface-warm { background-color: var(--color-surface-warm); }
+
+/* Text utilities */
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-muted { color: var(--color-text-muted); }
+
+/* Status colors */
+.bg-status-success { background-color: var(--color-success-soft); }
+.bg-status-warning { background-color: var(--color-warning-soft); }
+.bg-status-error { background-color: var(--color-error-soft); }
+.bg-status-info { background-color: var(--color-info-soft); }
+
+/* Card styles - Kenko inspired */
+.card-warm {
+  background-color: var(--color-peach);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
 }
 
-.bg-cognitive-pending {
-  background-color: var(--color-gray-light);
+.card-lavender {
+  background-color: var(--color-lavender);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
 }
 
-.bg-cognitive-highlight {
-  background-color: var(--color-status-highlight);
+.card-mint {
+  background-color: var(--color-mint);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
 }
 
-.bg-cognitive-new {
-  background-color: var(--color-status-new);
+.card-blue {
+  background-color: var(--color-blue-info);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
 }
 
-/* Area colors */
-.bg-area-desarrollo {
-  background-color: var(--color-blue-cool);
-}
-
-.bg-area-salud {
-  background-color: var(--color-green-health);
-}
-
-.bg-area-finanzas {
-  background-color: var(--color-yellow-light);
-}
-
-.bg-area-relaciones {
-  background-color: var(--color-pink-emotional);
-}
-
-.bg-area-hobbies {
-  background-color: var(--color-orange-creative);
-}
-
-.bg-area-educacion {
-  background-color: var(--color-blue-soft);
-}
-
-.bg-area-crecimiento {
-  background-color: var(--color-purple-neuro);
-}
-
-/* Custom scrollbar */
+/* Custom scrollbar - Subtle */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-gray-ui);
-  border-radius: 4px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-gray-light);
-  border-radius: 4px;
+  background: var(--color-border-medium);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-gray-text);
+  background: var(--color-text-muted);
 }
 
 @tailwind utilities;
 @source "../node_modules/streamdown/dist/index.js";
 
 /* Animation utilities */
+
+/* ============================================
+   ANIMATIONS - Subtle & Calming
+   ============================================ */
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -322,7 +378,7 @@
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -330,21 +386,60 @@
   }
 }
 
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  50% { opacity: 0.85; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.4s ease-out;
 }
 
 .animate-slide-up {
-  animation: slideUp 0.3s ease-out;
+  animation: slideUp 0.4s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.4s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out;
 }
 
 .animate-pulse-soft {
-  animation: pulse-soft 2s ease-in-out infinite;
+  animation: pulse-soft 2.5s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
 
 /* Streaming cursor animation */
@@ -372,4 +467,96 @@
   100% {
     transform: translateX(100%);
   }
+}
+
+/* ============================================
+   MOBILE PREVIEW AREA (Kenko Style)
+   ============================================ */
+
+.mobile-preview {
+  background: linear-gradient(180deg, var(--color-warm-white) 0%, var(--color-cream) 100%);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-elevated);
+  overflow: hidden;
+}
+
+.mobile-preview-notch {
+  background-color: var(--color-text-primary);
+  border-radius: var(--radius-full);
+  height: 28px;
+  width: 100px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   ICON TAG COMPONENT
+   ============================================ */
+
+.icon-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-peach);
+}
+
+.icon-tag-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+}
+
+.icon-tag-lg {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-xl);
+}
+
+/* ============================================
+   BUTTON STYLES - Soft & Inviting
+   ============================================ */
+
+.btn-primary {
+  background-color: var(--color-coral-soft);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-lg);
+  padding: 12px 24px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-xs);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-secondary {
+  background-color: var(--color-lavender);
+  color: var(--color-text-primary);
+  border-radius: var(--radius-lg);
+  padding: 12px 24px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-lg);
+  padding: 12px 24px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-ghost:hover {
+  background-color: var(--color-peach);
+  color: var(--color-text-primary);
 }

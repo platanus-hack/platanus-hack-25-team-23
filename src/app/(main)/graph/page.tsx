@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useKnowledge } from "@/lib/store/knowledge-context"
+import { useJournal } from "@/lib/store/journal-context"
 import { createClient } from "@/lib/supabase/client"
 import { ZoomIn, ZoomOut, Maximize2, Sliders, Eye, Palette, Filter, X, ChevronDown, ChevronUp, Minimize2 } from "lucide-react"
 import * as d3 from 'd3'
@@ -18,6 +20,8 @@ interface GraphNode {
   level: 'beginner' | 'intermediate' | 'advanced'
   isYouNode?: boolean
   isAreaNode?: boolean
+  isJournalNode?: boolean
+  journalDate?: string // For journal nodes: YYYY-MM-DD format
   distanceFromArea?: number
   connectionCount?: number
   x?: number
@@ -94,11 +98,13 @@ function getColorWithAlpha(baseColor: string, distance: number, maxDistance: num
 }
 
 export default function GraphPage() {
+  const router = useRouter()
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
   const filtersRef = useRef<HTMLDivElement>(null)
   const { notes, edges, session } = useKnowledge()
+  const { entries: journalEntries } = useJournal()
   const { areas: contextAreas, youNodeColor, getColorForDepth } = useAreas()
   const [viewMode, setViewMode] = useState<'status' | 'area'>('area')
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
@@ -528,6 +534,37 @@ export default function GraphPage() {
         })
       }
 
+      // Add Journal area node if there are journal entries
+      if (journalEntries.length > 0) {
+        nodes.push({
+          id: 'area-journal',
+          name: 'Journal',
+          status: 'understood',
+          area: 'Journal',
+          areaColor: '#C9B7F3',
+          level: 'intermediate',
+          isAreaNode: true
+        })
+
+        // Add journal entries as nodes
+        journalEntries.forEach(entry => {
+          const entryDate = new Date(entry.date + 'T00:00:00')
+          const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
+          const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
+          nodes.push({
+            id: `journal-${entry.id}`,
+            name: `${dayNames[entryDate.getDay()]} ${entryDate.getDate()} ${monthNames[entryDate.getMonth()]}`,
+            status: entry.is_complete ? 'understood' : 'pending',
+            area: 'Journal',
+            areaColor: '#C9B7F3',
+            level: 'beginner',
+            isJournalNode: true,
+            journalDate: entry.date // Store the date for navigation
+          })
+        })
+      }
+
       const links: GraphLink[] = []
 
       // Connect all areas to "Yo"
@@ -571,6 +608,25 @@ export default function GraphPage() {
         })
       }
 
+      // Connect Journal area to "Yo" and journal entries to Journal area
+      if (journalEntries.length > 0) {
+        // Connect Journal area to Yo
+        links.push({
+          source: 'you',
+          target: 'area-journal',
+          type: 'related'
+        })
+
+        // Connect each journal entry to Journal area
+        journalEntries.forEach(entry => {
+          links.push({
+            source: 'area-journal',
+            target: `journal-${entry.id}`,
+            type: 'related'
+          })
+        })
+      }
+
       // Add edges from the edges table
       if (edgesData && edgesData.length > 0) {
         edgesData.forEach(edge => {
@@ -594,7 +650,7 @@ export default function GraphPage() {
     }
 
     loadGraphData()
-  }, [session, notes, edges, contextAreas])
+  }, [session, notes, edges, contextAreas, journalEntries])
 
   const getNodeColor = (node: GraphNode) => {
     // Central "Yo" node always uses color from context
@@ -791,6 +847,11 @@ export default function GraphPage() {
       .attr('stroke-width', 2.5)
       .style('filter', 'drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.1))')
       .on('click', (event, d) => {
+        // If it's a journal node, redirect to the journal page with the date
+        if (d.isJournalNode && d.journalDate) {
+          router.push(`/journal?date=${d.journalDate}`)
+          return
+        }
         setSelectedNode(d)
       })
       .on('mouseenter', function(event, d) {
@@ -963,77 +1024,77 @@ export default function GraphPage() {
         />
       </div>
 
-      {/* View Mode Toggle - Centered at top */}
+      {/* View Mode Toggle - Centered at top - Clean Style */}
       <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-10">
         <div
-          className="p-2 rounded-3xl flex gap-2"
+          className="p-1 rounded-xl flex gap-1"
           style={{
-            background: 'var(--card)',
-            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)'
+            background: 'white',
+            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
           }}
         >
           <button
             onClick={() => setViewMode('status')}
-            className="px-5 py-3 rounded-2xl transition-all flex items-center gap-2 font-medium"
+            className="px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm"
             style={{
-              background: viewMode === 'status'
-                ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)'
-                : 'transparent',
-              color: viewMode === 'status' ? 'white' : '#646464',
-              boxShadow: viewMode === 'status' ? '0px 2px 8px rgba(201, 183, 243, 0.3)' : 'none'
+              background: viewMode === 'status' ? '#E6DAFF' : 'transparent',
+              color: viewMode === 'status' ? '#9575CD' : '#6D6D6D',
             }}
           >
             <Eye className="size-4" />
-            <span className="text-sm">Vista por Estado</span>
+            Estado
           </button>
           <button
             onClick={() => setViewMode('area')}
-            className="px-5 py-3 rounded-2xl transition-all flex items-center gap-2 font-medium"
+            className="px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm"
             style={{
-              background: viewMode === 'area'
-                ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)'
-                : 'transparent',
-              color: viewMode === 'area' ? 'white' : '#646464',
-              boxShadow: viewMode === 'area' ? '0px 2px 8px rgba(201, 183, 243, 0.3)' : 'none'
+              background: viewMode === 'area' ? '#E6DAFF' : 'transparent',
+              color: viewMode === 'area' ? '#9575CD' : '#6D6D6D',
             }}
           >
             <Palette className="size-4" />
-            <span className="text-sm">Vista por Area</span>
+            Area
           </button>
         </div>
       </div>
 
       {/* Zoom Controls - Right side */}
-      <div className="absolute top-6 right-6 z-10 flex flex-col gap-3">
+      <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
         <button
           onClick={handleZoomIn}
-          className="p-3 rounded-2xl hover:scale-110 transition-all"
-          style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)' }}
+          className="p-3 rounded-xl hover:scale-105 transition-all"
+          style={{
+            backgroundColor: 'white',
+            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
+          }}
           title="Zoom In"
         >
-          <ZoomIn className="size-5" style={{ color: 'var(--muted-foreground)' }} />
+          <ZoomIn className="size-5" style={{ color: '#6D6D6D' }} />
         </button>
         <button
           onClick={handleZoomOut}
-          className="p-3 rounded-2xl hover:scale-110 transition-all"
-          style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)' }}
+          className="p-3 rounded-xl hover:scale-105 transition-all"
+          style={{
+            backgroundColor: 'white',
+            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
+          }}
           title="Zoom Out"
         >
-          <ZoomOut className="size-5" style={{ color: 'var(--muted-foreground)' }} />
+          <ZoomOut className="size-5" style={{ color: '#6D6D6D' }} />
         </button>
         <button
           onClick={handleFullscreen}
-          className="p-3 rounded-2xl hover:scale-110 transition-all"
+          className="p-3 rounded-xl hover:scale-105 transition-all"
           style={{
-            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
-            background: isFullscreen ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)' : 'var(--card)'
+            backgroundColor: isFullscreen ? '#E6DAFF' : 'white',
+            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
           }}
           title={isFullscreen ? "Salir de Pantalla Completa" : "Pantalla Completa"}
         >
           {isFullscreen ? (
-            <Minimize2 className="size-5" style={{ color: 'white' }} />
+            <Minimize2 className="size-5" style={{ color: '#9575CD' }} />
           ) : (
-            <Maximize2 className="size-5" style={{ color: 'var(--muted-foreground)' }} />
+            <Maximize2 className="size-5" style={{ color: '#6D6D6D' }} />
           )}
         </button>
 
@@ -1041,16 +1102,16 @@ export default function GraphPage() {
         <button
           data-popup-toggle="controls"
           onClick={() => setShowControls(!showControls)}
-          className="p-3 rounded-2xl hover:scale-110 transition-all"
+          className="p-3 rounded-xl hover:scale-105 transition-all"
           style={{
-            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
-            background: showControls ? 'linear-gradient(135deg, #A3D4FF 0%, #CADFFF 100%)' : 'white'
+            backgroundColor: showControls ? '#CFE4FF' : 'white',
+            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
           }}
           title="Ajustar Espaciado"
         >
           <Sliders
             className="size-5"
-            style={{ color: showControls ? 'white' : '#646464' }}
+            style={{ color: showControls ? '#5A8FCC' : '#6D6D6D' }}
           />
         </button>
 
@@ -1058,21 +1119,21 @@ export default function GraphPage() {
         <button
           data-popup-toggle="filters"
           onClick={() => setShowFilters(!showFilters)}
-          className="p-3 rounded-2xl hover:scale-110 transition-all relative"
+          className="p-3 rounded-xl hover:scale-105 transition-all relative"
           style={{
-            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
-            background: showFilters ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)' : 'white'
+            backgroundColor: showFilters ? '#E6DAFF' : 'white',
+            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
           }}
           title="Filtros"
         >
           <Filter
             className="size-5"
-            style={{ color: showFilters ? 'white' : '#646464' }}
+            style={{ color: showFilters ? '#9575CD' : '#6D6D6D' }}
           />
           {(filterArea || filterLevel || filterStatus) && (
             <span
               className="absolute -top-1 -right-1 w-3 h-3 rounded-full"
-              style={{ background: '#C9B7F3' }}
+              style={{ background: '#9575CD' }}
             />
           )}
         </button>
@@ -1082,10 +1143,10 @@ export default function GraphPage() {
       {showControls && (
         <div
           ref={controlsRef}
-          className="absolute top-28 right-6 z-10 p-5 rounded-3xl"
+          className="absolute top-28 right-6 z-10 p-5 rounded-2xl"
           style={{
-            background: 'var(--card)',
-            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
+            backgroundColor: 'white',
+            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
             width: '280px'
           }}
         >
@@ -1130,11 +1191,10 @@ export default function GraphPage() {
                   setSliderValue(150)
                   setNodeSpacing(150)
                 }}
-                className="text-xs px-3 py-1.5 rounded-full transition-all hover:scale-105"
+                className="text-xs px-3 py-1.5 rounded-lg transition-all hover:scale-105"
                 style={{
-                  background: 'linear-gradient(135deg, #A3D4FF 0%, #CADFFF 100%)',
-                  color: 'white',
-                  boxShadow: '0px 2px 6px rgba(163, 212, 255, 0.3)'
+                  backgroundColor: '#FFD9D9',
+                  color: '#222222'
                 }}
               >
                 Restaurar
@@ -1183,11 +1243,10 @@ export default function GraphPage() {
               </span>
               <button
                 onClick={() => handleNodeScaleChange(1)}
-                className="text-xs px-3 py-1.5 rounded-full transition-all hover:scale-105"
+                className="text-xs px-3 py-1.5 rounded-lg transition-all hover:scale-105"
                 style={{
-                  background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
-                  color: 'white',
-                  boxShadow: '0px 2px 6px rgba(201, 183, 243, 0.3)'
+                  backgroundColor: '#FFD9D9',
+                  color: '#222222'
                 }}
               >
                 Restaurar
@@ -1201,10 +1260,10 @@ export default function GraphPage() {
       {showFilters && (
         <div
           ref={filtersRef}
-          className="absolute z-10 p-5 rounded-3xl"
+          className="absolute z-10 p-5 rounded-2xl"
           style={{
-            background: 'var(--card)',
-            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
+            backgroundColor: 'white',
+            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
             width: '300px',
             top: showControls ? '250px' : '160px',
             right: '24px'
@@ -1338,10 +1397,10 @@ export default function GraphPage() {
 
       {/* Dynamic Legend - Left side */}
       <div
-        className="absolute top-6 left-6 z-10 rounded-3xl transition-all duration-300"
+        className="absolute top-6 left-6 z-10 rounded-2xl transition-all duration-300"
         style={{
-          background: 'var(--card)',
-          boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
+          backgroundColor: 'white',
+          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
           maxWidth: '280px',
           padding: legendCollapsed ? '12px 16px' : '20px'
         }}
@@ -1491,20 +1550,25 @@ export default function GraphPage() {
 
       {/* Instructions Panel - Bottom left */}
       <div
-        className="absolute bottom-6 left-6 z-10 p-5 rounded-3xl max-w-xs"
+        className="absolute bottom-6 left-6 z-10 p-4 rounded-2xl max-w-xs"
         style={{
-          background: 'linear-gradient(135deg, #D6C9F5 0%, #E6DEF9 100%)',
-          boxShadow: '0px 4px 14px rgba(214, 201, 245, 0.3)'
+          backgroundColor: '#FFF0E6',
+          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
         }}
       >
         <div className="flex items-start gap-3">
-          <span className="text-2xl">💡</span>
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: '#FFD9D9' }}
+          >
+            <span className="text-sm">💡</span>
+          </div>
           <div>
-            <p className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>
+            <p className="text-sm font-medium mb-1" style={{ color: '#222222' }}>
               Como navegar?
             </p>
-            <p className="text-xs" style={{ color: 'rgba(30, 30, 30, 0.7)' }}>
-              <strong>Arrastra</strong> los nodos • <strong>Rueda del mouse</strong> para zoom • <strong>Click</strong> para ver contenido
+            <p className="text-xs" style={{ color: '#6D6D6D' }}>
+              <strong>Arrastra</strong> los nodos • <strong>Rueda</strong> para zoom • <strong>Click</strong> para ver contenido
             </p>
           </div>
         </div>
@@ -1513,37 +1577,37 @@ export default function GraphPage() {
       {/* Selected Node Panel - Right side */}
       {selectedNode && !selectedNode.isYouNode && !selectedNode.isAreaNode && (
         <div
-          className="absolute bottom-6 right-6 z-10 p-5 rounded-3xl w-72"
+          className="absolute bottom-6 right-6 z-10 p-5 rounded-2xl w-72"
           style={{
-            background: 'var(--card)',
-            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)'
+            backgroundColor: 'white',
+            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
           }}
         >
           <div className="flex items-start justify-between mb-4">
-            <h4 className="font-semibold" style={{ color: 'var(--foreground)' }}>{selectedNode.name}</h4>
+            <h4 className="font-semibold" style={{ color: '#222222' }}>{selectedNode.name}</h4>
             <button
               onClick={() => setSelectedNode(null)}
-              className="w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:scale-110"
-              style={{ backgroundColor: '#E6E6E6', color: '#646464' }}
+              className="w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:scale-105"
+              style={{ backgroundColor: '#F6F5F2', color: '#6D6D6D' }}
             >
               ×
             </button>
           </div>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span style={{ color: 'var(--muted-foreground)' }}>Area:</span>
-              <span style={{ color: 'var(--foreground)' }}>{selectedNode.area}</span>
+              <span style={{ color: '#6D6D6D' }}>Area:</span>
+              <span style={{ color: '#222222' }}>{selectedNode.area}</span>
             </div>
             <div className="flex justify-between">
-              <span style={{ color: 'var(--muted-foreground)' }}>Nivel:</span>
-              <span className="capitalize" style={{ color: 'var(--foreground)' }}>{selectedNode.level}</span>
+              <span style={{ color: '#6D6D6D' }}>Nivel:</span>
+              <span className="capitalize" style={{ color: '#222222' }}>{selectedNode.level}</span>
             </div>
             <div className="flex justify-between">
-              <span style={{ color: 'var(--muted-foreground)' }}>Estado:</span>
+              <span style={{ color: '#6D6D6D' }}>Estado:</span>
               <span className="capitalize" style={{
-                color: selectedNode.status === 'understood' ? '#22c55e' :
-                       selectedNode.status === 'in-progress' ? '#eab308' :
-                       '#646464'
+                color: selectedNode.status === 'understood' ? '#10B981' :
+                       selectedNode.status === 'in-progress' ? '#F59E0B' :
+                       '#6D6D6D'
               }}>
                 {selectedNode.status === 'understood' ? 'Dominado' :
                  selectedNode.status === 'in-progress' ? 'En progreso' : 'Pendiente'}
@@ -1552,11 +1616,10 @@ export default function GraphPage() {
           </div>
           <Link
             href={`/study?topic=${encodeURIComponent(selectedNode.name)}`}
-            className="mt-4 w-full block text-center py-3 rounded-2xl font-medium transition-all hover:scale-[1.02]"
+            className="mt-4 w-full block text-center py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
             style={{
-              background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
-              color: 'white',
-              boxShadow: '0px 2px 8px rgba(201, 183, 243, 0.3)'
+              backgroundColor: '#FFD9D9',
+              color: '#222222'
             }}
           >
             Estudiar

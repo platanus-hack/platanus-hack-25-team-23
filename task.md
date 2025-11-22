@@ -22,5 +22,11 @@
     - [x] Install `ai-elements` components
     - [x] Refactor `ChatView` to use `ai-elements`
     - [x] Implement `useManualChat` hook for reliable streaming
-    - [x] Fix token streaming (switch to `streamEvents`)
-    - [x] Verify end-to-end functionality
+    - [x] Implement Web Search (Perplexity)
+- [x] Resolve Merge Conflicts with `main`
+- [ ] Verify End-to-End Functionality
+- [x] Fix PDF Reading and Web Search
+    - [x] Implement PDF Reader tool (pdf2json)
+    - [x] Implement Web Search (Perplexity)
+    - [x] Fix Chat Attachments UI
+```

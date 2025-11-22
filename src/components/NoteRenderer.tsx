@@ -214,71 +214,78 @@ function parseLineWithMathAndLinks(
   }
 }
 
-// Callout component
+// Callout component with Kenko styling
 function Callout({ type, children }: { type: string, children: React.ReactNode }) {
   const config = {
     '&': {
       icon: Lightbulb,
-      bg: 'bg-amber-50',
-      border: 'border-amber-200',
-      text: 'text-amber-800',
-      iconColor: 'text-amber-500',
+      bg: '#FFF0E6',
+      border: '#FFE4D1',
+      text: '#CC7E4A',
+      iconColor: '#CC7E4A',
       label: 'Insight clave'
     },
     '!': {
       icon: AlertCircle,
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
-      text: 'text-blue-800',
-      iconColor: 'text-blue-500',
+      bg: '#CFE4FF',
+      border: '#A3D4FF',
+      text: '#5A8FCC',
+      iconColor: '#5A8FCC',
       label: 'Importante'
     },
     '!!': {
       icon: AlertCircle,
-      bg: 'bg-red-50',
-      border: 'border-red-200',
-      text: 'text-red-800',
-      iconColor: 'text-red-500',
+      bg: '#FFD9D9',
+      border: '#FFCACA',
+      text: '#D46A6A',
+      iconColor: '#D46A6A',
       label: 'Advertencia'
     },
     '?': {
       icon: HelpCircle,
-      bg: 'bg-purple-50',
-      border: 'border-purple-200',
-      text: 'text-purple-800',
-      iconColor: 'text-purple-500',
+      bg: '#E6DAFF',
+      border: '#D6C9F5',
+      text: '#9575CD',
+      iconColor: '#9575CD',
       label: 'Explorar'
     },
     'Ex:': {
       icon: Code,
-      bg: 'bg-green-50',
-      border: 'border-green-200',
-      text: 'text-green-800',
-      iconColor: 'text-green-500',
+      bg: '#D4F5E9',
+      border: '#A3E4B6',
+      text: '#10B981',
+      iconColor: '#10B981',
       label: 'Ejemplo'
     },
     'Obs:': {
       icon: Eye,
-      bg: 'bg-gray-50',
-      border: 'border-gray-200',
-      text: 'text-gray-800',
-      iconColor: 'text-gray-500',
-      label: 'Observación'
+      bg: '#F6F5F2',
+      border: '#EEEBE6',
+      text: '#6D6D6D',
+      iconColor: '#6D6D6D',
+      label: 'Observacion'
     },
   }[type] || {
     icon: Lightbulb,
-    bg: 'bg-gray-50',
-    border: 'border-gray-200',
-    text: 'text-gray-800',
-    iconColor: 'text-gray-500',
+    bg: '#F6F5F2',
+    border: '#EEEBE6',
+    text: '#6D6D6D',
+    iconColor: '#6D6D6D',
     label: ''
   }
 
   const Icon = config.icon
 
   return (
-    <div className={`${config.bg} ${config.border} ${config.text} border rounded-xl p-4 my-3 flex items-start gap-3`}>
-      <Icon className={`size-5 mt-0.5 ${config.iconColor} shrink-0`} />
+    <div
+      className="rounded-2xl p-4 my-3 flex items-start gap-3"
+      style={{
+        backgroundColor: config.bg,
+        border: `2px solid ${config.border}`,
+        color: config.text
+      }}
+    >
+      <Icon className="size-5 mt-0.5 shrink-0" style={{ color: config.iconColor }} />
       <div>
         {config.label && <span className="font-semibold text-sm">{config.label}: </span>}
         {children}
@@ -286,6 +293,7 @@ function Callout({ type, children }: { type: string, children: React.ReactNode }
     </div>
   )
 }
+
 
 // Link component
 function ConceptLink({ term, displayText, onClick }: { term: string, displayText?: string, onClick?: (term: string) => void }) {
@@ -312,8 +320,8 @@ function MathBlock({ latex, displayMode }: { latex: string, displayMode: boolean
       <div
         className="my-4 py-4 px-6 rounded-2xl overflow-x-auto"
         style={{
-          backgroundColor: '#F6F8FA',
-          border: '1px solid #E6E6E6'
+          backgroundColor: '#F6F5F2',
+          border: '2px solid #EEEBE6'
         }}
         dangerouslySetInnerHTML={{ __html: html }}
       />
@@ -500,7 +508,11 @@ export function NoteRenderer({ content, onLinkClick, isStreaming, existingNotes 
 
           case 'code':
             return (
-              <pre key={index} className="bg-gray-900 text-gray-100 rounded-xl p-4 overflow-x-auto my-4 text-sm">
+              <pre
+                key={index}
+                className="rounded-2xl p-4 overflow-x-auto my-4 text-sm font-mono"
+                style={{ backgroundColor: '#222222', color: '#F6F5F2' }}
+              >
                 <code>{part.value}</code>
               </pre>
             )

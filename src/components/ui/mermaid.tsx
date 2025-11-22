@@ -5,8 +5,16 @@ import mermaid from 'mermaid'
 
 mermaid.initialize({
   startOnLoad: false,
-  theme: 'dark',
+  theme: 'neutral',
   securityLevel: 'loose',
+  themeVariables: {
+    primaryColor: '#FFF0E6',
+    primaryTextColor: '#222222',
+    primaryBorderColor: '#EEEBE6',
+    lineColor: '#6D6D6D',
+    secondaryColor: '#E6DAFF',
+    tertiaryColor: '#F6F5F2',
+  },
 })
 
 interface MermaidProps {
@@ -24,16 +32,16 @@ export function Mermaid({ chart }: MermaidProps) {
         setSvg(svg)
       }).catch((error) => {
         console.error('Mermaid render error:', error)
-        setSvg('<p class="text-red-500">Failed to render diagram</p>')
+        setSvg('<p class="text-[#D46A6A]">Failed to render diagram</p>')
       })
     }
   }, [chart])
 
   return (
-    <div 
-      ref={ref} 
-      className="mermaid my-4 flex justify-center bg-slate-900/50 p-4 rounded-lg"
-      dangerouslySetInnerHTML={{ __html: svg }} 
+    <div
+      ref={ref}
+      className="mermaid my-4 flex justify-center bg-[#F6F5F2] p-6 rounded-2xl border border-[#EEEBE6]"
+      dangerouslySetInnerHTML={{ __html: svg }}
     />
   )
 }
