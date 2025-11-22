@@ -214,8 +214,13 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                     {searchResults.map((result) => (
                       <button
                         key={result.id}
-                        onClick={() => handleResultClick(result)}
-                        className="w-full p-3 text-left hover:bg-[#F6F5F2] transition-colors flex items-start gap-3"
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleResultClick(result);
+                        }}
+                        className="w-full p-3 text-left hover:bg-[#F6F5F2] transition-colors flex items-start gap-3 cursor-pointer"
                         style={{ borderBottom: '1px solid #EEEBE6' }}
                       >
                         <div
@@ -243,11 +248,15 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                       </button>
                     ))}
                     <button
-                      onClick={() => {
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         setShowResults(false);
+                        setSearchQuery('');
                         router.push(`/library?search=${encodeURIComponent(searchQuery)}`);
                       }}
-                      className="w-full p-3 text-center text-sm font-medium hover:bg-[#FFF0E6] transition-colors"
+                      className="w-full p-3 text-center text-sm font-medium hover:bg-[#FFF0E6] transition-colors cursor-pointer"
                       style={{ color: '#6D6D6D' }}
                     >
                       Ver todos en Biblioteca
