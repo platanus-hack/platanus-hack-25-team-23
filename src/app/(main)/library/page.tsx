@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { useJournal, JournalEntry, formatDate } from "@/lib/store/journal-context"
 import { createClient } from "@/lib/supabase/client"
@@ -20,7 +21,8 @@ import {
   Trash2,
   X,
   BookHeart,
-  Calendar
+  Calendar,
+  Search
 } from "lucide-react"
 import { DEFAULT_AREAS, DEFAULT_YOU_NODE_COLOR, COLOR_PALETTE, AreaConfig, detectAreaFromContent } from '@/lib/data/areas-config'
 import { useAreas } from '@/lib/store/areas-context'
@@ -112,6 +114,7 @@ export default function LibraryPage() {
   const { notes: contextNotes, session } = useKnowledge()
   const { entries: journalEntries } = useJournal()
   const { areas, youNodeColor, setYouNodeColor, updateArea, deleteArea, addArea } = useAreas()
+  const searchParams = useSearchParams()
   const [libraryNotes, setLibraryNotes] = useState<LibraryNote[]>([])
   const [loading, setLoading] = useState(true)
   const [isOrganizing, setIsOrganizing] = useState(false)
@@ -119,6 +122,15 @@ export default function LibraryPage() {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [showAreaManager, setShowAreaManager] = useState(false)
   const [customColor, setCustomColor] = useState('#6366f1')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Sync search query with URL params
+  useEffect(() => {
+    const urlSearch = searchParams.get('search')
+    if (urlSearch) {
+      setSearchQuery(urlSearch)
+    }
+  }, [searchParams])
 
   // Edit modal state
   const [editingArea, setEditingArea] = useState<AreaConfig | null>(null)
@@ -225,10 +237,20 @@ export default function LibraryPage() {
     return { total, understood, inProgress, pending }
   }, [libraryNotes])
 
+  // Filter notes by search query
+  const filteredNotes = useMemo(() => {
+    if (!searchQuery.trim()) return libraryNotes
+    const query = searchQuery.toLowerCase()
+    return libraryNotes.filter(note =>
+      note.title.toLowerCase().includes(query) ||
+      note.content.toLowerCase().includes(query)
+    )
+  }, [libraryNotes, searchQuery])
+
   // Create folder structure from context areas (synced with Gestionar Áreas)
   const folders: Folder[] = useMemo(() => {
     // Group notes by area name
-    const grouped = libraryNotes.reduce((acc, note) => {
+    const grouped = filteredNotes.reduce((acc, note) => {
       if (!acc[note.area]) {
         acc[note.area] = []
       }
@@ -260,7 +282,7 @@ export default function LibraryPage() {
     }
 
     return contextFolders
-  }, [libraryNotes, lastOrganized, areas])
+  }, [filteredNotes, lastOrganized, areas])
 
   // Group journal entries by year > month > entries (hierarchical structure like Calendar > 2025 > 09 > 2025-09-12)
   const journalHierarchy = useMemo(() => {
@@ -604,6 +626,42 @@ export default function LibraryPage() {
                 )}
               </button>
             </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="mb-6">
+            <div className="relative max-w-md">
+              <Search
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 size-5"
+                style={{ color: '#9A9A9A' }}
+              />
+              <input
+                type="text"
+                placeholder="Buscar en biblioteca..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-10 py-3 rounded-xl text-sm transition-all focus:outline-none focus:ring-2"
+                style={{
+                  backgroundColor: 'white',
+                  border: '1px solid #EEEBE6',
+                  color: '#222222',
+                  boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 hover:opacity-70"
+                >
+                  <X className="size-4" style={{ color: '#9A9A9A' }} />
+                </button>
+              )}
+            </div>
+            {searchQuery && (
+              <p className="mt-2 text-sm" style={{ color: '#6D6D6D' }}>
+                {filteredNotes.length} resultado{filteredNotes.length !== 1 ? 's' : ''} para "{searchQuery}"
+              </p>
+            )}
           </div>
 
           {/* Stats - Clean Style */}
