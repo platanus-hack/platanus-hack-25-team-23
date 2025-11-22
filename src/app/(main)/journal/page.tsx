@@ -265,9 +265,52 @@ export default function JournalPage() {
     )
   }
 
+  // Get current week and month for navigation links
+  const currentYear = displayDate.getFullYear()
+  const currentMonth = displayDate.getMonth() + 1
+  const getWeekNumber = (date: Date) => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+    const dayNum = d.getUTCDay() || 7
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+  }
+  const currentWeek = getWeekNumber(displayDate)
+
   return (
     <div className="flex-1 overflow-y-auto transition-colors duration-300" style={{ backgroundColor: 'var(--background)' }}>
       <div className="max-w-3xl mx-auto p-8">
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-2 mb-6">
+          <div
+            className="px-4 py-2 rounded-xl text-sm font-medium"
+            style={{ backgroundColor: '#E6DAFF', color: '#9575CD' }}
+          >
+            Diario
+          </div>
+          <Link
+            href={`/journal/weekly/${currentYear}-W${currentWeek.toString().padStart(2, '0')}`}
+            className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-gray-100"
+            style={{ backgroundColor: 'white', color: '#6D6D6D' }}
+          >
+            Semanal
+          </Link>
+          <Link
+            href={`/journal/monthly/${currentYear}-${currentMonth.toString().padStart(2, '0')}`}
+            className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-gray-100"
+            style={{ backgroundColor: 'white', color: '#6D6D6D' }}
+          >
+            Mensual
+          </Link>
+          <Link
+            href={`/journal/yearly/${currentYear}`}
+            className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-gray-100"
+            style={{ backgroundColor: 'white', color: '#6D6D6D' }}
+          >
+            Anual
+          </Link>
+        </div>
+
         {/* Header with Navigation */}
         <div className="flex items-center justify-between mb-8">
           <button
