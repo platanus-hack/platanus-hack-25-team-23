@@ -36,7 +36,7 @@ import {
 } from '@/components/ai-elements/prompt-input';
 import { Fragment, useState, useEffect } from 'react';
 import { useManualChat } from '@/hooks/use-manual-chat';
-import { CopyIcon, GlobeIcon, RefreshCcwIcon } from 'lucide-react';
+import { CopyIcon, GlobeIcon, RefreshCcwIcon, SquareIcon } from 'lucide-react';
 import {
   Source,
   Sources,
@@ -51,6 +51,7 @@ import {
 import { Loader } from '@/components/ai-elements/loader';
 import { ChatWelcomeScreen } from './ChatWelcomeScreen';
 import { NoteRenderer } from '@/components/NoteRenderer';
+import { FileArtifact } from '../FileArtifact';
 import { useKnowledge } from '@/lib/store/knowledge-context';
 import { extractAttributeFromPartialJson } from '@/lib/partial-json';
 
@@ -80,8 +81,16 @@ export function ChatView() {
     .filter(title => title && title.length > 0)))
     .slice(0, 3); // Take top 3 unique
 
-  // Use our custom manual hook
-  const chatHelpers = useManualChat({
+  const { 
+    messages, 
+    input: chatInput, // Renamed to avoid conflict with local state 'input'
+    handleInputChange, 
+    handleSubmit: handleManualSubmit, 
+    status, 
+    stop,
+    append,
+    currentTool
+  } = useManualChat({
     api: '/api/chat',
     onFinish: (message: any) => console.log('Chat finished:', message),
     onError: (error: any) => {
@@ -90,9 +99,47 @@ export function ChatView() {
     }
   });
   
-  const { messages, append, sendMessage, status, reload, stop, currentTool } = chatHelpers;
+  const [showWelcome, setShowWelcome] = useState(true);
+
+  // Hide welcome screen when messages exist
+  useEffect(() => {
+    if (messages.length > 0) {
+      setShowWelcome(false);
+    }
+  }, [messages]);
+
+  // Open sidebar when streaming starts (specifically when write_file tool is detected)
+  useEffect(() => {
+    if (currentTool?.name === 'write_file') {
+        // Dispatch event to open sidebar
+        window.dispatchEvent(new CustomEvent('open-sidebar'));
+    }
+  }, [currentTool]);
+
+  // Helper to get pending artifact path
+  const getPendingArtifactPath = () => {
+      if (currentTool?.name === 'write_file' && currentTool.args) {
+          // Try to extract path or file_path
+          const path = extractAttributeFromPartialJson(currentTool.args, 'path');
+          const filePath = extractAttributeFromPartialJson(currentTool.args, 'file_path');
+          return path || filePath;
+      }
+      return null;
+  };
+
+  const pendingArtifactPath = getPendingArtifactPath(); 
   
-  console.log('ChatView: useChat keys:', Object.keys(chatHelpers));
+  // DEBUG: Trace pending artifact logic
+  useEffect(() => {
+      if (status === 'streaming') {
+          console.log('DEBUG: ChatView Stream State:', { 
+              status, 
+              toolName: currentTool?.name, 
+              toolArgs: currentTool?.args,
+              pendingPath: pendingArtifactPath
+          });
+      }
+  }, [status, currentTool, pendingArtifactPath]); 
   
   const [activeNote, setActiveNote] = useState<{ title: string; content: string } | null>(null);
 
@@ -261,13 +308,32 @@ export function ChatView() {
                         <MessageContent>
                             {message.role === 'user' ? (
                                 <div className="whitespace-pre-wrap">{message.content}</div>
-                            ) : (
-                                <NoteRenderer 
-                                    content={message.content} 
-                                    isStreaming={status === 'streaming' && message.id === messages.at(-1)?.id}
-                                    onLinkClick={handleLinkClick}
-                                />
-                            )}
+                            ) : message.role === 'assistant' ? (
+                        <>
+                            <NoteRenderer 
+                                content={message.content} 
+                                onLinkClick={handleLinkClick}
+                                isStreaming={status === 'streaming' && message.id === messages[messages.length - 1].id}
+                            />
+                            {/* Show pending artifact if this is the last message and we are writing a file */}
+                            {(() => {
+                                const isStreaming = status === 'streaming';
+                                const isLast = message.id === messages[messages.length - 1].id;
+                                const hasPath = !!pendingArtifactPath;
+                                
+                                if (isStreaming && isLast && hasPath) {
+                                    return (
+                                        <div className="mt-2">
+                                            <FileArtifact path={pendingArtifactPath!} isLoading={true} />
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
+                        </>
+                    ) : (
+                        message.content
+                    )}
                         </MessageContent>
                     </Message>
                 )}
@@ -376,7 +442,19 @@ export function ChatView() {
                 </PromptInputSelectContent>
               </PromptInputSelect>
             </PromptInputTools>
-            <PromptInputSubmit disabled={!input && !status} status={status} />
+            <PromptInputSubmit 
+                disabled={!input && status === 'ready'} 
+                status={status} 
+                onClick={() => {
+                    if (status === 'streaming' || status === 'submitted') {
+                        stop();
+                    }
+                }}
+            >
+                {status === 'submitted' || status === 'streaming' ? (
+                    <SquareIcon className="size-4" />
+                ) : undefined}
+            </PromptInputSubmit>
           </PromptInputFooter>
         </PromptInput>
       </div>

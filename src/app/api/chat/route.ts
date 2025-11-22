@@ -25,14 +25,17 @@ export async function POST(req: Request) {
 
     // Define Tools
     const listFiles = tool(
-      async ({ path = '/' }) => {
-        return await vfs.listFiles(path);
+      async ({ path = '/', file_path }) => {
+        return await vfs.listFiles(path || file_path || '/');
       },
       {
         name: 'list_files',
         description: 'List files and directories in the VFS.',
         schema: z.object({
           path: z.string().optional().describe('The directory path to list (default: /)'),
+          file_path: z.string().optional().describe('Alias for path'),
+          offset: z.number().optional().describe('Ignored'),
+          limit: z.number().optional().describe('Ignored'),
         }),
       }
     );
@@ -56,32 +59,73 @@ export async function POST(req: Request) {
     );
 
     const readFile = tool(
-      async ({ path }) => {
-        return await vfs.readFile(path);
+      async ({ path, file_path }) => {
+        const targetPath = path || file_path;
+        if (!targetPath) throw new Error('Path is required');
+        return await vfs.readFile(targetPath);
       },
       {
         name: 'read_file',
         description: 'Read the content of a markdown file.',
         schema: z.object({
-          path: z.string().describe('The full path to the file'),
+          path: z.string().optional().describe('The full path to the file'),
+          file_path: z.string().optional().describe('Alias for path'),
         }),
       }
     );
 
     // Added create_directory_tool as per instruction's tools array
     const createDirectory = tool(
-      async ({ path }) => {
-        await vfs.createDirectory(path);
-        return `Directory '${path}' created successfully.`;
+      async ({ path, file_path }) => {
+        const targetPath = path || file_path;
+        if (!targetPath) throw new Error('Path is required');
+        await vfs.createDirectory(targetPath);
+        return `Directory '${targetPath}' created successfully.`;
       },
       {
         name: 'create_directory',
         description: 'Create a new directory.',
         schema: z.object({
-          path: z.string().describe('The full path to the new directory'),
+          path: z.string().optional().describe('The full path to the new directory'),
+          file_path: z.string().optional().describe('Alias for path'),
         }),
       }
     );
+
+    const searchFiles = tool(
+      async ({ query }) => {
+        const results = await vfs.searchFiles(query);
+        return results.length > 0 ? `Found files:\n${results.join('\n')}` : 'No files found.';
+      },
+      {
+        name: 'search_files',
+        description: 'Search for files by name or content (like grep/find).',
+        schema: z.object({
+          query: z.string().describe('The search term'),
+        }),
+      }
+    );
+
+    const moveFile = tool(
+      async ({ source_path, destination_path }) => {
+        await vfs.moveFile(source_path, destination_path);
+        return `Moved '${source_path}' to '${destination_path}' successfully.`;
+      },
+      {
+        name: 'move_file',
+        description: 'Move or rename a file or directory.',
+        schema: z.object({
+          source_path: z.string().describe('The full path of the file/dir to move'),
+          destination_path: z.string().describe('The new full path (including name)'),
+        }),
+      }
+    );
+
+    // Fetch existing files for context
+    const existingFiles = await vfs.getAllFilePaths();
+    const fileListContext = existingFiles.length > 0 
+        ? existingFiles.map(f => `- ${f}`).join('\n')
+        : '(No files created yet)';
 
     const SYSTEM_PROMPT = `You are KnowledgeFlow, an AI that generates atomic, interconnected knowledge notes.
     
@@ -89,16 +133,21 @@ export async function POST(req: Request) {
     You are NOT a chatbot. You are a **Graph Builder**.
     Your goal is to build a Knowledge Graph by creating Markdown files in the Virtual File System (VFS).
     
+    ## Current Knowledge Graph (Existing Files)
+    The following files already exist. DO NOT create duplicates. Link to them using [[WikiLinks]].
+    ${fileListContext}
+    
     ## Critical Rules
-    1. **ALWAYS Create a File**: When the user asks about a topic, you MUST create a new Markdown file for it using \`write_file\`.
-    2. **File = Node**: Every file you create becomes a node in the graph.
-    3. **Links = Edges**: Use [[WikiLinks]] to connect concepts. These become edges in the graph.
-    4. **Language**: Speak in **Spanish** (Español) unless requested otherwise.
-    5. **Conciseness**: Be concise. Don't repeat yourself.
-    6. **Artifacts**: When you create a file, you MUST display it to the user using this specific syntax in your response:
+    1. **Check Before Create**: You already have the list above. If a file exists, DO NOT create it again.
+    2. **No Duplicates**: If "Energy.md" exists, do NOT create "Energy (duplicate).md".
+    3. **File = Node**: Every file you create becomes a node in the graph.
+    4. **Links = Edges**: Use [[WikiLinks]] to connect concepts. These become edges in the graph.
+    5. **Language**: Speak in **Spanish** (Español) unless requested otherwise.
+    6. **Conciseness**: Be concise. Don't repeat yourself.
+    7. **Artifacts**: When you create a file, you MUST display it to the user using this specific syntax in your response:
        :::artifact{path="/notes/Topic.md"}:::
        (Replace /notes/Topic.md with the actual path you wrote to).
-
+ 
     ## Content Format Rules (for the file content)
     1. **Structure**: Start with a clear definition, then expand with sections.
     2. **Clickable Terms**: Wrap technical terms in [[double brackets]].
@@ -130,7 +179,9 @@ export async function POST(req: Request) {
         listFiles,
         readFile,
         writeFile,
-        createDirectory
+        createDirectory,
+        searchFiles,
+        moveFile
       ], 
     });
 
@@ -138,6 +189,20 @@ export async function POST(req: Request) {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
+        // Helper to safely enqueue data
+        const safeEnqueue = (data: Uint8Array) => {
+            try {
+                controller.enqueue(data);
+            } catch (e: any) {
+                // Ignore if controller is already closed (client disconnected)
+                if (e.message && (e.message.includes('Controller is already closed') || e.code === 'ERR_INVALID_STATE')) {
+                    console.log('API: Stream closed by client (safeEnqueue)');
+                    return;
+                }
+                throw e;
+            }
+        };
+
         try {
           // STATIC DEBUG STREAM - REMOVED
           // console.log('API: Starting STATIC stream (DATA STREAM PROTOCOL)...');
@@ -151,13 +216,23 @@ export async function POST(req: Request) {
           }));
 
           // Use streamEvents to get token-level updates
+          // Pass req.signal to allow cancellation
           const eventStream = await agent.streamEvents(
             { messages: agentMessages },
-            { version: 'v2' }
+            { 
+                version: 'v2',
+                signal: req.signal 
+            }
           );
 
           let chunkCount = 0;
           for await (const event of eventStream) {
+            // Check if client disconnected
+            if (req.signal.aborted) {
+                console.log('API: Client aborted, stopping stream loop');
+                break;
+            }
+
             // console.log('API: Event:', event.event, event.name); // DEBUG ALL EVENTS
             if (event.event === 'on_chat_model_stream') {
                 // This is a token chunk from the LLM
@@ -165,7 +240,7 @@ export async function POST(req: Request) {
                 
                 // Handle text content
                 if (chunk.content) {
-                    controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk.content)}\n`));
+                    safeEnqueue(encoder.encode(`0:${JSON.stringify(chunk.content)}\n`));
                     chunkCount++;
                 }
 
@@ -182,22 +257,28 @@ export async function POST(req: Request) {
                                 id: toolChunk.id,
                                 index: toolChunk.index
                             };
-                            controller.enqueue(encoder.encode(`T:${JSON.stringify(payload)}\n`));
+                            safeEnqueue(encoder.encode(`T:${JSON.stringify(payload)}\n`));
                         }
                     }
                 }
             } else if (event.event === 'on_tool_start') {
                 console.log('API: Tool Start:', event.name);
                 // Notify frontend tool started (optional, but good for UI state)
-                controller.enqueue(encoder.encode(`S:${JSON.stringify({ name: event.name })}\n`));
+                safeEnqueue(encoder.encode(`S:${JSON.stringify({ name: event.name })}\n`));
             } else if (event.event === 'on_tool_end') {
                 console.log('API: Tool End:', event.name);
-                controller.enqueue(encoder.encode(`E:${JSON.stringify({ name: event.name })}\n`));
+                safeEnqueue(encoder.encode(`E:${JSON.stringify({ name: event.name })}\n`));
             }
           }
           console.log(`API: Stream finished. Total token chunks: ${chunkCount}`);
           controller.close();
-        } catch (e) {
+        } catch (e: any) {
+          // Ignore abort errors
+          if (e.name === 'AbortError' || req.signal.aborted) {
+              console.log('API: Stream aborted by client');
+              try { controller.close(); } catch(e) {}
+              return;
+          }
           console.error('Stream Error:', e);
           controller.error(e);
         }

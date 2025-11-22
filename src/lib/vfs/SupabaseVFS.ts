@@ -56,31 +56,32 @@ export class SupabaseVFS {
   }
 
   async listFiles(path: string = '/'): Promise<string[]> {
-    const supabase = await this.getSupabase();
+    // Use getAllFilePaths to ensure consistency with AI context
+    const allPaths = await this.getAllFilePaths();
+    const normalizedPath = path.endsWith('/') ? path : `${path}/`;
     
-    let parentId: string | null = null;
+    const items = new Set<string>();
     
-    if (path !== '/' && path !== '') {
-      const node = await this.resolvePath(path);
-      if (!node || node.type !== 'directory') {
-        throw new Error(`Path not found or not a directory: ${path}`);
-      }
-      parentId = node.id;
+    for (const filePath of allPaths) {
+        if (filePath.startsWith(normalizedPath)) {
+            const relative = filePath.slice(normalizedPath.length);
+            const parts = relative.split('/');
+            
+            if (parts.length > 0) {
+                const item = parts[0];
+                // If there are more parts, it's a directory
+                if (parts.length > 1) {
+                    items.add(`${item}/`);
+                } else {
+                    items.add(item);
+                }
+            }
+        }
     }
-
-    const query = supabase
-      .from('vfs_nodes')
-      .select('name, type')
-      .eq('user_id', this.userId);
-
-    if (parentId) {
-      query.eq('parent_id', parentId);
-    } else {
-      query.is('parent_id', null);
-    }
-
-    const { data } = await query;
-    return data?.map(n => n.type === 'directory' ? `${n.name}/` : n.name) || [];
+    
+    const result = Array.from(items).sort();
+    console.log(`VFS: listFiles('${path}') -> found ${result.length} items (via getAllFilePaths)`);
+    return result;
   }
 
   async readFile(path: string): Promise<string> {
@@ -100,6 +101,9 @@ export class SupabaseVFS {
   }
 
   async writeFile(path: string, content: string): Promise<void> {
+    // Sanitize content: remove null bytes which cause Postgres errors
+    content = content.replace(/\u0000/g, '');
+
     const supabase = await this.getSupabase();
     const parts = path.split('/').filter(p => p.length > 0);
     const fileName = parts.pop();
@@ -218,5 +222,125 @@ export class SupabaseVFS {
         currentParent = newDir.id;
       }
     }
+  }
+
+  /**
+   * Returns a flat list of all file paths in the VFS.
+   * Used for AI context injection.
+   */
+  async getAllFilePaths(): Promise<string[]> {
+      const supabase = await this.getSupabase();
+      
+      // Fetch all nodes
+      const { data: nodes } = await supabase
+          .from('vfs_nodes')
+          .select('id, parent_id, name, type')
+          .eq('user_id', this.userId);
+
+      if (!nodes) return [];
+
+      // Build map for quick lookup
+      const nodeMap = new Map(nodes.map(n => [n.id, n]));
+      const files = nodes.filter(n => n.type === 'file');
+      const paths: string[] = [];
+
+      for (const file of files) {
+          let current = file;
+          const parts = [current.name];
+          
+          while (current.parent_id) {
+              const parent = nodeMap.get(current.parent_id);
+              if (parent) {
+                  parts.unshift(parent.name);
+                  current = parent;
+              } else {
+                  break; // Orphaned or error
+              }
+          }
+          paths.push('/' + parts.join('/'));
+      }
+
+      return paths;
+  }
+
+
+  /**
+   * Searches for files matching the query in name or content.
+   */
+  async searchFiles(query: string): Promise<string[]> {
+    const supabase = await this.getSupabase();
+    
+    const { data } = await supabase
+      .from('vfs_nodes')
+      .select('id, name, type, content')
+      .eq('user_id', this.userId)
+      .eq('type', 'file')
+      .or(`name.ilike.%${query}%,content.ilike.%${query}%`)
+      .limit(20);
+
+    if (!data) return [];
+    return data.map(f => f.name);
+  }
+
+  /**
+   * Moves or renames a file/directory.
+   */
+  async moveFile(sourcePath: string, destinationPath: string): Promise<void> {
+    const supabase = await this.getSupabase();
+    
+    // 1. Resolve source
+    const sourceNode = await this.resolvePath(sourcePath);
+    if (!sourceNode) {
+      throw new Error(`Source path not found: ${sourcePath}`);
+    }
+
+    // 2. Resolve destination parent and name
+    const parts = destinationPath.split('/').filter(p => p.length > 0);
+    const newName = parts.pop();
+    if (!newName) throw new Error('Invalid destination path');
+
+    let newParentId: string | null = null;
+    
+    if (parts.length > 0) {
+        let currentParent: string | null = null;
+        for (const part of parts) {
+            const q = supabase.from('vfs_nodes').select('id').eq('user_id', this.userId).eq('name', part);
+            if (currentParent) q.eq('parent_id', currentParent);
+            else q.is('parent_id', null);
+            
+            const { data } = await q.single();
+            
+            if (data) {
+                currentParent = data.id;
+            } else {
+                const { data: newDir, error } = await supabase
+                    .from('vfs_nodes')
+                    .insert({
+                        user_id: this.userId,
+                        parent_id: currentParent,
+                        name: part,
+                        type: 'directory'
+                    })
+                    .select('id')
+                    .single();
+                
+                if (error) throw error;
+                currentParent = newDir.id;
+            }
+        }
+        newParentId = currentParent;
+    }
+
+    // 3. Update the node
+    const { error } = await supabase
+        .from('vfs_nodes')
+        .update({ 
+            name: newName, 
+            parent_id: newParentId,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', sourceNode.id);
+
+    if (error) throw error;
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 export type Message = {
   id: string;
@@ -12,6 +12,9 @@ export function useManualChat({ api = '/api/chat', onFinish, onError }: any = {}
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<'ready' | 'streaming' | 'submitted' | 'error'>('ready');
   const [error, setError] = useState<any>(null);
+  
+  // Ref to hold the AbortController
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleInputChange = (e: any) => {
     setInput(e.target.value);
@@ -28,6 +31,10 @@ export function useManualChat({ api = '/api/chat', onFinish, onError }: any = {}
     setStatus('submitted');
     setError(null);
 
+    // Create a new AbortController for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const body = {
         messages: [...messages, userMsg],
@@ -38,7 +45,8 @@ export function useManualChat({ api = '/api/chat', onFinish, onError }: any = {}
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-        credentials: 'include' // Ensure cookies are sent!
+        credentials: 'include', // Ensure cookies are sent!
+        signal: controller.signal // Link the signal
       });
 
       if (!response.ok) throw new Error(response.statusText);
@@ -136,10 +144,17 @@ export function useManualChat({ api = '/api/chat', onFinish, onError }: any = {}
       if (onFinish) onFinish(assistantMsg);
       
     } catch (err: any) {
+      if (err.name === 'AbortError') {
+          console.log('Chat aborted by user');
+          setStatus('ready');
+          return;
+      }
       console.error('Manual Fetch Error:', err);
       setError(err);
       setStatus('error');
       if (onError) onError(err);
+    } finally {
+        abortControllerRef.current = null;
     }
   }, [messages, api, onFinish, onError]);
 
@@ -156,9 +171,13 @@ export function useManualChat({ api = '/api/chat', onFinish, onError }: any = {}
       console.log('Reload not fully implemented in manual hook');
   };
 
-  const stop = () => {
-      // Not implemented
-  };
+  const stop = useCallback(() => {
+      if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          abortControllerRef.current = null;
+          setStatus('ready');
+      }
+  }, []);
 
   return {
     messages,
