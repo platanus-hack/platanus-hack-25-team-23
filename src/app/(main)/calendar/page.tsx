@@ -212,7 +212,7 @@ export default function CalendarPage() {
 
       const event = {
         summary: `📚 Estudio: ${newEventTitle}`,
-        description: 'Sesión de estudio creada desde KnowledgeFlow',
+        description: 'Sesión de estudio creada desde BrainFlow',
         start: { dateTime: startDate.toISOString() },
         end: { dateTime: endDate.toISOString() },
         colorId: '2' // Green for study sessions

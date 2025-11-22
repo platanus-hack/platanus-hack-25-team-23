@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useKnowledge } from "@/lib/store/knowledge-context"
+import { useJournal, JournalEntry } from "@/lib/store/journal-context"
+import { useAreas } from "@/lib/store/areas-context"
+import { detectAreaFromContent } from "@/lib/data/areas-config"
 import { createClient } from "@/lib/supabase/client"
 import {
   ChevronRight,
@@ -20,7 +23,8 @@ import {
   Sparkles,
   MapPin,
   GitBranch,
-  Calendar
+  Calendar,
+  BookHeart
 } from "lucide-react"
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -34,6 +38,8 @@ interface RoadmapNode {
   level: 'basic' | 'intermediate' | 'advanced'
   estimatedHours: number
   difficulty: number
+  isJournalEntry?: boolean
+  journalDate?: string
 }
 
 interface Area {
@@ -44,42 +50,12 @@ interface Area {
   description: string
 }
 
-// Area definitions
-const AREA_CONFIG: Record<string, { color: string; icon: string; description: string }> = {
-  'Desarrollo Profesional': { color: '#3b82f6', icon: '💼', description: 'Carrera y crecimiento laboral' },
-  'Programacion': { color: '#3b82f6', icon: '💻', description: 'Código y desarrollo de software' },
-  'Matematicas': { color: '#8b5cf6', icon: '🧮', description: 'Álgebra, cálculo y estadística' },
-  'Ciencias': { color: '#22c55e', icon: '🔬', description: 'Física, química y biología' },
-  'Salud y Bienestar': { color: '#22c55e', icon: '🏃', description: 'Ejercicio y nutrición' },
-  'Finanzas Personales': { color: '#eab308', icon: '💰', description: 'Presupuesto e inversiones' },
-  'Historia': { color: '#f97316', icon: '📜', description: 'Historia y geografía' },
-  'Idiomas': { color: '#ec4899', icon: '🗣️', description: 'Aprendizaje de idiomas' },
-  'Arte': { color: '#8b5cf6', icon: '🎨', description: 'Arte y diseño' },
-  'Economia': { color: '#eab308', icon: '📊', description: 'Economía y negocios' },
-  'Humanidades': { color: '#ec4899', icon: '📚', description: 'Filosofía y psicología' },
-  'Crecimiento Personal': { color: '#9333ea', icon: '🌱', description: 'Hábitos y productividad' },
-  'General': { color: '#C9B7F3', icon: '📝', description: 'Temas generales' },
-}
-
 type ViewMode = 'timeline' | 'parallel' | 'compact'
-
-function detectArea(title: string, content: string): string {
-  const text = `${title} ${content}`.toLowerCase()
-  if (text.includes('matemat') || text.includes('algebra') || text.includes('calcul')) return 'Matematicas'
-  if (text.includes('program') || text.includes('codigo') || text.includes('algoritm')) return 'Programacion'
-  if (text.includes('fisica') || text.includes('quimica') || text.includes('biolog')) return 'Ciencias'
-  if (text.includes('histor') || text.includes('geograf')) return 'Historia'
-  if (text.includes('idioma') || text.includes('ingles')) return 'Idiomas'
-  if (text.includes('arte') || text.includes('musica')) return 'Arte'
-  if (text.includes('econom') || text.includes('finanz')) return 'Finanzas Personales'
-  if (text.includes('filosof') || text.includes('psicolog')) return 'Humanidades'
-  if (text.includes('salud') || text.includes('ejercicio')) return 'Salud y Bienestar'
-  if (text.includes('habito') || text.includes('productividad')) return 'Crecimiento Personal'
-  return 'General'
-}
 
 export default function TreePage() {
   const { notes: contextNotes, session, markAsUnderstood } = useKnowledge()
+  const { entries: journalEntries } = useJournal()
+  const { areas: contextAreas } = useAreas()
   const router = useRouter()
   const [viewMode, setViewMode] = useState<ViewMode>('timeline')
   const [selectedArea, setSelectedArea] = useState<string>('all')
@@ -88,65 +64,97 @@ export default function TreePage() {
   const [roadmapNodes, setRoadmapNodes] = useState<RoadmapNode[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Build AREA_CONFIG from context areas (synced with Library and Graph)
+  const AREA_CONFIG: Record<string, { color: string; icon: string; description: string }> = useMemo(() => {
+    const config: Record<string, { color: string; icon: string; description: string }> = {}
+    contextAreas.forEach(area => {
+      config[area.name] = { color: area.color, icon: area.icon, description: area.description }
+    })
+    // Add Journal area
+    config['Journal'] = { color: '#C9B7F3', icon: '📓', description: 'Tu diario personal' }
+    return config
+  }, [contextAreas])
+
   // Load data
   useEffect(() => {
     async function loadData() {
       setLoading(true)
 
+      let nodes: RoadmapNode[] = []
+
       if (!session?.user) {
         // Use context notes
-        const nodes: RoadmapNode[] = contextNotes.map(note => {
-          const area = detectArea(note.title, note.content)
+        nodes = contextNotes.map(note => {
+          const detectedArea = detectAreaFromContent(note.title, note.content)
+          const areaName = detectedArea?.name || 'General'
           return {
             id: note.id || note.slug,
             name: note.title,
             status: note.status,
-            area,
-            areaColor: AREA_CONFIG[area]?.color || '#C9B7F3',
+            area: areaName,
+            areaColor: detectedArea?.color || '#C9B7F3',
             level: 'intermediate' as const,
             estimatedHours: Math.ceil(note.content.split(/\s+/).length / 200),
             difficulty: 3
           }
         })
-        setRoadmapNodes(nodes)
-        // Expand first area
-        if (nodes.length > 0) {
-          setExpandedPaths(new Set([nodes[0].area.toLowerCase().replace(/\s+/g, '-')]))
+      } else {
+        const supabase = createClient()
+        const { data: notesData } = await supabase
+          .from('notes')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: true })
+
+        if (notesData) {
+          nodes = notesData.map(n => {
+            const detectedArea = detectAreaFromContent(n.title, n.content || '')
+            const areaName = detectedArea?.name || 'General'
+            return {
+              id: n.id,
+              name: n.title,
+              status: (n.status || 'new') as 'understood' | 'read' | 'new',
+              area: areaName,
+              areaColor: detectedArea?.color || '#C9B7F3',
+              level: 'intermediate' as const,
+              estimatedHours: Math.ceil((n.content || '').split(/\s+/).length / 200),
+              difficulty: 3
+            }
+          })
         }
-        setLoading(false)
-        return
       }
 
-      const supabase = createClient()
-      const { data: notesData } = await supabase
-        .from('notes')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: true })
+      // Add Journal entries as nodes
+      if (journalEntries.length > 0) {
+        const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
+        const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
-      if (notesData) {
-        const nodes: RoadmapNode[] = notesData.map(n => {
-          const area = detectArea(n.title, n.content || '')
-          return {
-            id: n.id,
-            name: n.title,
-            status: (n.status || 'new') as 'understood' | 'read' | 'new',
-            area,
-            areaColor: AREA_CONFIG[area]?.color || '#C9B7F3',
-            level: 'intermediate' as const,
-            estimatedHours: Math.ceil((n.content || '').split(/\s+/).length / 200),
-            difficulty: 3
-          }
+        journalEntries.forEach(entry => {
+          const entryDate = new Date(entry.date + 'T00:00:00')
+          nodes.push({
+            id: `journal-${entry.id}`,
+            name: `${dayNames[entryDate.getDay()]} ${entryDate.getDate()} ${monthNames[entryDate.getMonth()]} ${entryDate.getFullYear()}`,
+            status: entry.is_complete ? 'understood' : 'new',
+            area: 'Journal',
+            areaColor: '#C9B7F3',
+            level: 'basic' as const,
+            estimatedHours: 0.5,
+            difficulty: 1,
+            isJournalEntry: true,
+            journalDate: entry.date
+          })
         })
-        setRoadmapNodes(nodes)
-        if (nodes.length > 0) {
-          setExpandedPaths(new Set([nodes[0].area.toLowerCase().replace(/\s+/g, '-')]))
-        }
+      }
+
+      setRoadmapNodes(nodes)
+      // Expand first area
+      if (nodes.length > 0) {
+        setExpandedPaths(new Set([nodes[0].area.toLowerCase().replace(/\s+/g, '-')]))
       }
       setLoading(false)
     }
     loadData()
-  }, [session, contextNotes])
+  }, [session, contextNotes, journalEntries])
 
   // Get unique areas
   const areas: Area[] = useMemo(() => {
@@ -359,13 +367,13 @@ export default function TreePage() {
                               </div>
                               <div className="flex gap-2">
                                 <Link
-                                  href={`/study?topic=${encodeURIComponent(node.name)}`}
+                                  href={node.isJournalEntry ? `/journal?date=${node.journalDate}` : `/study?topic=${encodeURIComponent(node.name)}`}
                                   className="px-4 py-2 rounded-xl text-white font-medium transition-all hover:scale-110"
                                   style={{ backgroundColor: area.color, boxShadow: `0px 2px 6px ${area.color}50` }}
                                 >
-                                  <BookOpen className="size-5" />
+                                  {node.isJournalEntry ? <BookHeart className="size-5" /> : <BookOpen className="size-5" />}
                                 </Link>
-                                {node.status !== 'understood' && (
+                                {node.status !== 'understood' && !node.isJournalEntry && (
                                   <button
                                     onClick={() => handleMarkUnderstood(node.id)}
                                     className="px-4 py-2 rounded-xl text-white font-medium transition-all hover:scale-110"
@@ -422,7 +430,7 @@ export default function TreePage() {
               {pathNodes.slice(0, 8).map((node, index) => (
                 <Link
                   key={node.id}
-                  href={`/study?topic=${encodeURIComponent(node.name)}`}
+                  href={node.isJournalEntry ? `/journal?date=${node.journalDate}` : `/study?topic=${encodeURIComponent(node.name)}`}
                   className={`p-3 rounded-lg border transition-all hover:shadow-sm cursor-pointer block ${
                     node.status === 'understood' ? 'border-green-500 bg-green-50'
                       : node.status === 'read' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-300 bg-white'
@@ -432,7 +440,7 @@ export default function TreePage() {
                     <span className="text-sm font-medium text-gray-500">#{index + 1}</span>
                     {getStatusIcon(node.status)}
                     <span className="flex-1 text-sm font-medium truncate">{node.name}</span>
-                    <Clock className="size-3 text-gray-400" />
+                    {node.isJournalEntry ? <BookHeart className="size-3 text-purple-400" /> : <Clock className="size-3 text-gray-400" />}
                     <span className="text-xs text-gray-600">{node.estimatedHours}h</span>
                   </div>
                 </Link>
@@ -481,10 +489,13 @@ export default function TreePage() {
                 <td className="px-6 py-4"><span className="text-sm text-gray-600">{node.estimatedHours}h</span></td>
                 <td className="px-6 py-4">
                   <div className="flex gap-2">
-                    <Link href={`/study?topic=${encodeURIComponent(node.name)}`} className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                      <BookOpen className="size-4" />
+                    <Link
+                      href={node.isJournalEntry ? `/journal?date=${node.journalDate}` : `/study?topic=${encodeURIComponent(node.name)}`}
+                      className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                    >
+                      {node.isJournalEntry ? <BookHeart className="size-4" /> : <BookOpen className="size-4" />}
                     </Link>
-                    {node.status !== 'understood' && (
+                    {node.status !== 'understood' && !node.isJournalEntry && (
                       <button onClick={() => handleMarkUnderstood(node.id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
                         <Check className="size-4" />
                       </button>
@@ -626,9 +637,13 @@ export default function TreePage() {
               </p>
               <div className="flex gap-3 flex-wrap">
                 {nextRecommended.map(node => (
-                  <Link key={node.id} href={`/study?topic=${encodeURIComponent(node.name)}`}
-                    className="px-4 py-2 bg-white rounded-2xl hover:scale-105 transition-all font-medium"
-                    style={{ color: '#9575CD', boxShadow: '0px 2px 8px rgba(255, 255, 255, 0.5)' }}>
+                  <Link
+                    key={node.id}
+                    href={node.isJournalEntry ? `/journal?date=${node.journalDate}` : `/study?topic=${encodeURIComponent(node.name)}`}
+                    className="px-4 py-2 bg-white rounded-2xl hover:scale-105 transition-all font-medium flex items-center gap-2"
+                    style={{ color: '#9575CD', boxShadow: '0px 2px 8px rgba(255, 255, 255, 0.5)' }}
+                  >
+                    {node.isJournalEntry && <BookHeart className="size-4" />}
                     {node.name}
                   </Link>
                 ))}

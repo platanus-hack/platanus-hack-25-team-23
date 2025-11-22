@@ -139,7 +139,7 @@ export function NotePanel() {
             </article>
           ) : (
             <div className="text-center text-muted-foreground mt-20">
-              <h2 className="text-2xl font-semibold mb-2 text-foreground">Welcome to KnowledgeFlow</h2>
+              <h2 className="text-2xl font-semibold mb-2 text-foreground">Welcome to BrainFlow</h2>
               <p>Enter a topic above to start your learning journey.</p>
             </div>
           )}

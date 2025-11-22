@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { Sparkles, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react'
+import { Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function LoginPage() {
@@ -69,17 +70,20 @@ export default function LoginPage() {
         style={{ backgroundColor: '#D6C9F5' }}
       >
         <div className="max-w-md text-center">
-          <div
-            className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8"
-            style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}
-          >
-            <Sparkles className="size-12 text-white" />
+          <div className="mb-8">
+            <Image
+              src="/logo.png"
+              alt="BrainFlow"
+              width={120}
+              height={120}
+              className="object-contain mx-auto"
+            />
           </div>
           <h1 className="text-4xl font-bold text-white mb-4">
             BrainFlow
           </h1>
           <p className="text-xl text-white/90 mb-8">
-            Tu asistente de aprendizaje con IA. Genera notas pedagogicas, conecta conceptos y visualiza tu conocimiento.
+            Tu segundo cerebro, simple y poderoso. Organiza tus ideas, conecta tu conocimiento y crece cada dia.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             {['Notas con IA', 'Grafo de conocimiento', '7 Areas de vida', 'Progreso visual'].map((feature) => (
@@ -100,11 +104,14 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-              style={{ backgroundColor: '#D6C9F5' }}
-            >
-              <Sparkles className="size-8 text-white" />
+            <div className="mb-4">
+              <Image
+                src="/logo.png"
+                alt="BrainFlow"
+                width={80}
+                height={80}
+                className="object-contain mx-auto"
+              />
             </div>
             <h1 className="text-2xl font-bold" style={{ color: '#1E1E1E' }}>
               BrainFlow

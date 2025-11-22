@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useKnowledge } from "@/lib/store/knowledge-context"
+import { useJournal } from "@/lib/store/journal-context"
 import { createClient } from "@/lib/supabase/client"
 import { ZoomIn, ZoomOut, Maximize2, Sliders, Eye, Palette, Filter, X, ChevronDown, ChevronUp, Minimize2 } from "lucide-react"
 import * as d3 from 'd3'
@@ -18,6 +20,8 @@ interface GraphNode {
   level: 'beginner' | 'intermediate' | 'advanced'
   isYouNode?: boolean
   isAreaNode?: boolean
+  isJournalNode?: boolean
+  journalDate?: string // For journal nodes: YYYY-MM-DD format
   distanceFromArea?: number
   connectionCount?: number
   x?: number
@@ -94,11 +98,13 @@ function getColorWithAlpha(baseColor: string, distance: number, maxDistance: num
 }
 
 export default function GraphPage() {
+  const router = useRouter()
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
   const filtersRef = useRef<HTMLDivElement>(null)
   const { notes, edges, session } = useKnowledge()
+  const { entries: journalEntries } = useJournal()
   const { areas: contextAreas, youNodeColor, getColorForDepth } = useAreas()
   const [viewMode, setViewMode] = useState<'status' | 'area'>('area')
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
@@ -528,6 +534,37 @@ export default function GraphPage() {
         })
       }
 
+      // Add Journal area node if there are journal entries
+      if (journalEntries.length > 0) {
+        nodes.push({
+          id: 'area-journal',
+          name: 'Journal',
+          status: 'understood',
+          area: 'Journal',
+          areaColor: '#C9B7F3',
+          level: 'intermediate',
+          isAreaNode: true
+        })
+
+        // Add journal entries as nodes
+        journalEntries.forEach(entry => {
+          const entryDate = new Date(entry.date + 'T00:00:00')
+          const dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
+          const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
+          nodes.push({
+            id: `journal-${entry.id}`,
+            name: `${dayNames[entryDate.getDay()]} ${entryDate.getDate()} ${monthNames[entryDate.getMonth()]}`,
+            status: entry.is_complete ? 'understood' : 'pending',
+            area: 'Journal',
+            areaColor: '#C9B7F3',
+            level: 'beginner',
+            isJournalNode: true,
+            journalDate: entry.date // Store the date for navigation
+          })
+        })
+      }
+
       const links: GraphLink[] = []
 
       // Connect all areas to "Yo"
@@ -571,6 +608,25 @@ export default function GraphPage() {
         })
       }
 
+      // Connect Journal area to "Yo" and journal entries to Journal area
+      if (journalEntries.length > 0) {
+        // Connect Journal area to Yo
+        links.push({
+          source: 'you',
+          target: 'area-journal',
+          type: 'related'
+        })
+
+        // Connect each journal entry to Journal area
+        journalEntries.forEach(entry => {
+          links.push({
+            source: 'area-journal',
+            target: `journal-${entry.id}`,
+            type: 'related'
+          })
+        })
+      }
+
       // Add edges from the edges table
       if (edgesData && edgesData.length > 0) {
         edgesData.forEach(edge => {
@@ -594,7 +650,7 @@ export default function GraphPage() {
     }
 
     loadGraphData()
-  }, [session, notes, edges, contextAreas])
+  }, [session, notes, edges, contextAreas, journalEntries])
 
   const getNodeColor = (node: GraphNode) => {
     // Central "Yo" node always uses color from context
@@ -791,6 +847,11 @@ export default function GraphPage() {
       .attr('stroke-width', 2.5)
       .style('filter', 'drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.1))')
       .on('click', (event, d) => {
+        // If it's a journal node, redirect to the journal page with the date
+        if (d.isJournalNode && d.journalDate) {
+          router.push(`/journal?date=${d.journalDate}`)
+          return
+        }
         setSelectedNode(d)
       })
       .on('mouseenter', function(event, d) {

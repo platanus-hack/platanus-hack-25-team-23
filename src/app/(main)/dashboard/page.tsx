@@ -3,7 +3,8 @@
 import { useMemo } from "react"
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { useAreas } from "@/lib/store/areas-context"
-import { BookOpen, TrendingUp, Clock, Target, ArrowRight, Plus, MapPin, Flame, Lightbulb, Star } from "lucide-react"
+import { useJournal, formatDate } from "@/lib/store/journal-context"
+import { BookOpen, TrendingUp, Clock, Target, ArrowRight, Plus, MapPin, Flame, Lightbulb, Star, BookHeart, Sun, Moon, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { detectAreaFromContent } from "@/lib/data/areas-config"
 
@@ -67,10 +68,18 @@ function CircularProgress({ percentage, color, size = 100, strokeWidth = 8 }: { 
 export default function DashboardPage() {
   const { notes } = useKnowledge()
   const { areas: contextAreas } = useAreas()
+  const { getEntry, getStreak: getJournalStreak } = useJournal()
   // No async loading needed - all data comes from context
   const loading = false
   // Streak disabled - user_progress table doesn't exist in Supabase
   const streak = 0
+
+  // Journal data
+  const todayDate = formatDate(new Date())
+  const todayEntry = getEntry(todayDate)
+  const journalStreak = getJournalStreak()
+  const hasMorningComplete = todayEntry && todayEntry.gratitude.some(g => g.trim() !== '') && todayEntry.daily_intention.trim() !== ''
+  const hasNightComplete = todayEntry && todayEntry.best_moments.some(m => m.trim() !== '') && todayEntry.lesson.trim() !== ''
 
   // Calculate stats from notes in context (works without authentication)
   // Note status: 'new' | 'read' | 'understood'
@@ -312,6 +321,71 @@ export default function DashboardPage() {
             >
               Ver perfil →
             </Link>
+          </div>
+        </div>
+
+        {/* Journal Quick Access */}
+        <div
+          className="rounded-3xl p-6 relative overflow-hidden hover:scale-[1.01] transition-all duration-300"
+          style={{
+            background: 'linear-gradient(135deg, #F5E6FF 0%, #E6DEF9 100%)',
+            boxShadow: '0px 4px 14px rgba(201, 183, 243, 0.3)',
+            border: '3px solid #D6C9F5'
+          }}
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 opacity-10">
+            <BookHeart className="size-full" style={{ color: '#C9B7F3' }} />
+          </div>
+
+          <div className="flex items-start justify-between relative z-10">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 rounded-2xl bg-white">
+                  <BookHeart className="size-6" style={{ color: '#C9B7F3' }} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
+                    Journal de Hoy
+                  </h3>
+                  <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                    {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6 mb-4">
+                <div className="flex items-center gap-2">
+                  <Sun className="size-4" style={{ color: hasMorningComplete ? '#10B981' : '#9CA3AF' }} />
+                  <span className="text-sm" style={{ color: hasMorningComplete ? '#10B981' : 'var(--muted-foreground)' }}>
+                    Morning {hasMorningComplete ? <CheckCircle2 className="inline size-3 ml-1" /> : ''}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Moon className="size-4" style={{ color: hasNightComplete ? '#10B981' : '#9CA3AF' }} />
+                  <span className="text-sm" style={{ color: hasNightComplete ? '#10B981' : 'var(--muted-foreground)' }}>
+                    Night {hasNightComplete ? <CheckCircle2 className="inline size-3 ml-1" /> : ''}
+                  </span>
+                </div>
+              </div>
+
+              <Link
+                href="/journal"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white rounded-2xl hover:scale-105 transition-all duration-300 font-medium"
+                style={{
+                  color: '#C9B7F3',
+                  boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)'
+                }}
+              >
+                Abrir Journal
+                <ArrowRight className="size-4" />
+              </Link>
+            </div>
+
+            <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-2xl" style={{ backgroundColor: 'rgba(255, 157, 93, 0.2)' }}>
+              <Flame className="size-5" style={{ color: '#FF9D5D' }} />
+              <span className="font-bold" style={{ color: '#CC7E4A' }}>{journalStreak}</span>
+              <span className="text-sm" style={{ color: '#CC7E4A' }}>dias</span>
+            </div>
           </div>
         </div>
 

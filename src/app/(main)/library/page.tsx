@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useKnowledge } from "@/lib/store/knowledge-context"
+import { useJournal, JournalEntry, formatDate } from "@/lib/store/journal-context"
 import { createClient } from "@/lib/supabase/client"
 import {
   FolderOpen,
@@ -17,7 +18,9 @@ import {
   Settings,
   Pencil,
   Trash2,
-  X
+  X,
+  BookHeart,
+  Calendar
 } from "lucide-react"
 import { DEFAULT_AREAS, DEFAULT_YOU_NODE_COLOR, COLOR_PALETTE, AreaConfig, detectAreaFromContent } from '@/lib/data/areas-config'
 import { useAreas } from '@/lib/store/areas-context'
@@ -107,6 +110,7 @@ function getHoursSince(date: Date, now: number) {
 
 export default function LibraryPage() {
   const { notes: contextNotes, session } = useKnowledge()
+  const { entries: journalEntries } = useJournal()
   const { areas, youNodeColor, setYouNodeColor, updateArea, deleteArea, addArea } = useAreas()
   const [libraryNotes, setLibraryNotes] = useState<LibraryNote[]>([])
   const [loading, setLoading] = useState(true)
@@ -257,6 +261,29 @@ export default function LibraryPage() {
 
     return contextFolders
   }, [libraryNotes, lastOrganized, areas])
+
+  // Group journal entries by year > month > entries (hierarchical structure like Calendar > 2025 > 09 > 2025-09-12)
+  const journalHierarchy = useMemo(() => {
+    const hierarchy: Record<string, Record<string, JournalEntry[]>> = {}
+    journalEntries.forEach(entry => {
+      const year = entry.date.substring(0, 4) // YYYY
+      const month = entry.date.substring(5, 7) // MM
+      if (!hierarchy[year]) {
+        hierarchy[year] = {}
+      }
+      if (!hierarchy[year][month]) {
+        hierarchy[year][month] = []
+      }
+      hierarchy[year][month].push(entry)
+    })
+    // Sort entries within each month by date descending
+    Object.keys(hierarchy).forEach(year => {
+      Object.keys(hierarchy[year]).forEach(month => {
+        hierarchy[year][month].sort((a, b) => b.date.localeCompare(a.date))
+      })
+    })
+    return hierarchy
+  }, [journalEntries])
 
   // Toggle folder expansion
   const toggleFolder = (folderId: string) => {
@@ -1204,6 +1231,159 @@ export default function LibraryPage() {
                 <Plus className="size-5" />
                 Crear primera nota
               </Link>
+            </div>
+          )}
+
+          {/* Journal Section - Hierarchical structure: Journal > Year > Month > Date */}
+          {(
+            <div className="mt-8">
+              <h2 className="text-lg font-medium mb-4 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
+                <BookHeart className="size-5" style={{ color: '#C9B7F3' }} />
+                Journal Personal
+              </h2>
+
+              {/* Journal Root Folder */}
+              <div className="mb-4">
+                <div
+                  className="p-6 rounded-3xl cursor-pointer transition-all hover:scale-[1.01] duration-300 relative overflow-hidden"
+                  style={{
+                    backgroundColor: 'rgba(201, 183, 243, 0.15)',
+                    border: '3px solid rgba(201, 183, 243, 0.5)',
+                    boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)'
+                  }}
+                  onClick={() => toggleFolder('journal')}
+                >
+                  <div
+                    className="absolute top-0 right-0 w-24 h-24"
+                    style={{
+                      backgroundColor: 'rgba(201, 183, 243, 0.3)',
+                      clipPath: 'polygon(100% 0, 100% 100%, 0 0)'
+                    }}
+                  />
+
+                  <div className="flex items-start justify-between relative z-10">
+                    <div className="flex items-start gap-4 flex-1">
+                      <button className="mt-1" style={{ color: '#C9B7F3' }}>
+                        {expandedFolders.has('journal') ? (
+                          <ChevronDown className="size-6" />
+                        ) : (
+                          <ChevronRight className="size-6" />
+                        )}
+                      </button>
+
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-3xl">📓</span>
+                          <h3 className="font-bold text-lg" style={{ color: 'var(--foreground)' }}>
+                            Journal
+                          </h3>
+                          <span
+                            className="text-xs px-3 py-1.5 rounded-full font-medium"
+                            style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', color: '#646464' }}
+                          >
+                            {journalEntries.length} {journalEntries.length === 1 ? 'entrada' : 'entradas'}
+                          </span>
+                        </div>
+
+                        <p className="text-sm mb-3" style={{ color: 'rgba(30, 30, 30, 0.7)' }}>
+                          Tu diario personal de reflexiones, gratitud y crecimiento
+                        </p>
+                      </div>
+                    </div>
+
+                    <Link
+                      href="/journal"
+                      onClick={(e) => e.stopPropagation()}
+                      className="px-4 py-2 bg-white rounded-2xl hover:scale-105 transition-all duration-300 flex items-center gap-2 font-medium"
+                      style={{ boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)', color: '#C9B7F3' }}
+                    >
+                      <BookHeart className="size-4" />
+                      Abrir Journal
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Hierarchical Contents: Year > Month > Entries */}
+                {expandedFolders.has('journal') && (
+                  <div className="ml-8 mt-2">
+                    {Object.entries(journalHierarchy)
+                      .sort(([a], [b]) => b.localeCompare(a)) // Sort years descending
+                      .map(([year, months]) => (
+                        <div key={year} className="mt-2">
+                          {/* Year Folder */}
+                          <div
+                            className="flex items-center gap-2 p-3 rounded-xl cursor-pointer hover:bg-purple-50 transition-all"
+                            onClick={() => toggleFolder(`journal-${year}`)}
+                          >
+                            <button style={{ color: '#C9B7F3' }}>
+                              {expandedFolders.has(`journal-${year}`) ? (
+                                <ChevronDown className="size-5" />
+                              ) : (
+                                <ChevronRight className="size-5" />
+                              )}
+                            </button>
+                            <Calendar className="size-4" style={{ color: '#9575CD' }} />
+                            <span className="font-medium" style={{ color: 'var(--foreground)' }}>{year}</span>
+                          </div>
+
+                          {/* Months within Year */}
+                          {expandedFolders.has(`journal-${year}`) && (
+                            <div className="ml-8 mt-1">
+                              {Object.entries(months)
+                                .sort(([a], [b]) => b.localeCompare(a)) // Sort months descending
+                                .map(([month, entries]) => (
+                                  <div key={`${year}-${month}`} className="mt-1">
+                                    {/* Month Folder */}
+                                    <div
+                                      className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-purple-50 transition-all"
+                                      onClick={() => toggleFolder(`journal-${year}-${month}`)}
+                                    >
+                                      <button style={{ color: '#C9B7F3' }}>
+                                        {expandedFolders.has(`journal-${year}-${month}`) ? (
+                                          <ChevronDown className="size-4" />
+                                        ) : (
+                                          <ChevronRight className="size-4" />
+                                        )}
+                                      </button>
+                                      <FolderOpen className="size-4" style={{ color: '#C9B7F3' }} />
+                                      <span className="text-sm" style={{ color: 'var(--foreground)' }}>{month}</span>
+                                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(201, 183, 243, 0.2)', color: '#9575CD' }}>
+                                        {entries.length}
+                                      </span>
+                                    </div>
+
+                                    {/* Entries within Month */}
+                                    {expandedFolders.has(`journal-${year}-${month}`) && (
+                                      <div className="ml-8 mt-1 space-y-1">
+                                        {entries.map(entry => (
+                                          <Link
+                                            key={entry.id}
+                                            href={`/journal?date=${entry.date}`}
+                                            className="flex items-center gap-2 p-2 rounded-lg hover:bg-purple-50 transition-all group"
+                                          >
+                                            <FileText className="size-4" style={{ color: '#C9B7F3' }} />
+                                            <span className="text-sm group-hover:text-purple-600" style={{ color: 'var(--foreground)' }}>
+                                              {entry.date}
+                                            </span>
+                                            {entry.is_complete && (
+                                              <span className="text-xs text-green-500">✓</span>
+                                            )}
+                                            {entry.mood && (
+                                              <span className="text-xs">{['😢', '😕', '😐', '🙂', '😄'][entry.mood - 1]}</span>
+                                            )}
+                                          </Link>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
