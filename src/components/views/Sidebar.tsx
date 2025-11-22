@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Network, GitBranch, User, Plus, FolderOpen, Search, Brain, LogOut, Flame } from 'lucide-react';
+import { Home, Network, GitBranch, User, Plus, FolderOpen, Search, Brain, LogOut, Flame, Calendar } from 'lucide-react';
 import { useKnowledge } from '@/lib/store/knowledge-context';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -31,6 +31,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
     { id: 'library', label: 'Biblioteca', icon: FolderOpen, href: '/library' },
     { id: 'graph', label: 'Grafo', icon: Network, href: '/graph' },
     { id: 'tree', label: 'Ruta', icon: GitBranch, href: '/tree' },
+    { id: 'calendar', label: 'Calendario', icon: Calendar, href: '/calendar' },
     { id: 'profile', label: 'Perfil', icon: User, href: '/profile' },
   ];
 
