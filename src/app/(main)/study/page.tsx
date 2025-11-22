@@ -1,15 +1,31 @@
 "use client"
 
+import { useEffect } from "react"
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { ArrowLeft, CheckCircle, BookOpen, Loader2 } from "lucide-react"
 import Link from "next/link"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 export default function StudyPage() {
   const router = useRouter()
-  const { currentNote, isLoading, generateNote, markAsUnderstood } = useKnowledge()
+  const searchParams = useSearchParams()
+  const { currentNote, notes, isLoading, generateNote, markAsUnderstood, selectNote } = useKnowledge()
+
+  // Load note based on topic query parameter
+  useEffect(() => {
+    const topic = searchParams.get('topic')
+    if (topic) {
+      // First try to find an existing note by title
+      const existingNote = notes.find(n =>
+        n.title.toLowerCase() === topic.toLowerCase()
+      )
+      if (existingNote) {
+        selectNote(existingNote.id || existingNote.slug)
+      }
+    }
+  }, [searchParams, notes, selectNote])
 
   // Transform [[term]] links to clickable elements
   const transformContent = (content: string) => {
