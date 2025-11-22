@@ -50,7 +50,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
           id: note.id || note.slug,
           title: note.title,
           type: 'note',
-          href: `/library?search=${encodeURIComponent(note.title)}`,
+          href: `/study?topic=${encodeURIComponent(note.title)}`,
           preview: note.content.substring(0, 60) + '...'
         });
       }
