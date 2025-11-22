@@ -5,13 +5,15 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { SupabaseVFS } from '@/lib/vfs/SupabaseVFS';
+// @ts-ignore
+import PDFParser from 'pdf2json';
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
   console.log('API: Chat request received (DeepAgents)');
   try {
-    const { messages, model } = await req.json();
+    const { messages, model, webSearch } = await req.json();
     const supabase = await createClient();
     
     const { data: { user } } = await supabase.auth.getUser();
@@ -74,7 +76,6 @@ export async function POST(req: Request) {
       }
     );
 
-    // Added create_directory_tool as per instruction's tools array
     const createDirectory = tool(
       async ({ path, file_path }) => {
         const targetPath = path || file_path;
@@ -121,6 +122,36 @@ export async function POST(req: Request) {
       }
     );
 
+    const readPdf = tool(
+      async ({ url }) => {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`Failed to fetch PDF: ${response.statusText}`);
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          
+          const pdfParser = new PDFParser(null, true);
+          const text = await new Promise<string>((resolve, reject) => {
+              pdfParser.on("pdfParser_dataError", (errData: any) => reject(errData.parserError));
+              pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
+                  resolve(pdfParser.getRawTextContent());
+              });
+              pdfParser.parseBuffer(buffer);
+          });
+          return text;
+        } catch (error: any) {
+          return `Error reading PDF: ${error.message}`;
+        }
+      },
+      {
+        name: 'read_pdf',
+        description: 'Read and extract text from a PDF file via URL.',
+        schema: z.object({
+          url: z.string().describe('The URL of the PDF file to read'),
+        }),
+      }
+    );
+
     // Fetch existing files for context
     const existingFiles = await vfs.getAllFilePaths();
     const fileListContext = existingFiles.length > 0 
@@ -135,7 +166,7 @@ export async function POST(req: Request) {
     
     ## Current Knowledge Graph (Existing Files)
     The following files already exist. DO NOT create duplicates. Link to them using [[WikiLinks]].
-    ${fileListContext}
+    \${fileListContext}
     
     ## Critical Rules
     1. **Check Before Create**: You already have the list above. If a file exists, DO NOT create it again.
@@ -187,9 +218,21 @@ export async function POST(req: Request) {
     `;
 
     // Initialize Agent
+    let modelName = model || 'gpt-4o';
+    let apiKey = process.env.OPENAI_API_KEY;
+    let configuration = undefined;
+
+    if (webSearch) {
+        console.log('API: Web Search enabled, switching to Perplexity');
+        modelName = 'sonar'; // Perplexity model
+        apiKey = process.env.PERPLEXITY_API_KEY;
+        configuration = { baseURL: 'https://api.perplexity.ai' };
+    }
+
     const modelInstance = new ChatOpenAI({
-      modelName: model || 'gpt-4o',
-      openAIApiKey: process.env.OPENAI_API_KEY,
+      modelName: modelName,
+      openAIApiKey: apiKey,
+      configuration: configuration,
       streaming: true,
     });
 
@@ -202,7 +245,9 @@ export async function POST(req: Request) {
         writeFile,
         createDirectory,
         searchFiles,
-        moveFile
+        searchFiles,
+        moveFile,
+        readPdf
       ], 
     });
 
@@ -229,11 +274,60 @@ export async function POST(req: Request) {
           // console.log('API: Starting STATIC stream (DATA STREAM PROTOCOL)...');
           
           console.log('API: Starting agent stream (Token Level)...');
-          
+
           // Convert UI messages to Agent messages
-          const agentMessages = messages.map((m: any) => ({ 
-              role: m.role, 
-              content: m.content || (m.parts ? m.parts.map((p:any) => p.text).join('') : '') 
+          const agentMessages = await Promise.all(messages.map(async (m: any) => {
+              if (m.parts && m.parts.length > 0) {
+                  const contentParts = [];
+                  for (const part of m.parts) {
+                      if (part.type === 'text') {
+                          contentParts.push({ type: 'text', text: part.text });
+                      } else if (part.type === 'image') {
+                          // Handle base64 image
+                          contentParts.push({ 
+                              type: 'image_url', 
+                              image_url: { url: part.data } 
+                          });
+                      } else if (part.type === 'file' && (part.mimeType === 'application/pdf' || part.mimeType?.includes('pdf'))) {
+                          // Parse PDF on the fly
+                          console.log(`API: Processing PDF attachment: ${part.name} (${part.mimeType})`);
+                          try {
+                              // part.data is base64 data URL: data:application/pdf;base64,...
+                              const base64Data = part.data.split(',')[1];
+                              if (!base64Data) throw new Error('Invalid base64 data');
+                              
+                              const buffer = Buffer.from(base64Data, 'base64');
+                              
+                              // Use pdf2json for robust Node.js parsing
+                              const pdfParser = new PDFParser(null, true); // true = text only
+                              
+                              const text = await new Promise<string>((resolve, reject) => {
+                                  pdfParser.on("pdfParser_dataError", (errData: any) => reject(errData.parserError));
+                                  pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
+                                      resolve(pdfParser.getRawTextContent());
+                                  });
+                                  pdfParser.parseBuffer(buffer);
+                              });
+
+                              console.log(`API: PDF parsed successfully. Length: ${text.length}`);
+                              
+                              contentParts.push({ 
+                                  type: 'text', 
+                                  text: `\n\n[Attached PDF Content: ${part.name}]\n${text}\n[End PDF Content]\n` 
+                              });
+                          } catch (e: any) {
+                              console.error('Error parsing attached PDF:', e);
+                              contentParts.push({ type: 'text', text: `[Error reading attached PDF ${part.name}: ${e.message}]` });
+                          }
+                      }
+                  }
+                  return { role: m.role, content: contentParts };
+              }
+              
+              return { 
+                  role: m.role, 
+                  content: m.content || '' 
+              };
           }));
 
           // Use streamEvents to get token-level updates

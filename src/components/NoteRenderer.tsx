@@ -374,6 +374,10 @@ function RenderParts({ parts, onLinkClick, existingNotes }: { parts: any[], onLi
     )
 }
 
+export function StreamingIndicator() {
+  return <span className="inline-block w-2 h-5 bg-purple-500 animate-blink ml-1" />
+}
+
 export function NoteRenderer({ content, onLinkClick, isStreaming, existingNotes }: NoteRendererProps) {
   const parsed = useMemo(() => parseContent(content), [content])
 
@@ -526,9 +530,7 @@ export function NoteRenderer({ content, onLinkClick, isStreaming, existingNotes 
         }
       })}
 
-      {isStreaming && (
-        <span className="inline-block w-2 h-5 bg-purple-500 animate-blink ml-1" />
-      )}
+      {isStreaming && <StreamingIndicator />}
     </div>
   )
 }

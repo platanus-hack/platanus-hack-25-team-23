@@ -310,6 +310,9 @@
   background: var(--color-gray-text);
 }
 
+@tailwind utilities;
+@source "../node_modules/streamdown/dist/index.js";
+
 /* Animation utilities */
 @keyframes fadeIn {
   from { opacity: 0; }

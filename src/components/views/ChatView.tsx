@@ -11,6 +11,8 @@ import {
   MessageContent,
   MessageActions,
   MessageAction,
+  MessageAttachments,
+  MessageAttachment,
 } from '@/components/ai-elements/message';
 import {
   PromptInput,
@@ -250,7 +252,7 @@ export function ChatView() {
       { 
         role: 'user',
         content: text || 'Sent with attachments',
-        // files: files // Attachments not yet supported by backend
+        files: files
       },
       {
         body: {
@@ -310,7 +312,24 @@ export function ChatView() {
                     <Message from={message.role}>
                         <MessageContent>
                             {message.role === 'user' ? (
-                                <div className="whitespace-pre-wrap">{message.content}</div>
+                                <div className="whitespace-pre-wrap">
+                                    {message.content}
+                                    {message.parts && message.parts.length > 0 && (
+                                        <MessageAttachments className="mt-2">
+                                            {message.parts.filter(p => p.type === 'image' || p.type === 'file').map((part, idx) => (
+                                                <MessageAttachment 
+                                                    key={idx} 
+                                                    data={{
+                                                        type: part.type,
+                                                        url: part.data,
+                                                        mediaType: part.mimeType,
+                                                        filename: part.name
+                                                    }} 
+                                                />
+                                            ))}
+                                        </MessageAttachments>
+                                    )}
+                                </div>
                             ) : message.role === 'assistant' ? (
                         <>
                             <NoteRenderer 

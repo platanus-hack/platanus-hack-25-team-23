@@ -20,11 +20,31 @@ export function useManualChat({ api = '/api/chat', onFinish, onError }: any = {}
     setInput(e.target.value);
   };
 
-  const append = useCallback(async (message: { role: string; content: string }, options?: any) => {
+  const append = useCallback(async (message: { role: string; content: string; files?: any[] }, options?: any) => {
+    
+    let attachments: any[] = [];
+    if (message.files && message.files.length > 0) {
+      // Files are already converted to base64 by PromptInput (FileUIPart[])
+      attachments = message.files.map(file => ({
+        name: file.filename || file.name,
+        contentType: file.mediaType || file.type,
+        url: file.url // Already a data URL
+      }));
+    }
+
     const userMsg: Message = { 
         id: Date.now().toString(), 
         role: message.role as any, 
-        content: message.content 
+        content: message.content,
+        parts: attachments.length > 0 ? [
+            { type: 'text', text: message.content },
+            ...attachments.map(a => ({ 
+                type: a.contentType?.startsWith('image/') ? 'image' : 'file', 
+                data: a.url, 
+                mimeType: a.contentType,
+                name: a.name
+            }))
+        ] : undefined
     };
     
     setMessages(prev => [...prev, userMsg]);
