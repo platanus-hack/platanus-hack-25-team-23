@@ -1,6 +1,5 @@
 "use client"
 
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Search, Loader2 } from "lucide-react"
@@ -29,14 +28,23 @@ export function NotePanel() {
     return <AuthForm />
   }
 
-  // Transform [[term]] to [term](term) for react-markdown
-  const processedContent = currentNote?.content.replace(/\[\[(.*?)\]\]/g, '[$1]($1)')
+  // Process content: Handle links and callouts
+  const processedContent = currentNote?.content
+    // Fix links: [[term]] -> [term](term) with URL encoding
+    .replace(/\[\[(.*?)\]\]/g, (match, p1) => `[${p1}](${encodeURIComponent(p1)})`)
+    // Callouts
+    .replace(/^- & (.*)/gm, '> 💡 **Key Idea**: $1')
+    .replace(/^- ! (.*)/gm, '> ❗ **Important**: $1')
+    .replace(/^- !! (.*)/gm, '> ⚠️ **Warning**: $1')
+    .replace(/^- \? (.*)/gm, '> ❓ **Question**: $1')
+    .replace(/^- Ex: (.*)/gm, '> 📝 **Example**: $1')
+    .replace(/^- Obs: (.*)/gm, '> 👁️ **Observation**: $1') || ''
 
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault()
     // If it's an internal link (from our transformation)
     if (!href.startsWith('http')) {
-      generateNote(href, currentNote?.title)
+      generateNote(decodeURIComponent(href), currentNote?.title)
     }
   }
 
@@ -65,7 +73,7 @@ export function NotePanel() {
           )}
         </div>
       </div>
-      <ScrollArea className="flex-1 p-4">
+      <div className="flex-1 overflow-y-auto p-4">
         <div className="max-w-3xl mx-auto space-y-6">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
@@ -73,17 +81,23 @@ export function NotePanel() {
               <p>Generating knowledge...</p>
             </div>
           ) : currentNote ? (
-            <article className="prose dark:prose-invert max-w-none">
-              <h1>{currentNote.title}</h1>
+            <article className="prose prose-slate dark:prose-invert max-w-none">
+              <h1 className="text-4xl font-bold text-foreground mb-4">{currentNote.title}</h1>
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeKatex]}
                 components={{
+                  h1: ({ node, ...props }) => <h1 className="text-3xl font-bold text-foreground mt-8 mb-4" {...props} />,
+                  h2: ({ node, ...props }) => <h2 className="text-2xl font-semibold text-foreground mt-6 mb-3" {...props} />,
+                  h3: ({ node, ...props }) => <h3 className="text-xl font-semibold text-foreground mt-4 mb-2" {...props} />,
+                  p: ({ node, ...props }) => <p className="text-foreground leading-7 mb-4" {...props} />,
+                  li: ({ node, ...props }) => <li className="text-foreground" {...props} />,
+                  strong: ({ node, ...props }) => <strong className="font-bold text-foreground" {...props} />,
                   a: ({ node, href, children, ...props }) => (
                     <a 
                       href={href} 
                       onClick={(e) => handleLinkClick(e, href || '')}
-                      className="text-blue-400 hover:text-blue-300 cursor-pointer no-underline font-semibold"
+                      className="text-primary hover:underline cursor-pointer font-semibold"
                       {...props}
                     >
                       {children}
@@ -125,12 +139,12 @@ export function NotePanel() {
             </article>
           ) : (
             <div className="text-center text-muted-foreground mt-20">
-              <h2 className="text-2xl font-semibold mb-2">Welcome to KnowledgeFlow</h2>
+              <h2 className="text-2xl font-semibold mb-2 text-foreground">Welcome to KnowledgeFlow</h2>
               <p>Enter a topic above to start your learning journey.</p>
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }

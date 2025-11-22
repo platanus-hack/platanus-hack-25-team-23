@@ -27,7 +27,7 @@ export function MainLayout({ notePanel, graphPanel }: MainLayoutProps) {
       <div className="flex-1 overflow-hidden">
         <ResizablePanelGroup direction="horizontal" className="h-full items-stretch">
           <ResizablePanel defaultSize={60} minSize={30}>
-            <div className="h-full flex flex-col">
+            <div className="h-full flex flex-col overflow-hidden">
               {notePanel}
             </div>
           </ResizablePanel>

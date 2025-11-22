@@ -58,6 +58,8 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  const pendingParentTopic = React.useRef<string | undefined>(undefined)
+
   const { object, submit, isLoading: isGenerating } = useObject({
     api: '/api/notes/generate',
     schema: noteSchema,
@@ -75,12 +77,28 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
           return [...prev, note]
         })
         
-        // Handle edges (simplified for now as we don't have parent ID easily in stream)
+        // Handle edges
+        if (pendingParentTopic.current) {
+          const parentNote = notes.find(n => n.title === pendingParentTopic.current)
+          if (parentNote) {
+            const newEdge: Edge = {
+              id: `${parentNote.id || parentNote.slug}-${note.slug}`,
+              source: parentNote.id || parentNote.slug,
+              target: note.slug // Using slug as ID for new notes until we have real IDs
+            }
+            setEdges(prev => {
+              if (prev.some(e => e.id === newEdge.id)) return prev
+              return [...prev, newEdge]
+            })
+          }
+        }
+        pendingParentTopic.current = undefined
       }
     },
     onError: (error: any) => {
       console.error(error)
       toast.error("Failed to generate note")
+      pendingParentTopic.current = undefined
     }
   })
 
@@ -103,6 +121,7 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
       return
     }
     
+    pendingParentTopic.current = parentTopic
     submit({ topic, parentTopic })
   }, [session, submit])
 
