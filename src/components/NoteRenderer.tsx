@@ -9,6 +9,7 @@ interface NoteRendererProps {
   content: string
   onLinkClick?: (term: string) => void
   isStreaming?: boolean
+  existingNotes?: Array<{ title: string, slug: string }>
 }
 
 // Render LaTeX to HTML using KaTeX
@@ -293,7 +294,7 @@ function MathBlock({ latex, displayMode }: { latex: string, displayMode: boolean
 
 import { FileArtifact } from './FileArtifact';
 
-export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRendererProps) {
+export function NoteRenderer({ content, onLinkClick, isStreaming, existingNotes }: NoteRendererProps) {
   const parsed = useMemo(() => parseContent(content), [content])
 
   return (
@@ -302,6 +303,24 @@ export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRenderer
         switch (part.type) {
           case 'link':
             const [target, alias] = part.value.split('|');
+            // Check if note exists
+            const noteExists = existingNotes?.some(n => 
+                n.title.toLowerCase() === target.toLowerCase() || 
+                n.slug.toLowerCase() === target.toLowerCase()
+            );
+
+            if (noteExists) {
+                return (
+                    <button 
+                        key={index} 
+                        onClick={() => onLinkClick?.(target)}
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium text-sm cursor-pointer border border-blue-200 hover:border-blue-300 mx-0.5 align-baseline"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4h4"/></svg>
+                        {alias || target}
+                    </button>
+                );
+            }
             return <ConceptLink key={index} term={target} displayText={alias || target} onClick={onLinkClick} />
 
           case 'md-link':
@@ -374,6 +393,20 @@ export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRenderer
                              switch (p.type) {
                                 case 'link':
                                     const [target, alias] = p.value.split('|');
+                                    // Check if note exists
+                                    const noteExists = existingNotes?.some(n => 
+                                        n.title.toLowerCase() === target.toLowerCase() || 
+                                        n.slug.toLowerCase() === target.toLowerCase()
+                                    );
+
+                                    if (noteExists) {
+                                        return (
+                                            <button key={i} onClick={() => onLinkClick?.(target)} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium text-sm cursor-pointer border border-blue-200 hover:border-blue-300 mx-0.5 align-baseline">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4h4"/></svg>
+                                                {alias || target}
+                                            </button>
+                                        );
+                                    }
                                     return <ConceptLink key={i} term={target} displayText={alias || target} onClick={onLinkClick} />
                                 case 'md-link':
                                     const isInternal = p.calloutType?.startsWith('/');

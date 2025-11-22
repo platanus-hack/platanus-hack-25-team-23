@@ -317,6 +317,7 @@ export function ChatView() {
                                 content={message.content} 
                                 onLinkClick={handleLinkClick}
                                 isStreaming={status === 'streaming' && message.id === messages[messages.length - 1].id}
+                                existingNotes={notes}
                             />
                             {/* Show pending artifact if this is the last message and we are writing a file */}
                             {(() => {
@@ -354,6 +355,7 @@ export function ChatView() {
                                     content={part.text} 
                                     isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === messages.at(-1)?.id}
                                     onLinkClick={handleLinkClick}
+                                    existingNotes={notes}
                                 />
                             )}
                           </MessageContent>
@@ -475,7 +477,7 @@ export function ChatView() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-8">
-             <NoteRenderer content={activeNote.content} onLinkClick={handleLinkClick} />
+             <NoteRenderer content={activeNote.content} onLinkClick={handleLinkClick} existingNotes={notes} />
           </div>
         </div>
       )}
