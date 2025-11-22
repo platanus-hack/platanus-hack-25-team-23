@@ -255,10 +255,13 @@ function ConceptLink({ term, displayText, onClick }: { term: string, displayText
   return (
     <button
       onClick={() => onClick?.(term)}
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors font-medium text-sm cursor-pointer border border-indigo-200 hover:border-indigo-300"
+      className="group relative inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-all font-medium text-sm cursor-pointer border border-purple-200 hover:border-purple-300 overflow-hidden"
     >
-      <BookOpen className="size-3" />
-      {displayText || term}
+      <Sparkles className="size-3" />
+      <span className="relative z-10">{displayText || term}</span>
+      
+      {/* Shine effect */}
+      <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent z-0" />
     </button>
   )
 }
