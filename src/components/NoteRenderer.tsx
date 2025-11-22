@@ -333,7 +333,8 @@ export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRenderer
              // Parse attributes from value string (e.g. path="/notes/foo.md")
              const pathMatch = part.value.match(/path="([^"]+)"/);
              const path = pathMatch ? pathMatch[1] : '';
-             return path ? <FileArtifact key={index} path={path} onClick={() => onLinkClick?.(path.replace('/notes/', '').replace('.md', ''))} /> : null;
+             // Pass the FULL path so ChatView knows it's an artifact click
+             return path ? <FileArtifact key={index} path={path} onClick={() => onLinkClick?.(path)} /> : null;
 
           case 'text':
           default:

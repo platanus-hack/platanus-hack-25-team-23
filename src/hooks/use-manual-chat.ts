@@ -37,7 +37,8 @@ export function useManualChat({ api = '/api/chat', onFinish, onError }: any = {}
       const response = await fetch(api, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        credentials: 'include' // Ensure cookies are sent!
       });
 
       if (!response.ok) throw new Error(response.statusText);

@@ -161,17 +161,25 @@ export function ChatView() {
     if (note) {
       setActiveNote({ title: note.title, content: note.content });
     } else {
-      // If not found, DO NOT auto-send message. User finds this annoying.
-      // Instead, open the panel with a "Ghost Node" state.
-      console.log('Note not found locally:', term);
-      
-      // Check if it looks like a path
-      const displayTitle = term.split('/').pop()?.replace('.md', '') || term;
-      
-      setActiveNote({ 
-          title: displayTitle, 
-          content: `# ${displayTitle}\n\nThis note does not exist yet.\n\n[Generate this note](action:generate:${term})` 
-      });
+      // Distinguish between Artifact Path (file) and WikiLink (concept)
+      const isPath = term.includes('/') || term.endsWith('.md');
+
+      if (isPath) {
+          // It's an Artifact Path that wasn't found.
+          // Likely a sync issue or just created. Show placeholder.
+          console.log('Artifact not found locally:', term);
+          const displayTitle = term.split('/').pop()?.replace('.md', '') || term;
+          
+          setActiveNote({ 
+              title: displayTitle, 
+              content: `# ${displayTitle}\n\nThis note does not exist yet.\n\n[Generate this note](action:generate:${term})` 
+          });
+      } else {
+          // It's a WikiLink Concept that wasn't found.
+          // User wants to explore this concept -> Auto-generate!
+          console.log('Ghost Node clicked, triggering generation for:', term);
+          handleSubmit(term);
+      }
     }
   };
 
