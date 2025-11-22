@@ -96,27 +96,45 @@ function parseContent(content: string) {
 
     // Handle headings - check longest first to avoid partial matches
     if (line.startsWith('###### ')) {
-      parts.push({ type: 'h6', value: line.slice(7) })
+      const text = line.slice(7);
+      const itemParts: any[] = [];
+      parseLineWithMathAndLinks(text, itemParts);
+      parts.push({ type: 'h6', value: text, parts: itemParts })
       continue
     }
     if (line.startsWith('##### ')) {
-      parts.push({ type: 'h5', value: line.slice(6) })
+      const text = line.slice(6);
+      const itemParts: any[] = [];
+      parseLineWithMathAndLinks(text, itemParts);
+      parts.push({ type: 'h5', value: text, parts: itemParts })
       continue
     }
     if (line.startsWith('#### ')) {
-      parts.push({ type: 'h4', value: line.slice(5) })
+      const text = line.slice(5);
+      const itemParts: any[] = [];
+      parseLineWithMathAndLinks(text, itemParts);
+      parts.push({ type: 'h4', value: text, parts: itemParts })
       continue
     }
     if (line.startsWith('### ')) {
-      parts.push({ type: 'h3', value: line.slice(4) })
+      const text = line.slice(4);
+      const itemParts: any[] = [];
+      parseLineWithMathAndLinks(text, itemParts);
+      parts.push({ type: 'h3', value: text, parts: itemParts })
       continue
     }
     if (line.startsWith('## ')) {
-      parts.push({ type: 'h2', value: line.slice(3) })
+      const text = line.slice(3);
+      const itemParts: any[] = [];
+      parseLineWithMathAndLinks(text, itemParts);
+      parts.push({ type: 'h2', value: text, parts: itemParts })
       continue
     }
     if (line.startsWith('# ')) {
-      parts.push({ type: 'h1', value: line.slice(2) })
+      const text = line.slice(2);
+      const itemParts: any[] = [];
+      parseLineWithMathAndLinks(text, itemParts);
+      parts.push({ type: 'h1', value: text, parts: itemParts })
       continue
     }
 
@@ -124,7 +142,9 @@ function parseContent(content: string) {
     const calloutMatch = line.match(/^- (&|!{1,2}|\?|Ex:|Obs:)\s*(.*)/)
     if (calloutMatch) {
       const [, marker, text] = calloutMatch
-      parts.push({ type: 'callout', value: text, calloutType: marker })
+      const itemParts: any[] = [];
+      parseLineWithMathAndLinks(text, itemParts);
+      parts.push({ type: 'callout', value: text, calloutType: marker, parts: itemParts })
       continue
     }
 
@@ -310,6 +330,50 @@ function MathBlock({ latex, displayMode }: { latex: string, displayMode: boolean
 
 import { FileArtifact } from './FileArtifact';
 
+// Helper to render parts recursively
+function RenderParts({ parts, onLinkClick, existingNotes }: { parts: any[], onLinkClick?: (term: string) => void, existingNotes?: Array<{ title: string, slug: string }> }) {
+    return (
+        <>
+            {parts.map((p: any, i: number) => {
+                switch (p.type) {
+                case 'link':
+                    const [target, alias] = p.value.split('|');
+                    // Check if note exists
+                    const noteExists = existingNotes?.some(n => 
+                        n.title.toLowerCase() === target.toLowerCase() || 
+                        n.slug.toLowerCase() === target.toLowerCase()
+                    );
+
+                    if (noteExists) {
+                        return (
+                            <button key={i} onClick={() => onLinkClick?.(target)} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium text-sm cursor-pointer border border-blue-200 hover:border-blue-300 mx-0.5 align-baseline">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4h4"/></svg>
+                                {alias || target}
+                            </button>
+                        );
+                    }
+                    return <ConceptLink key={i} term={target} displayText={alias || target} onClick={onLinkClick} />
+                case 'md-link':
+                    const isInternal = p.calloutType?.startsWith('/');
+                    if (isInternal) {
+                        return (
+                            <button key={i} onClick={() => onLinkClick?.(p.calloutType!)} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium text-sm cursor-pointer border border-blue-200 hover:border-blue-300 mx-0.5 align-baseline">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4h4"/></svg>
+                                {p.value}
+                            </button>
+                        );
+                    }
+                    return <a key={i} href={p.calloutType} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline hover:text-blue-800 transition-colors">{p.value}<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>
+                case 'bold': return <strong key={i} className="font-bold">{p.value}</strong>
+                case 'italic': return <em key={i} className="italic">{p.value}</em>
+                case 'math-inline': return <MathBlock key={i} latex={p.value} displayMode={false} />
+                default: return <span key={i}>{p.value}</span>
+                }
+            })}
+        </>
+    )
+}
+
 export function NoteRenderer({ content, onLinkClick, isStreaming, existingNotes }: NoteRendererProps) {
   const parsed = useMemo(() => parseContent(content), [content])
 
@@ -371,49 +435,49 @@ export function NoteRenderer({ content, onLinkClick, isStreaming, existingNotes 
           case 'callout':
             return (
               <Callout key={index} type={part.calloutType || '!'}>
-                {part.value}
+                {part.parts ? <RenderParts parts={part.parts} onLinkClick={onLinkClick} existingNotes={existingNotes} /> : part.value}
               </Callout>
             )
 
           case 'h1':
             return (
               <h1 key={index} className="text-3xl font-bold mt-8 mb-6 text-zinc-900 dark:text-zinc-50 border-b border-zinc-200 dark:border-zinc-800 pb-3">
-                {part.value}
+                {part.parts ? <RenderParts parts={part.parts} onLinkClick={onLinkClick} existingNotes={existingNotes} /> : part.value}
               </h1>
             )
 
           case 'h2':
             return (
               <h2 key={index} className="text-2xl font-bold mt-8 mb-4 text-zinc-900 dark:text-zinc-100 border-b border-zinc-200 dark:border-zinc-800 pb-2">
-                {part.value}
+                {part.parts ? <RenderParts parts={part.parts} onLinkClick={onLinkClick} existingNotes={existingNotes} /> : part.value}
               </h2>
             )
           
           case 'h3':
             return (
               <h3 key={index} className="text-xl font-semibold mt-6 mb-3 text-zinc-800 dark:text-zinc-200">
-                {part.value}
+                {part.parts ? <RenderParts parts={part.parts} onLinkClick={onLinkClick} existingNotes={existingNotes} /> : part.value}
               </h3>
             )
 
           case 'h4':
             return (
               <h4 key={index} className="text-lg font-medium mt-4 mb-2 text-zinc-700 dark:text-zinc-300">
-                {part.value}
+                {part.parts ? <RenderParts parts={part.parts} onLinkClick={onLinkClick} existingNotes={existingNotes} /> : part.value}
               </h4>
             )
 
           case 'h5':
             return (
               <h5 key={index} className="text-base font-medium mt-4 mb-2 text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
-                {part.value}
+                {part.parts ? <RenderParts parts={part.parts} onLinkClick={onLinkClick} existingNotes={existingNotes} /> : part.value}
               </h5>
             )
 
           case 'h6':
             return (
               <h6 key={index} className="text-sm font-medium mt-4 mb-2 text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                {part.value}
+                {part.parts ? <RenderParts parts={part.parts} onLinkClick={onLinkClick} existingNotes={existingNotes} /> : part.value}
               </h6>
             )
 
@@ -425,43 +489,7 @@ export function NoteRenderer({ content, onLinkClick, isStreaming, existingNotes 
                 <div key={index} className="flex items-start gap-2 my-1 ml-4">
                     <span className="mt-2 w-1.5 h-1.5 rounded-full bg-zinc-400 shrink-0" />
                     <div className="flex-1">
-                        {(part.parts || []).map((p: any, i: number) => {
-                             // Reuse the same rendering logic for inner parts
-                             switch (p.type) {
-                                case 'link':
-                                    const [target, alias] = p.value.split('|');
-                                    // Check if note exists
-                                    const noteExists = existingNotes?.some(n => 
-                                        n.title.toLowerCase() === target.toLowerCase() || 
-                                        n.slug.toLowerCase() === target.toLowerCase()
-                                    );
-
-                                    if (noteExists) {
-                                        return (
-                                            <button key={i} onClick={() => onLinkClick?.(target)} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium text-sm cursor-pointer border border-blue-200 hover:border-blue-300 mx-0.5 align-baseline">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4h4"/></svg>
-                                                {alias || target}
-                                            </button>
-                                        );
-                                    }
-                                    return <ConceptLink key={i} term={target} displayText={alias || target} onClick={onLinkClick} />
-                                case 'md-link':
-                                    const isInternal = p.calloutType?.startsWith('/');
-                                    if (isInternal) {
-                                        return (
-                                            <button key={i} onClick={() => onLinkClick?.(p.calloutType!)} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium text-sm cursor-pointer border border-blue-200 hover:border-blue-300 mx-0.5 align-baseline">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4h4"/></svg>
-                                                {p.value}
-                                            </button>
-                                        );
-                                    }
-                                    return <a key={i} href={p.calloutType} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline hover:text-blue-800 transition-colors">{p.value}<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>
-                                case 'bold': return <strong key={i} className="font-bold">{p.value}</strong>
-                                case 'italic': return <em key={i} className="italic">{p.value}</em>
-                                case 'math-inline': return <MathBlock key={i} latex={p.value} displayMode={false} />
-                                default: return <span key={i}>{p.value}</span>
-                             }
-                        })}
+                        {part.parts ? <RenderParts parts={part.parts} onLinkClick={onLinkClick} existingNotes={existingNotes} /> : part.value}
                     </div>
                 </div>
             )
