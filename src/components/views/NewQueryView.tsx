@@ -23,7 +23,7 @@ function LevelSelector({ currentLevel, onLevelChange }: LevelSelectorProps) {
     <div
       className="flex gap-2 rounded-3xl p-2"
       style={{
-        backgroundColor: 'white',
+        backgroundColor: 'var(--card)',
         boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
         border: '1px solid #E6E6E6'
       }}
@@ -58,6 +58,7 @@ export function NewQueryView() {
   const [query, setQuery] = useState('');
   const [level, setLevel] = useState<'beginner' | 'intermediate' | 'expert'>('beginner');
   const [showResults, setShowResults] = useState(false);
+  const [hasScrolled, setHasScrolled] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
 
   // Get recent topics from user's notes (last 3)
@@ -67,12 +68,17 @@ export function NewQueryView() {
     .map(note => note.title)
     .filter(title => title && title.length > 0);
 
-  // Auto-scroll to results when streaming starts
+  // Auto-scroll to results ONLY once when streaming starts
   useEffect(() => {
-    if ((isLoading || streamingNote) && resultRef.current) {
+    if (isLoading && !hasScrolled && resultRef.current) {
       resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setHasScrolled(true);
     }
-  }, [isLoading, streamingNote]);
+    // Reset scroll flag when loading stops
+    if (!isLoading) {
+      setHasScrolled(false);
+    }
+  }, [isLoading, hasScrolled]);
 
   // Show results panel when we have streaming content
   useEffect(() => {
@@ -122,8 +128,8 @@ export function NewQueryView() {
 
   return (
     <div
-      className="flex-1 overflow-y-auto"
-      style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}
+      className="flex-1 overflow-y-auto transition-colors duration-300"
+      style={{ backgroundColor: 'var(--background)' }}
     >
       <div className="max-w-4xl mx-auto px-8 py-12">
         {/* Header */}
@@ -149,10 +155,10 @@ export function NewQueryView() {
             ))}
             <Sparkles className="size-12 text-white relative z-10" />
           </div>
-          <h1 className="text-5xl font-bold mb-4" style={{ color: '#1E1E1E' }}>
+          <h1 className="text-5xl font-bold mb-4" style={{ color: 'var(--foreground)' }}>
             Que quieres aprender hoy?
           </h1>
-          <p className="text-xl mb-6" style={{ color: '#646464' }}>
+          <p className="text-xl mb-6" style={{ color: 'var(--muted-foreground)' }}>
             Escribe cualquier tema y la IA generara una nota pedagogica con mapa de conocimiento
           </p>
 
@@ -165,7 +171,7 @@ export function NewQueryView() {
         {/* Search Input */}
         <div className="mb-12">
           <div className="relative">
-            <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 size-6" style={{ color: '#646464' }} />
+            <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 size-6" style={{ color: 'var(--muted-foreground)' }} />
             <input
               type="text"
               value={query}
@@ -174,7 +180,7 @@ export function NewQueryView() {
               placeholder="Ej: Machine Learning, Fotosintesis, Marketing Digital, Historia del Arte..."
               className="w-full pl-16 pr-6 py-5 text-lg rounded-3xl focus:outline-none transition-all"
               style={{
-                backgroundColor: 'white',
+                backgroundColor: 'var(--card)',
                 border: '3px solid #E6E6E6',
                 color: '#1E1E1E',
                 boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
@@ -224,7 +230,7 @@ export function NewQueryView() {
             ref={resultRef}
             className="mb-12 rounded-3xl overflow-hidden"
             style={{
-              backgroundColor: 'white',
+              backgroundColor: 'var(--card)',
               border: '3px solid #E6E6E6',
               boxShadow: '0px 8px 32px rgba(0, 0, 0, 0.1)'
             }}
@@ -245,7 +251,7 @@ export function NewQueryView() {
                   <Sparkles className="size-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg" style={{ color: '#1E1E1E' }}>
+                  <h3 className="font-bold text-lg" style={{ color: 'var(--foreground)' }}>
                     {displayTitle || 'Generando...'}
                   </h3>
                   {isLoading && <StreamingIndicator />}
@@ -336,7 +342,7 @@ export function NewQueryView() {
                   <button
                     onClick={handleViewInGraph}
                     className="flex-1 px-4 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors bg-gray-100 hover:bg-gray-200"
-                    style={{ color: '#1E1E1E' }}
+                    style={{ color: 'var(--foreground)' }}
                   >
                     <Network className="size-5" />
                     Ver en el grafo
@@ -358,7 +364,7 @@ export function NewQueryView() {
                 >
                   <TrendingUp className="size-6" style={{ color: '#5A8FCC' }} />
                 </div>
-                <h3 className="text-3xl font-bold" style={{ color: '#1E1E1E' }}>
+                <h3 className="text-3xl font-bold" style={{ color: 'var(--foreground)' }}>
                   Temas populares para empezar
                 </h3>
               </div>
@@ -390,7 +396,7 @@ export function NewQueryView() {
                         <span
                           className="absolute top-3 right-3 text-xs px-3 py-1.5 rounded-full font-semibold"
                           style={{
-                            backgroundColor: 'white',
+                            backgroundColor: 'var(--card)',
                             color: topic.color,
                             boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)'
                           }}
@@ -403,7 +409,7 @@ export function NewQueryView() {
                       <div className="mb-4">
                         <div
                           className="inline-flex items-center justify-center w-16 h-16 rounded-2xl"
-                          style={{ backgroundColor: 'white' }}
+                          style={{ backgroundColor: 'var(--card)' }}
                         >
                           <span className="text-4xl">{topic.icon}</span>
                         </div>
@@ -411,7 +417,7 @@ export function NewQueryView() {
 
                       {/* Text content */}
                       <div>
-                        <h4 className="font-bold text-lg mb-2" style={{ color: '#1E1E1E' }}>
+                        <h4 className="font-bold text-lg mb-2" style={{ color: 'var(--foreground)' }}>
                           {topic.title}
                         </h4>
                         <p
@@ -439,8 +445,8 @@ export function NewQueryView() {
             {recentTopics.length > 0 && (
               <div className="mb-12">
                 <div className="flex items-center gap-3 mb-6">
-                  <Clock className="size-6" style={{ color: '#646464' }} />
-                  <h3 className="text-2xl font-semibold" style={{ color: '#1E1E1E' }}>
+                  <Clock className="size-6" style={{ color: 'var(--muted-foreground)' }} />
+                  <h3 className="text-2xl font-semibold" style={{ color: 'var(--foreground)' }}>
                     Recientemente estudiado
                   </h3>
                 </div>
@@ -490,11 +496,11 @@ export function NewQueryView() {
             }}
           />
 
-          <h4 className="text-xl font-semibold mb-4 flex items-center gap-3 relative z-10" style={{ color: '#1E1E1E' }}>
+          <h4 className="text-xl font-semibold mb-4 flex items-center gap-3 relative z-10" style={{ color: 'var(--foreground)' }}>
             <span className="text-3xl">Tip</span>
             Como funciona
           </h4>
-          <ul className="space-y-3 relative z-10" style={{ color: '#1E1E1E' }}>
+          <ul className="space-y-3 relative z-10" style={{ color: 'var(--foreground)' }}>
             <li className="flex items-start gap-3">
               <span className="mt-1 text-xl" style={{ color: '#C9B7F3' }}>-</span>
               <span>Nodi generara una nota pedagogica adaptada a tu nivel</span>

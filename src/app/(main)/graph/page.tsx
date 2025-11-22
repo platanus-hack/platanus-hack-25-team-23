@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { createClient } from "@/lib/supabase/client"
-import { ZoomIn, ZoomOut, Maximize2, Sliders, Eye, Palette, Filter, X, ChevronDown } from "lucide-react"
+import { ZoomIn, ZoomOut, Maximize2, Sliders, Eye, Palette, Filter, X, ChevronDown, ChevronUp, Minimize2 } from "lucide-react"
 import * as d3 from 'd3'
 import Link from 'next/link'
+import { DEFAULT_AREAS, detectAreaFromContent } from '@/lib/data/areas-config'
+import { useAreas } from '@/lib/store/areas-context'
 
 interface GraphNode {
   id: string
@@ -97,6 +99,7 @@ export default function GraphPage() {
   const controlsRef = useRef<HTMLDivElement>(null)
   const filtersRef = useRef<HTMLDivElement>(null)
   const { notes, edges, session } = useKnowledge()
+  const { areas: contextAreas, youNodeColor, getColorForDepth } = useAreas()
   const [viewMode, setViewMode] = useState<'status' | 'area'>('area')
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([])
@@ -115,6 +118,106 @@ export default function GraphPage() {
   const [filterLevel, setFilterLevel] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
+
+  // Legend and fullscreen states
+  const [legendCollapsed, setLegendCollapsed] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null)
+
+  // Node size scale state
+  const [nodeScale, setNodeScale] = useState(1)
+  const [nodeScaleSlider, setNodeScaleSlider] = useState(1)
+  const nodeSelectionRef = useRef<d3.Selection<SVGGElement, GraphNode, SVGGElement, unknown> | null>(null)
+  const nodeScaleRef = useRef(1)
+
+  // Track if graph has been initialized to prevent flickering
+  const graphInitializedRef = useRef(false)
+  const [graphReady, setGraphReady] = useState(false)
+
+  // Reset initialization state when component remounts
+  useEffect(() => {
+    graphInitializedRef.current = false
+    setGraphReady(false)
+    return () => {
+      graphInitializedRef.current = false
+    }
+  }, [])
+
+  // Smooth node scale update - updates nodes without recreating graph
+  const handleNodeScaleChange = useCallback((value: number) => {
+    setNodeScaleSlider(value) // Update UI immediately
+    nodeScaleRef.current = value
+
+    // Update node circles smoothly with D3 transition
+    if (nodeSelectionRef.current) {
+      nodeSelectionRef.current.selectAll('circle')
+        .transition()
+        .duration(150)
+        .attr('r', (d: any) => {
+          let baseSize: number
+          if (d.isYouNode) {
+            baseSize = 32
+          } else if (d.isAreaNode) {
+            baseSize = 26
+          } else {
+            const connections = d.connectionCount || 0
+            const baseRadius = 14
+            const extraRadius = Math.min(connections * 2, 10)
+            baseSize = baseRadius + extraRadius
+          }
+          return baseSize * value
+        })
+
+      // Also update text position
+      nodeSelectionRef.current.selectAll('text')
+        .transition()
+        .duration(150)
+        .attr('dy', (d: any) => {
+          let baseSize: number
+          if (d.isYouNode) {
+            baseSize = 32
+          } else if (d.isAreaNode) {
+            baseSize = 26
+          } else {
+            const connections = d.connectionCount || 0
+            const baseRadius = 14
+            const extraRadius = Math.min(connections * 2, 10)
+            baseSize = baseRadius + extraRadius
+          }
+          return (baseSize * value) + 16
+        })
+
+      // Update collision force
+      if (simulationRef.current) {
+        const collisionForce = simulationRef.current.force('collision') as d3.ForceCollide<d3.SimulationNodeDatum>
+        if (collisionForce) {
+          collisionForce.radius((d: any) => {
+            let baseSize: number
+            if (d.isYouNode) {
+              baseSize = 32
+            } else if (d.isAreaNode) {
+              baseSize = 26
+            } else {
+              const connections = d.connectionCount || 0
+              const baseRadius = 14
+              const extraRadius = Math.min(connections * 2, 10)
+              baseSize = baseRadius + extraRadius
+            }
+            return (baseSize * value) + 20
+          })
+        }
+        simulationRef.current.alpha(0.1).restart()
+      }
+    }
+
+    // Update state for persistence (debounced)
+    if (spacingTimeoutRef.current) {
+      clearTimeout(spacingTimeoutRef.current)
+    }
+    spacingTimeoutRef.current = setTimeout(() => {
+      setNodeScale(value)
+    }, 300)
+  }, [])
 
   // Smooth spacing update - updates simulation without recreating graph
   const handleSpacingChange = useCallback((value: number) => {
@@ -165,16 +268,13 @@ export default function GraphPage() {
     return () => document.removeEventListener('click', handleClickOutside)
   }, [showControls, showFilters])
 
-  // Default areas
-  const defaultAreas: Area[] = [
-    { id: 'desarrollo-profesional', name: 'Desarrollo Profesional', color: '#3b82f6', icon: '💼' },
-    { id: 'salud-bienestar', name: 'Salud y Bienestar', color: '#22c55e', icon: '🏃' },
-    { id: 'finanzas', name: 'Finanzas Personales', color: '#eab308', icon: '💰' },
-    { id: 'relaciones', name: 'Relaciones y Familia', color: '#ec4899', icon: '❤️' },
-    { id: 'hobbies', name: 'Hobbies y Creatividad', color: '#8b5cf6', icon: '🎨' },
-    { id: 'educacion', name: 'Educación Continua', color: '#f97316', icon: '📚' },
-    { id: 'crecimiento-personal', name: 'Crecimiento Personal', color: '#9333ea', icon: '🌱' },
-  ]
+  // Default areas - use context areas (which use shared config as default)
+  const defaultAreas: Area[] = contextAreas.map(area => ({
+    id: area.id,
+    name: area.name,
+    color: area.color,
+    icon: area.icon
+  }))
 
   const activeAreas = areas.length > 0 ? areas : defaultAreas
 
@@ -263,26 +363,76 @@ export default function GraphPage() {
 
         console.log('📊 Graph: Demo mode - valid notes:', validNotes.length, validNotes.map(n => n.title))
 
+        // Create nodes: Yo + Area nodes + Note nodes
         const demoNodes: GraphNode[] = [
-          { id: 'you', name: 'Yo', status: 'understood', area: '', level: 'intermediate', isYouNode: true },
-          ...validNotes.map(note => ({
+          { id: 'you', name: 'Yo', status: 'understood', area: '', level: 'intermediate', isYouNode: true }
+        ]
+
+        // Add ALL area nodes from context (synced with area manager)
+        contextAreas.forEach(area => {
+          demoNodes.push({
+            id: `area-${area.id}`,
+            name: area.name,
+            status: 'understood',
+            area: area.name,
+            areaColor: area.color,
+            level: 'intermediate',
+            isAreaNode: true
+          })
+        })
+
+        // Add note nodes with detected area
+        validNotes.forEach(note => {
+          const detectedArea = detectAreaFromContent(note.title, note.content)
+          const areaName = detectedArea?.name || 'General'
+          const areaColor = detectedArea?.color || '#C9B7F3'
+
+          demoNodes.push({
             id: note.slug,
             name: note.title,
             status: (note.status === 'understood' ? 'understood' :
                     note.status === 'read' ? 'in-progress' : 'pending') as 'understood' | 'in-progress' | 'pending',
-            area: 'General',
-            areaColor: '#C9B7F3',
+            area: areaName,
+            areaColor: areaColor,
             level: 'intermediate' as const,
-          }))
-        ]
+          })
+        })
 
-        const demoLinks: GraphLink[] = validNotes.map(note => ({
-          source: 'you',
-          target: note.slug
-        }))
+        // Create links: Yo -> Areas, Areas -> Notes
+        const demoLinks: GraphLink[] = []
+
+        // Connect all areas to "Yo"
+        contextAreas.forEach(area => {
+          demoLinks.push({
+            source: 'you',
+            target: `area-${area.id}`,
+            type: 'related'
+          })
+        })
+
+        // Connect notes to their detected area (or to first area if no area found)
+        validNotes.forEach(note => {
+          const detectedArea = detectAreaFromContent(note.title, note.content)
+          if (detectedArea) {
+            // Connect to area node
+            demoLinks.push({
+              source: `area-${detectedArea.id}`,
+              target: note.slug,
+              type: 'related'
+            })
+          } else if (contextAreas.length > 0) {
+            // Connect to first area if no area detected (no "General")
+            demoLinks.push({
+              source: `area-${contextAreas[0].id}`,
+              target: note.slug,
+              type: 'related'
+            })
+          }
+        })
 
         console.log('📊 Graph: Created nodes:', demoNodes.length, 'links:', demoLinks.length)
 
+        // Add edges from context
         edges.forEach(edge => {
           const sourceExists = demoNodes.some(n => n.id === edge.source)
           const targetExists = demoNodes.some(n => n.id === edge.target)
@@ -294,6 +444,7 @@ export default function GraphPage() {
           }
         })
 
+        // Add linked terms connections
         validNotes.forEach(note => {
           if (note.linkedTerms) {
             note.linkedTerms.forEach(term => {
@@ -340,20 +491,38 @@ export default function GraphPage() {
         console.error('Error loading edges for graph:', edgesError)
       }
 
+      // Create nodes: Yo + Area nodes + Note nodes
       const nodes: GraphNode[] = [
         { id: 'you', name: 'Yo', status: 'understood', area: '', level: 'intermediate', isYouNode: true }
       ]
 
-      // Add notes as nodes
+      // Add ALL area nodes from context (synced with area manager)
+      contextAreas.forEach(area => {
+        nodes.push({
+          id: `area-${area.id}`,
+          name: area.name,
+          status: 'understood',
+          area: area.name,
+          areaColor: area.color,
+          level: 'intermediate',
+          isAreaNode: true
+        })
+      })
+
+      // Add notes as nodes with detected area
       if (notesData && notesData.length > 0) {
         notesData.forEach(note => {
+          const detectedArea = detectAreaFromContent(note.title, note.content || '')
+          const areaName = detectedArea?.name || 'General'
+          const areaColor = detectedArea?.color || '#C9B7F3'
+
           nodes.push({
             id: note.id,
             name: note.title,
             status: (note.status === 'understood' ? 'understood' :
                     note.status === 'read' ? 'in-progress' : 'pending') as 'understood' | 'in-progress' | 'pending',
-            area: 'General',
-            areaColor: '#C9B7F3',
+            area: areaName,
+            areaColor: areaColor,
             level: 'intermediate'
           })
         })
@@ -361,12 +530,37 @@ export default function GraphPage() {
 
       const links: GraphLink[] = []
 
-      // Connect all notes to the "You" node
+      // Connect all areas to "Yo"
+      contextAreas.forEach(area => {
+        links.push({
+          source: 'you',
+          target: `area-${area.id}`,
+          type: 'related'
+        })
+      })
+
+      // Connect notes to their detected area (or to first area if no area found)
       if (notesData && notesData.length > 0) {
         notesData.forEach(note => {
-          links.push({ source: 'you', target: note.id })
+          const detectedArea = detectAreaFromContent(note.title, note.content || '')
 
-          // If note has a parent, create that connection too
+          if (detectedArea) {
+            // Connect to area node
+            links.push({
+              source: `area-${detectedArea.id}`,
+              target: note.id,
+              type: 'related'
+            })
+          } else if (contextAreas.length > 0) {
+            // Connect to first area if no area detected (no "General")
+            links.push({
+              source: `area-${contextAreas[0].id}`,
+              target: note.id,
+              type: 'related'
+            })
+          }
+
+          // If note has a parent, create that connection too (for hierarchy)
           if (note.parent_id) {
             links.push({
               source: note.parent_id,
@@ -400,40 +594,52 @@ export default function GraphPage() {
     }
 
     loadGraphData()
-  }, [session, notes, edges])
+  }, [session, notes, edges, contextAreas])
 
   const getNodeColor = (node: GraphNode) => {
-    if (node.isYouNode) return '#C9B7F3'
-    if (node.isAreaNode) {
-      return node.areaColor || '#D6C9F5'
-    }
+    // Central "Yo" node always uses color from context
+    if (node.isYouNode) return youNodeColor
 
     if (viewMode === 'status') {
+      // In STATUS VIEW: ALL nodes (including areas) show status colors
+      // Only Yo node keeps its own color
+      // Status colors - pastel versions matching our design
       const baseColor = (() => {
         switch (node.status) {
-          case 'understood': return '#A3E4B6'
-          case 'in-progress': return '#FFE9A9'
-          default: return '#D1D5DB'
+          case 'understood': return '#86EFAC' // Pastel green (matching our palette)
+          case 'in-progress': return '#FDE047' // Pastel yellow/amber
+          default: return '#D1D5DB' // Light gray for pending
         }
       })()
-      // Apply distance-based alpha
-      return getColorWithAlpha(baseColor, node.distanceFromArea || 0, maxDistance)
+      return baseColor
     } else {
+      // In AREA VIEW: Area nodes use solid color, notes use hierarchy
+      if (node.isAreaNode) {
+        return node.areaColor || '#D6C9F5'
+      }
       const baseColor = node.areaColor || '#D6C9F5'
-      // Apply distance-based alpha
-      return getColorWithAlpha(baseColor, node.distanceFromArea || 0, maxDistance)
+      // Apply distance-based color hierarchy
+      // Distance 0 = Area (solid), 1 = Topic, 2 = Subtopic, 3+ = Notes
+      const depth = Math.min(node.distanceFromArea || 1, 3)
+      return getColorForDepth(baseColor, depth)
     }
   }
 
   const getNodeRadius = (node: GraphNode) => {
-    if (node.isYouNode) return 32
-    if (node.isAreaNode) return 26
-
-    // Dynamic sizing based on connections (min 14, max 24)
-    const connections = node.connectionCount || 0
-    const baseRadius = 14
-    const extraRadius = Math.min(connections * 2, 10)
-    return baseRadius + extraRadius
+    let baseSize: number
+    if (node.isYouNode) {
+      baseSize = 32
+    } else if (node.isAreaNode) {
+      baseSize = 26
+    } else {
+      // Dynamic sizing based on connections (min 14, max 24)
+      const connections = node.connectionCount || 0
+      const baseRadius = 14
+      const extraRadius = Math.min(connections * 2, 10)
+      baseSize = baseRadius + extraRadius
+    }
+    // Apply scale factor
+    return baseSize * nodeScale
   }
 
   // Get link color based on type
@@ -449,7 +655,13 @@ export default function GraphPage() {
     const width = container.clientWidth
     const height = container.clientHeight
 
+    // Clear previous content
     d3.select(svgRef.current).selectAll('*').remove()
+
+    // Hide graph during setup to prevent flicker
+    if (!graphInitializedRef.current) {
+      d3.select(svgRef.current).style('opacity', 0)
+    }
 
     const svg = d3.select(svgRef.current)
       .attr('width', width)
@@ -504,6 +716,7 @@ export default function GraphPage() {
       })
 
     svg.call(zoom)
+    zoomRef.current = zoom
 
     const g = svg.append('g')
 
@@ -533,6 +746,8 @@ export default function GraphPage() {
 
     // Store simulation ref for smooth updates
     simulationRef.current = simulation
+    // Reset node scale ref to current value
+    nodeScaleRef.current = nodeScale
 
     // Create links with arrow markers
     const link = g.append('g')
@@ -545,7 +760,7 @@ export default function GraphPage() {
       .attr('marker-end', (d: any) => `url(#arrow-${d.type || 'mentions'})`)
 
     const node = g.append('g')
-      .selectAll('g')
+      .selectAll<SVGGElement, GraphNode>('g')
       .data(nodesData)
       .join('g')
       .attr('cursor', 'pointer')
@@ -564,6 +779,9 @@ export default function GraphPage() {
           d.fx = null
           d.fy = null
         }) as any)
+
+    // Store node selection ref for smooth updates
+    nodeSelectionRef.current = node as any
 
     // Add circles to nodes
     node.append('circle')
@@ -668,30 +886,66 @@ export default function GraphPage() {
     // Center the view initially
     svg.call(zoom.transform, d3.zoomIdentity.translate(width * 0.1, height * 0.1).scale(0.8))
 
+    // Fade in the graph smoothly after setup
+    if (!graphInitializedRef.current) {
+      svg.transition()
+        .duration(400)
+        .style('opacity', 1)
+      graphInitializedRef.current = true
+      setGraphReady(true)
+    }
+
     return () => {
       simulation.stop()
     }
   }, [filteredNodes, filteredLinks, viewMode, loading, maxDistance])
 
   const handleZoomIn = () => {
+    if (!svgRef.current || !zoomRef.current) return
     const svg = d3.select(svgRef.current)
-    svg.transition().call(d3.zoom().scaleBy as any, 1.3)
+    svg.transition().duration(300).call(zoomRef.current.scaleBy, 1.5)
   }
 
   const handleZoomOut = () => {
+    if (!svgRef.current || !zoomRef.current) return
     const svg = d3.select(svgRef.current)
-    svg.transition().call(d3.zoom().scaleBy as any, 0.7)
+    svg.transition().duration(300).call(zoomRef.current.scaleBy, 0.67)
   }
 
   const handleResetView = () => {
+    if (!svgRef.current || !zoomRef.current) return
     const svg = d3.select(svgRef.current)
-    svg.transition().call(d3.zoom().transform as any, d3.zoomIdentity)
+    svg.transition().duration(300).call(zoomRef.current.transform, d3.zoomIdentity)
   }
+
+  const handleFullscreen = () => {
+    if (!containerRef.current) return
+
+    if (!isFullscreen) {
+      if (containerRef.current.requestFullscreen) {
+        containerRef.current.requestFullscreen()
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen()
+      }
+    }
+    setIsFullscreen(!isFullscreen)
+  }
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
 
   return (
     <div
-      className="flex-1 flex flex-col relative overflow-hidden h-full"
-      style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}
+      className="flex-1 flex flex-col relative overflow-hidden h-full transition-colors duration-300"
+      style={{ backgroundColor: 'var(--background)' }}
     >
       {/* Graph Container - MUST be first for proper z-index stacking */}
       <div
@@ -714,7 +968,7 @@ export default function GraphPage() {
         <div
           className="p-2 rounded-3xl flex gap-2"
           style={{
-            background: 'white',
+            background: 'var(--card)',
             boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)'
           }}
         >
@@ -753,27 +1007,34 @@ export default function GraphPage() {
       <div className="absolute top-6 right-6 z-10 flex flex-col gap-3">
         <button
           onClick={handleZoomIn}
-          className="p-3 bg-white rounded-2xl hover:scale-110 transition-all"
+          className="p-3 rounded-2xl hover:scale-110 transition-all"
           style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)' }}
           title="Zoom In"
         >
-          <ZoomIn className="size-5" style={{ color: '#646464' }} />
+          <ZoomIn className="size-5" style={{ color: 'var(--muted-foreground)' }} />
         </button>
         <button
           onClick={handleZoomOut}
-          className="p-3 bg-white rounded-2xl hover:scale-110 transition-all"
+          className="p-3 rounded-2xl hover:scale-110 transition-all"
           style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)' }}
           title="Zoom Out"
         >
-          <ZoomOut className="size-5" style={{ color: '#646464' }} />
+          <ZoomOut className="size-5" style={{ color: 'var(--muted-foreground)' }} />
         </button>
         <button
-          onClick={handleResetView}
-          className="p-3 bg-white rounded-2xl hover:scale-110 transition-all"
-          style={{ boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)' }}
-          title="Reset View"
+          onClick={handleFullscreen}
+          className="p-3 rounded-2xl hover:scale-110 transition-all"
+          style={{
+            boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
+            background: isFullscreen ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)' : 'var(--card)'
+          }}
+          title={isFullscreen ? "Salir de Pantalla Completa" : "Pantalla Completa"}
         >
-          <Maximize2 className="size-5" style={{ color: '#646464' }} />
+          {isFullscreen ? (
+            <Minimize2 className="size-5" style={{ color: 'white' }} />
+          ) : (
+            <Maximize2 className="size-5" style={{ color: 'var(--muted-foreground)' }} />
+          )}
         </button>
 
         {/* Spacing Control Toggle */}
@@ -817,17 +1078,18 @@ export default function GraphPage() {
         </button>
       </div>
 
-      {/* Spacing Control Slider */}
+      {/* Controls Panel - Spacing and Node Size */}
       {showControls && (
         <div
           ref={controlsRef}
           className="absolute top-28 right-6 z-10 p-5 rounded-3xl"
           style={{
-            background: 'white',
+            background: 'var(--card)',
             boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
             width: '280px'
           }}
         >
+          {/* Spacing Control */}
           <div className="flex items-center gap-2 mb-4">
             <div
               className="p-2 rounded-xl"
@@ -835,13 +1097,13 @@ export default function GraphPage() {
             >
               <Sliders className="size-4" style={{ color: '#5A8FCC' }} />
             </div>
-            <h4 className="font-semibold" style={{ color: '#1E1E1E' }}>
+            <h4 className="font-semibold" style={{ color: 'var(--foreground)' }}>
               Espaciado de Nodos
             </h4>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex justify-between text-xs mb-2" style={{ color: '#646464' }}>
+          <div className="space-y-3 mb-6">
+            <div className="flex justify-between text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
               <span>Pegados</span>
               <span>Dispersos</span>
             </div>
@@ -860,7 +1122,7 @@ export default function GraphPage() {
             />
 
             <div className="flex justify-between items-center">
-              <span className="text-xs font-medium" style={{ color: '#646464' }}>
+              <span className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>
                 Distancia: {sliderValue}px
               </span>
               <button
@@ -879,6 +1141,59 @@ export default function GraphPage() {
               </button>
             </div>
           </div>
+
+          {/* Divider */}
+          <div className="border-t mb-4" style={{ borderColor: '#E6E6E6' }} />
+
+          {/* Node Size Control */}
+          <div className="flex items-center gap-2 mb-4">
+            <div
+              className="p-2 rounded-xl"
+              style={{ backgroundColor: 'rgba(201, 183, 243, 0.2)' }}
+            >
+              <Maximize2 className="size-4" style={{ color: '#9575CD' }} />
+            </div>
+            <h4 className="font-semibold" style={{ color: 'var(--foreground)' }}>
+              Tamano de Nodos
+            </h4>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex justify-between text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
+              <span>Pequenos</span>
+              <span>Grandes</span>
+            </div>
+
+            <input
+              type="range"
+              min="0.5"
+              max="2"
+              step="0.05"
+              value={nodeScaleSlider}
+              onChange={(e) => handleNodeScaleChange(Number(e.target.value))}
+              className="w-full h-2 rounded-full appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #C9B7F3 0%, #C9B7F3 ${((nodeScaleSlider - 0.5) / 1.5) * 100}%, #E6E6E6 ${((nodeScaleSlider - 0.5) / 1.5) * 100}%, #E6E6E6 100%)`
+              }}
+            />
+
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>
+                Escala: {(nodeScaleSlider * 100).toFixed(0)}%
+              </span>
+              <button
+                onClick={() => handleNodeScaleChange(1)}
+                className="text-xs px-3 py-1.5 rounded-full transition-all hover:scale-105"
+                style={{
+                  background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+                  color: 'white',
+                  boxShadow: '0px 2px 6px rgba(201, 183, 243, 0.3)'
+                }}
+              >
+                Restaurar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -888,7 +1203,7 @@ export default function GraphPage() {
           ref={filtersRef}
           className="absolute z-10 p-5 rounded-3xl"
           style={{
-            background: 'white',
+            background: 'var(--card)',
             boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
             width: '300px',
             top: showControls ? '250px' : '160px',
@@ -903,7 +1218,7 @@ export default function GraphPage() {
               >
                 <Filter className="size-4" style={{ color: '#9575CD' }} />
               </div>
-              <h4 className="font-semibold" style={{ color: '#1E1E1E' }}>
+              <h4 className="font-semibold" style={{ color: 'var(--foreground)' }}>
                 Filtros
               </h4>
             </div>
@@ -915,7 +1230,7 @@ export default function GraphPage() {
                   setFilterStatus(null)
                 }}
                 className="text-xs px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-1"
-                style={{ color: '#646464' }}
+                style={{ color: 'var(--muted-foreground)' }}
               >
                 <X className="size-3" />
                 Limpiar
@@ -926,7 +1241,7 @@ export default function GraphPage() {
           <div className="space-y-4">
             {/* Area Filter */}
             <div>
-              <label className="text-xs font-medium mb-2 block" style={{ color: '#646464' }}>
+              <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted-foreground)' }}>
                 Area
               </label>
               <div className="flex flex-wrap gap-2">
@@ -951,7 +1266,7 @@ export default function GraphPage() {
 
             {/* Level Filter */}
             <div>
-              <label className="text-xs font-medium mb-2 block" style={{ color: '#646464' }}>
+              <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted-foreground)' }}>
                 Nivel
               </label>
               <div className="flex gap-2">
@@ -980,7 +1295,7 @@ export default function GraphPage() {
 
             {/* Status Filter */}
             <div>
-              <label className="text-xs font-medium mb-2 block" style={{ color: '#646464' }}>
+              <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted-foreground)' }}>
                 Estado
               </label>
               <div className="flex gap-2">
@@ -1023,14 +1338,18 @@ export default function GraphPage() {
 
       {/* Dynamic Legend - Left side */}
       <div
-        className="absolute top-6 left-6 z-10 p-5 rounded-3xl"
+        className="absolute top-6 left-6 z-10 rounded-3xl transition-all duration-300"
         style={{
-          background: 'white',
+          background: 'var(--card)',
           boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)',
-          maxWidth: '280px'
+          maxWidth: '280px',
+          padding: legendCollapsed ? '12px 16px' : '20px'
         }}
       >
-        <div className="flex items-center gap-2 mb-4">
+        <div
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={() => setLegendCollapsed(!legendCollapsed)}
+        >
           <div
             className="p-2 rounded-xl"
             style={{
@@ -1045,95 +1364,125 @@ export default function GraphPage() {
               <Palette className="size-4" style={{ color: '#5A8FCC' }} />
             )}
           </div>
-          <h3 className="font-semibold" style={{ color: '#1E1E1E' }}>
+          <h3 className="font-semibold flex-1" style={{ color: 'var(--foreground)' }}>
             {viewMode === 'status' ? 'Estados' : 'Areas de Conocimiento'}
           </h3>
+          <button
+            className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+            style={{ color: 'var(--muted-foreground)' }}
+          >
+            {legendCollapsed ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
+          </button>
         </div>
 
-        {viewMode === 'status' ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-5 h-5 rounded-full"
-                style={{
-                  background: 'linear-gradient(135deg, #A3E4B6 0%, #B9E2B1 100%)',
-                  boxShadow: '0px 2px 6px rgba(163, 228, 182, 0.3)'
-                }}
-              />
-              <span className="text-sm font-medium" style={{ color: '#1E1E1E' }}>
-                Entendido
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div
-                className="w-5 h-5 rounded-full"
-                style={{
-                  background: 'linear-gradient(135deg, #FFE9A9 0%, #FFF4D4 100%)',
-                  boxShadow: '0px 2px 6px rgba(255, 233, 169, 0.3)'
-                }}
-              />
-              <span className="text-sm font-medium" style={{ color: '#1E1E1E' }}>
-                En progreso
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div
-                className="w-5 h-5 rounded-full"
-                style={{
-                  background: 'linear-gradient(135deg, #D1D5DB 0%, #E5E7EB 100%)',
-                  boxShadow: '0px 2px 6px rgba(209, 213, 219, 0.3)'
-                }}
-              />
-              <span className="text-sm font-medium" style={{ color: '#1E1E1E' }}>
-                Pendiente
-              </span>
-            </div>
-
-            <div
-              className="border-t pt-3 mt-3"
-              style={{ borderColor: '#E6E6E6' }}
-            >
-              <p className="text-xs mb-2 font-medium" style={{ color: '#646464' }}>
-                Tipos de Conexion
-              </p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-0.5" style={{ backgroundColor: '#6366f1' }} />
-                  <span className="text-xs" style={{ color: '#646464' }}>Prerrequisito</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-0.5" style={{ backgroundColor: '#8b5cf6' }} />
-                  <span className="text-xs" style={{ color: '#646464' }}>Relacionado</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-0.5" style={{ backgroundColor: '#d1d5db' }} />
-                  <span className="text-xs" style={{ color: '#646464' }}>Menciona</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {activeAreas.slice(0, 5).map((area) => (
-              <div key={area.id} className="flex items-center gap-3">
-                <div
-                  className="w-5 h-5 rounded-full"
-                  style={{
-                    backgroundColor: area.color,
-                    boxShadow: `0px 2px 6px ${area.color}50`
-                  }}
-                />
-                <div className="flex items-center gap-2 flex-1">
-                  <span className="text-base">{area.icon}</span>
-                  <span className="text-xs font-medium" style={{ color: '#1E1E1E' }}>
-                    {area.name}
+        {!legendCollapsed && (
+          <div className="mt-4">
+            {viewMode === 'status' ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-5 h-5 rounded-full"
+                    style={{
+                      backgroundColor: '#86EFAC',
+                      boxShadow: '0px 2px 6px rgba(134, 239, 172, 0.4)'
+                    }}
+                  />
+                  <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                    Entendido
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                    (dominado)
                   </span>
                 </div>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-5 h-5 rounded-full"
+                    style={{
+                      backgroundColor: '#FDE047',
+                      boxShadow: '0px 2px 6px rgba(253, 224, 71, 0.4)'
+                    }}
+                  />
+                  <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                    En progreso
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                    (abierto)
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-5 h-5 rounded-full"
+                    style={{
+                      backgroundColor: '#D1D5DB',
+                      boxShadow: '0px 2px 6px rgba(209, 213, 219, 0.4)'
+                    }}
+                  />
+                  <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                    Pendiente
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                    (no abierto)
+                  </span>
+                </div>
+
+                <div
+                  className="border-t pt-3 mt-3"
+                  style={{ borderColor: '#E6E6E6' }}
+                >
+                  <p className="text-xs mb-2 font-medium" style={{ color: 'var(--muted-foreground)' }}>
+                    Tipos de Conexion
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-0.5" style={{ backgroundColor: '#6366f1' }} />
+                      <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Prerrequisito</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-0.5" style={{ backgroundColor: '#8b5cf6' }} />
+                      <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Relacionado</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-0.5" style={{ backgroundColor: '#d1d5db' }} />
+                      <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Menciona</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            ))}
-            {activeAreas.length > 5 && (
-              <div className="text-xs text-center pt-2" style={{ color: '#646464' }}>
-                +{activeAreas.length - 5} areas mas
+            ) : (
+              <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                {activeAreas.map((area) => (
+                  <div key={area.id} className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-4 h-4 rounded-full flex-shrink-0"
+                        style={{
+                          backgroundColor: area.color,
+                          boxShadow: `0px 2px 6px ${area.color}50`
+                        }}
+                      />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-sm">{area.icon}</span>
+                        <span className="text-xs font-medium truncate" style={{ color: 'var(--foreground)' }}>
+                          {area.name}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Color hierarchy preview */}
+                    <div className="flex items-center gap-1 ml-7">
+                      {[0, 1, 2, 3].map((depth) => (
+                        <div
+                          key={depth}
+                          className="w-3 h-3 rounded"
+                          style={{ backgroundColor: getColorForDepth(area.color, depth) }}
+                          title={depth === 0 ? 'Area' : depth === 1 ? 'Tema' : depth === 2 ? 'Subtema' : 'Notas'}
+                        />
+                      ))}
+                      <span className="text-[9px] ml-1" style={{ color: 'var(--muted-foreground)' }}>
+                        (jerarquia)
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1151,7 +1500,7 @@ export default function GraphPage() {
         <div className="flex items-start gap-3">
           <span className="text-2xl">💡</span>
           <div>
-            <p className="text-sm font-medium mb-1" style={{ color: '#1E1E1E' }}>
+            <p className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>
               Como navegar?
             </p>
             <p className="text-xs" style={{ color: 'rgba(30, 30, 30, 0.7)' }}>
@@ -1166,12 +1515,12 @@ export default function GraphPage() {
         <div
           className="absolute bottom-6 right-6 z-10 p-5 rounded-3xl w-72"
           style={{
-            background: 'white',
+            background: 'var(--card)',
             boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)'
           }}
         >
           <div className="flex items-start justify-between mb-4">
-            <h4 className="font-semibold" style={{ color: '#1E1E1E' }}>{selectedNode.name}</h4>
+            <h4 className="font-semibold" style={{ color: 'var(--foreground)' }}>{selectedNode.name}</h4>
             <button
               onClick={() => setSelectedNode(null)}
               className="w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:scale-110"
@@ -1182,15 +1531,15 @@ export default function GraphPage() {
           </div>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span style={{ color: '#646464' }}>Area:</span>
-              <span style={{ color: '#1E1E1E' }}>{selectedNode.area}</span>
+              <span style={{ color: 'var(--muted-foreground)' }}>Area:</span>
+              <span style={{ color: 'var(--foreground)' }}>{selectedNode.area}</span>
             </div>
             <div className="flex justify-between">
-              <span style={{ color: '#646464' }}>Nivel:</span>
-              <span className="capitalize" style={{ color: '#1E1E1E' }}>{selectedNode.level}</span>
+              <span style={{ color: 'var(--muted-foreground)' }}>Nivel:</span>
+              <span className="capitalize" style={{ color: 'var(--foreground)' }}>{selectedNode.level}</span>
             </div>
             <div className="flex justify-between">
-              <span style={{ color: '#646464' }}>Estado:</span>
+              <span style={{ color: 'var(--muted-foreground)' }}>Estado:</span>
               <span className="capitalize" style={{
                 color: selectedNode.status === 'understood' ? '#22c55e' :
                        selectedNode.status === 'in-progress' ? '#eab308' :

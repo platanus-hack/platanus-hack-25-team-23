@@ -1,26 +1,27 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useMemo } from "react"
 import { useKnowledge } from "@/lib/store/knowledge-context"
-import { createClient } from "@/lib/supabase/client"
+import { useAreas } from "@/lib/store/areas-context"
 import { BookOpen, TrendingUp, Clock, Target, ArrowRight, Plus, MapPin, Flame, Lightbulb, Star } from "lucide-react"
 import Link from "next/link"
+import { detectAreaFromContent } from "@/lib/data/areas-config"
 
-interface Area {
+interface AreaWithProgress {
   id: string
   name: string
   color: string
   icon: string
-  progress?: number
-  total?: number
-  understood?: number
-  hours?: number
+  progress: number
+  total: number
+  understood: number
+  hours: number
 }
 
 interface DashboardStats {
-  total_concepts: number
-  understood_concepts: number
-  in_progress_concepts: number
+  total_notes: number
+  understood_notes: number
+  in_progress_notes: number
   total_study_time: number
 }
 
@@ -38,7 +39,7 @@ function CircularProgress({ percentage, color, size = 100, strokeWidth = 8 }: { 
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#e5e7eb"
+          stroke="var(--border)"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -64,127 +65,87 @@ function CircularProgress({ percentage, color, size = 100, strokeWidth = 8 }: { 
 }
 
 export default function DashboardPage() {
-  const { notes, session } = useKnowledge()
-  const [areas, setAreas] = useState<Area[]>([])
-  const [stats, setStats] = useState<DashboardStats>({
-    total_concepts: 0,
-    understood_concepts: 0,
-    in_progress_concepts: 0,
-    total_study_time: 0
-  })
-  const [loading, setLoading] = useState(true)
-  const [streak, setStreak] = useState(0)
+  const { notes } = useKnowledge()
+  const { areas: contextAreas } = useAreas()
+  // No async loading needed - all data comes from context
+  const loading = false
+  // Streak disabled - user_progress table doesn't exist in Supabase
+  const streak = 0
 
-  useEffect(() => {
-    async function loadDashboardData() {
-      if (!session?.user) {
-        setLoading(false)
-        return
-      }
-
-      const supabase = createClient()
-
-      // Load study streak
-      const { data: progressData } = await supabase
-        .from('user_progress')
-        .select('study_streak')
-        .eq('user_id', session.user.id)
-        .order('study_streak', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (progressData?.study_streak) {
-        setStreak(progressData.study_streak)
-      }
-
-      // Load areas with progress
-      const { data: areasData } = await supabase
-        .from('areas')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('sort_order')
-
-      if (areasData) {
-        const areasWithProgress = await Promise.all(
-          areasData.map(async (area) => {
-            const { count: total } = await supabase
-              .from('concepts')
-              .select('*', { count: 'exact', head: true })
-              .eq('area_id', area.id)
-
-            const { count: understood } = await supabase
-              .from('concepts')
-              .select('*', { count: 'exact', head: true })
-              .eq('area_id', area.id)
-              .eq('status', 'understood')
-
-            return {
-              ...area,
-              total: total || 0,
-              understood: understood || 0,
-              progress: total ? Math.round(((understood || 0) / total) * 100) : 0,
-              hours: (total || 0) * 2 // Estimated 2 hours per concept
-            }
-          })
-        )
-        setAreas(areasWithProgress.filter(a => a.total > 0))
-      }
-
-      // Load overall stats
-      const { count: totalConcepts } = await supabase
-        .from('concepts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id)
-
-      const { count: understoodConcepts } = await supabase
-        .from('concepts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id)
-        .eq('status', 'understood')
-
-      const { count: inProgressConcepts } = await supabase
-        .from('concepts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id)
-        .eq('status', 'in-progress')
-
-      setStats({
-        total_concepts: totalConcepts || 0,
-        understood_concepts: understoodConcepts || 0,
-        in_progress_concepts: inProgressConcepts || 0,
-        total_study_time: (totalConcepts || 0) * 2
-      })
-
-      setLoading(false)
+  // Calculate stats from notes in context (works without authentication)
+  // Note status: 'new' | 'read' | 'understood'
+  // 'read' = en progreso, 'understood' = completado, 'new' = pendiente
+  const stats = useMemo<DashboardStats>(() => {
+    const understood = notes.filter(n => n.status === 'understood').length
+    const inProgress = notes.filter(n => n.status === 'read').length
+    return {
+      total_notes: notes.length,
+      understood_notes: understood,
+      in_progress_notes: inProgress,
+      total_study_time: notes.length * 2 // Estimated 2 hours per note
     }
+  }, [notes])
 
-    loadDashboardData()
-  }, [session])
+  // Calculate areas with progress based on notes
+  const areasWithProgress = useMemo<AreaWithProgress[]>(() => {
+    // Group notes by area
+    const notesByArea: Record<string, typeof notes> = {}
 
-  const progressPercent = stats.total_concepts > 0
-    ? Math.round((stats.understood_concepts / stats.total_concepts) * 100)
+    notes.forEach(note => {
+      const detectedArea = detectAreaFromContent(note.title, note.content)
+      const areaName = detectedArea?.name || contextAreas[0]?.name || 'General'
+
+      if (!notesByArea[areaName]) {
+        notesByArea[areaName] = []
+      }
+      notesByArea[areaName].push(note)
+    })
+
+    // Map context areas with their note counts
+    return contextAreas
+      .map(area => {
+        const areaNotes = notesByArea[area.name] || []
+        const understood = areaNotes.filter(n => n.status === 'understood').length
+        const total = areaNotes.length
+
+        return {
+          id: area.id,
+          name: area.name,
+          color: area.color,
+          icon: area.icon,
+          total,
+          understood,
+          progress: total > 0 ? Math.round((understood / total) * 100) : 0,
+          hours: total * 2
+        }
+      })
+      .filter(a => a.total > 0)
+  }, [notes, contextAreas])
+
+  const progressPercent = stats.total_notes > 0
+    ? Math.round((stats.understood_notes / stats.total_notes) * 100)
     : 0
 
-  const completedHours = stats.understood_concepts * 2
-  const remainingHours = (stats.total_concepts - stats.understood_concepts) * 2
+  const completedHours = stats.understood_notes * 2
+  const remainingHours = (stats.total_notes - stats.understood_notes) * 2
 
   const recentNotes = notes.slice(-3).reverse()
   const lastStudiedNote = recentNotes[0]
 
   return (
     <div
-      className="flex-1 overflow-y-auto"
-      style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}
+      className="flex-1 overflow-y-auto transition-colors duration-300"
+      style={{ backgroundColor: 'var(--background)' }}
     >
       <div className="max-w-7xl mx-auto p-8 space-y-8">
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-5xl font-bold mb-2" style={{ color: '#1E1E1E' }}>
+            <h1 className="text-5xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
               Hola! 👋
             </h1>
-            <p className="text-lg" style={{ color: '#646464' }}>
+            <p className="text-lg" style={{ color: 'var(--muted-foreground)' }}>
               Continua tu camino de aprendizaje con calma y enfoque
             </p>
           </div>
@@ -228,9 +189,9 @@ export default function DashboardPage() {
                 {loading ? '-' : `${progressPercent}%`}
               </span>
             </div>
-            <h3 className="font-semibold mb-1 relative z-10" style={{ color: '#1E1E1E' }}>Progreso Global</h3>
-            <p className="text-sm relative z-10" style={{ color: '#646464' }}>
-              {loading ? '-' : `${stats.understood_concepts} de ${stats.total_concepts} temas`}
+            <h3 className="font-semibold mb-1 relative z-10" style={{ color: 'var(--foreground)' }}>Progreso Global</h3>
+            <p className="text-sm relative z-10" style={{ color: 'var(--muted-foreground)' }}>
+              {loading ? '-' : `${stats.understood_notes} de ${stats.total_notes} notas`}
             </p>
             <div className="mt-4 h-2.5 rounded-full overflow-hidden relative z-10" style={{ backgroundColor: 'rgba(255, 255, 255, 0.5)' }}>
               <div
@@ -264,12 +225,12 @@ export default function DashboardPage() {
                 <BookOpen className="size-6" style={{ color: '#F8C94E' }} />
               </div>
               <span className="text-4xl font-bold" style={{ color: '#B89C3C' }}>
-                {loading ? '-' : stats.in_progress_concepts}
+                {loading ? '-' : stats.in_progress_notes}
               </span>
             </div>
-            <h3 className="font-semibold mb-1 relative z-10" style={{ color: '#1E1E1E' }}>En Progreso</h3>
-            <p className="text-sm relative z-10" style={{ color: '#646464' }}>Temas activos ahora</p>
-            {stats.in_progress_concepts > 0 && (
+            <h3 className="font-semibold mb-1 relative z-10" style={{ color: 'var(--foreground)' }}>En Progreso</h3>
+            <p className="text-sm relative z-10" style={{ color: 'var(--muted-foreground)' }}>Temas activos ahora</p>
+            {stats.in_progress_notes > 0 && (
               <Link
                 href="/tree"
                 className="mt-4 text-sm font-medium hover:underline relative z-10 block"
@@ -309,8 +270,8 @@ export default function DashboardPage() {
                 {loading ? '-' : `${remainingHours}h`}
               </span>
             </div>
-            <h3 className="font-semibold mb-1 relative z-10" style={{ color: '#1E1E1E' }}>Tiempo Restante</h3>
-            <p className="text-sm relative z-10" style={{ color: '#646464' }}>{completedHours}h completadas</p>
+            <h3 className="font-semibold mb-1 relative z-10" style={{ color: 'var(--foreground)' }}>Tiempo Restante</h3>
+            <p className="text-sm relative z-10" style={{ color: 'var(--muted-foreground)' }}>{completedHours}h completadas</p>
             <div className="mt-4 h-2.5 rounded-full overflow-hidden relative z-10" style={{ backgroundColor: 'rgba(255, 255, 255, 0.5)' }}>
               <div
                 className="h-full rounded-full transition-all duration-1000 relative"
@@ -342,8 +303,8 @@ export default function DashboardPage() {
                 {loading ? '-' : streak}
               </span>
             </div>
-            <h3 className="font-semibold mb-1 relative z-10" style={{ color: '#1E1E1E' }}>Racha Actual</h3>
-            <p className="text-sm relative z-10" style={{ color: '#646464' }}>dias consecutivos 🔥</p>
+            <h3 className="font-semibold mb-1 relative z-10" style={{ color: 'var(--foreground)' }}>Racha Actual</h3>
+            <p className="text-sm relative z-10" style={{ color: 'var(--muted-foreground)' }}>dias consecutivos 🔥</p>
             <Link
               href="/profile"
               className="mt-4 text-sm font-medium hover:underline relative z-10 block"
@@ -411,14 +372,14 @@ export default function DashboardPage() {
         )}
 
         {/* Progress by Area - Circular Progress */}
-        {areas.length > 0 && (
+        {areasWithProgress.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-3xl font-bold mb-2" style={{ color: '#1E1E1E' }}>
+                <h2 className="text-3xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
                   Progreso por Area
                 </h2>
-                <p style={{ color: '#646464' }}>
+                <p style={{ color: 'var(--muted-foreground)' }}>
                   Visualiza tu avance en cada area de conocimiento
                 </p>
               </div>
@@ -436,13 +397,13 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-6">
-              {areas.map(area => (
+              {areasWithProgress.map(area => (
                 <Link
                   key={area.id}
                   href="/tree"
                   className="rounded-3xl p-6 cursor-pointer group transition-all duration-300 hover:scale-105"
                   style={{
-                    backgroundColor: 'white',
+                    backgroundColor: 'var(--card)',
                     boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
                     border: `2px solid ${area.color}20`
                   }}
@@ -458,10 +419,10 @@ export default function DashboardPage() {
 
                   <div className="text-center">
                     <div className="text-3xl mb-2">{area.icon || '📚'}</div>
-                    <h3 className="font-semibold mb-2 text-xs leading-tight" style={{ color: '#1E1E1E' }}>
+                    <h3 className="font-semibold mb-2 text-xs leading-tight" style={{ color: 'var(--foreground)' }}>
                       {area.name}
                     </h3>
-                    <p className="text-xs mb-2" style={{ color: '#646464' }}>
+                    <p className="text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
                       {area.understood || 0}/{area.total || 0} temas
                     </p>
 
@@ -483,15 +444,15 @@ export default function DashboardPage() {
         )}
 
         {/* Recommendations */}
-        {(stats.in_progress_concepts > 0 || recentNotes.length > 0) && (
+        {(stats.in_progress_notes > 0 || recentNotes.length > 0) && (
           <div>
-            <h2 className="text-3xl font-bold mb-6" style={{ color: '#1E1E1E' }}>
+            <h2 className="text-3xl font-bold mb-6" style={{ color: 'var(--foreground)' }}>
               Recomendaciones para ti
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
               {/* In Progress Reminder */}
-              {stats.in_progress_concepts > 0 && (
+              {stats.in_progress_notes > 0 && (
                 <div
                   className="rounded-3xl p-6 hover:scale-105 transition-all duration-300"
                   style={{
@@ -507,18 +468,18 @@ export default function DashboardPage() {
                       <TrendingUp className="size-7" style={{ color: '#B89C3C' }} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold mb-2 text-lg" style={{ color: '#1E1E1E' }}>
+                      <h3 className="font-semibold mb-2 text-lg" style={{ color: 'var(--foreground)' }}>
                         Temas en progreso
                       </h3>
-                      <p className="text-sm mb-4" style={{ color: '#646464' }}>
-                        Tienes {stats.in_progress_concepts} tema(s) en progreso. Continua para completarlos!
+                      <p className="text-sm mb-4" style={{ color: 'var(--muted-foreground)' }}>
+                        Tienes {stats.in_progress_notes} nota(s) en progreso. Continua para completarlas!
                       </p>
                       <Link
                         href="/tree"
                         className="inline-block px-5 py-3 bg-white rounded-2xl hover:scale-105 transition-all duration-300"
                         style={{ boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)' }}
                       >
-                        <span className="font-medium" style={{ color: '#1E1E1E' }}>Ver todos</span>
+                        <span className="font-medium" style={{ color: 'var(--foreground)' }}>Ver todos</span>
                       </Link>
                     </div>
                   </div>
@@ -542,10 +503,10 @@ export default function DashboardPage() {
                       <Star className="size-7" style={{ color: '#5A8FCC' }} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold mb-2 text-lg" style={{ color: '#1E1E1E' }}>
+                      <h3 className="font-semibold mb-2 text-lg" style={{ color: 'var(--foreground)' }}>
                         Tus notas recientes
                       </h3>
-                      <p className="text-sm mb-4" style={{ color: '#646464' }}>
+                      <p className="text-sm mb-4" style={{ color: 'var(--muted-foreground)' }}>
                         Revisa lo que has aprendido recientemente
                       </p>
                       <div className="space-y-2">
@@ -556,7 +517,7 @@ export default function DashboardPage() {
                             className="block px-5 py-3 bg-white rounded-2xl hover:scale-105 transition-all duration-300"
                             style={{ boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)' }}
                           >
-                            <span className="font-medium" style={{ color: '#1E1E1E' }}>{note.title}</span>
+                            <span className="font-medium" style={{ color: 'var(--foreground)' }}>{note.title}</span>
                           </Link>
                         ))}
                       </div>
@@ -586,10 +547,10 @@ export default function DashboardPage() {
                 <MapPin className="size-7" style={{ color: '#9575CD' }} />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1" style={{ color: '#1E1E1E' }}>
+                <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--foreground)' }}>
                   Explorar Grafo
                 </h3>
-                <p className="text-sm" style={{ color: '#646464' }}>
+                <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                   Visualiza conexiones
                 </p>
               </div>
@@ -612,10 +573,10 @@ export default function DashboardPage() {
                 <BookOpen className="size-7" style={{ color: '#5A8FCC' }} />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1" style={{ color: '#1E1E1E' }}>
+                <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--foreground)' }}>
                   Biblioteca
                 </h3>
-                <p className="text-sm" style={{ color: '#646464' }}>
+                <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                   Gestiona areas y temas
                 </p>
               </div>
@@ -638,10 +599,10 @@ export default function DashboardPage() {
                 <Target className="size-7" style={{ color: '#5FA857' }} />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-1" style={{ color: '#1E1E1E' }}>
+                <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--foreground)' }}>
                   Ver Ruta
                 </h3>
-                <p className="text-sm" style={{ color: '#646464' }}>
+                <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
                   Planifica tu progreso
                 </p>
               </div>
@@ -654,7 +615,7 @@ export default function DashboardPage() {
           <div
             className="rounded-3xl p-8 text-center"
             style={{
-              backgroundColor: 'white',
+              backgroundColor: 'var(--card)',
               boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
             }}
           >
@@ -664,8 +625,8 @@ export default function DashboardPage() {
             >
               <BookOpen className="size-10" style={{ color: '#C9B7F3' }} />
             </div>
-            <h3 className="text-xl font-semibold mb-2" style={{ color: '#1E1E1E' }}>Sin notas aun</h3>
-            <p className="mb-6" style={{ color: '#646464' }}>Empieza a aprender creando tu primera nota</p>
+            <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Sin notas aun</h3>
+            <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>Empieza a aprender creando tu primera nota</p>
             <Link
               href="/new-query"
               className="inline-flex items-center gap-2 px-8 py-4 text-white rounded-3xl hover:scale-105 transition-all duration-300"

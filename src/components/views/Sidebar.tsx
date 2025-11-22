@@ -2,11 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, BookOpen, Network, GitBranch, User, Plus, FolderOpen, Search, Brain, LogOut, Flame } from 'lucide-react';
+import { Home, Network, GitBranch, User, Plus, FolderOpen, Search, Brain, LogOut, Flame, Calendar } from 'lucide-react';
 import { useKnowledge } from '@/lib/store/knowledge-context';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { useEffect, useState } from 'react';
 
 interface SidebarProps {
   isCollapsed?: boolean;
@@ -16,27 +15,8 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { session } = useKnowledge();
-  const [studyStreak, setStudyStreak] = useState(0);
-
-  useEffect(() => {
-    async function loadStreak() {
-      if (!session?.user) return;
-
-      const supabase = createClient();
-      const { data } = await supabase
-        .from('user_progress')
-        .select('study_streak')
-        .eq('user_id', session.user.id)
-        .order('study_streak', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (data?.study_streak) {
-        setStudyStreak(data.study_streak);
-      }
-    }
-    loadStreak();
-  }, [session]);
+  // Streak disabled - table doesn't exist in Supabase
+  const studyStreak = 0;
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -51,6 +31,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
     { id: 'library', label: 'Biblioteca', icon: FolderOpen, href: '/library' },
     { id: 'graph', label: 'Grafo', icon: Network, href: '/graph' },
     { id: 'tree', label: 'Ruta', icon: GitBranch, href: '/tree' },
+    { id: 'calendar', label: 'Calendario', icon: Calendar, href: '/calendar' },
     { id: 'profile', label: 'Perfil', icon: User, href: '/profile' },
   ];
 
@@ -60,14 +41,14 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
     <div
       className={`${isCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 flex flex-col h-screen`}
       style={{
-        backgroundColor: 'white',
-        borderRight: '1px solid #E6E6E6'
+        backgroundColor: 'var(--sidebar)',
+        borderRight: '1px solid var(--sidebar-border)'
       }}
     >
       {/* Logo */}
       <div
         className="p-6"
-        style={{ borderBottom: '1px solid #E6E6E6' }}
+        style={{ borderBottom: '1px solid var(--sidebar-border)' }}
       >
         <Link href="/dashboard" className="flex items-center gap-3">
           <div
@@ -94,21 +75,21 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
       {!isCollapsed && (
         <div
           className="p-4"
-          style={{ borderBottom: '1px solid #E6E6E6' }}
+          style={{ borderBottom: '1px solid var(--sidebar-border)' }}
         >
           <div className="relative">
             <Search
               className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4"
-              style={{ color: '#646464' }}
+              style={{ color: 'var(--muted-foreground)' }}
             />
             <input
               type="text"
               placeholder="Buscar concepto..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2"
               style={{
-                backgroundColor: '#F6F6F6',
-                border: '1px solid #E6E6E6',
-                color: '#1E1E1E'
+                backgroundColor: 'var(--input-background)',
+                border: '1px solid var(--border)',
+                color: 'var(--foreground)'
               }}
             />
           </div>
@@ -132,10 +113,10 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                     ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)'
                     : 'transparent',
                   color: isActive(item.href)
-                    ? '#9575CD'
+                    ? 'var(--sidebar-primary)'
                     : item.highlight && !isActive(item.href)
                     ? 'white'
-                    : '#646464',
+                    : 'var(--sidebar-foreground)',
                   boxShadow: item.highlight && !isActive(item.href)
                     ? '0px 2px 8px rgba(201, 183, 243, 0.3)'
                     : 'none'
@@ -154,7 +135,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
       {/* Footer */}
       <div
         className="p-4"
-        style={{ borderTop: '1px solid #E6E6E6' }}
+        style={{ borderTop: '1px solid var(--sidebar-border)' }}
       >
         {!isCollapsed && (
           <>
@@ -180,11 +161,11 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                 {/* User Info */}
                 <div
                   className="rounded-2xl p-4"
-                  style={{ backgroundColor: '#F6F6F6' }}
+                  style={{ backgroundColor: 'var(--sidebar-accent)' }}
                 >
                   <p
                     className="text-xs truncate mb-3"
-                    style={{ color: '#646464' }}
+                    style={{ color: 'var(--muted-foreground)' }}
                   >
                     {session.user.email}
                   </p>

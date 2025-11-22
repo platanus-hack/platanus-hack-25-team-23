@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useKnowledge } from "@/lib/store/knowledge-context"
+import { useTheme } from "@/lib/store/theme-context"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from 'next/navigation'
 import {
@@ -50,8 +51,8 @@ interface ActivityItem {
 
 export default function ProfilePage() {
   const { session, notes } = useKnowledge()
+  const { isDark, toggleTheme } = useTheme()
   const router = useRouter()
-  const [darkMode, setDarkMode] = useState(false)
   const [notifications, setNotifications] = useState(true)
   const [loading, setLoading] = useState(true)
   const [memberSince, setMemberSince] = useState('Noviembre 2024')
@@ -192,17 +193,17 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#F6F8FA' }}>
+      <div className="flex-1 flex items-center justify-center transition-colors duration-300" style={{ backgroundColor: 'var(--background)' }}>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-purple-300 rounded-full animate-spin mx-auto mb-4" style={{ borderTopColor: '#C9B7F3' }} />
-          <p style={{ color: '#646464' }}>Cargando perfil...</p>
+          <p style={{ color: 'var(--muted-foreground)' }}>Cargando perfil...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 overflow-y-auto" style={{ background: 'linear-gradient(135deg, #FAFBFC 0%, #F6F8FA 50%, #F0F4F8 100%)' }}>
+    <div className="flex-1 overflow-y-auto transition-colors duration-300" style={{ backgroundColor: 'var(--background)' }}>
       <div className="max-w-6xl mx-auto p-8 space-y-8">
         {/* Header */}
         <div
@@ -289,7 +290,7 @@ export default function ProfilePage() {
           <div
             className="rounded-3xl p-6 relative overflow-hidden"
             style={{
-              backgroundColor: 'white',
+              backgroundColor: 'var(--card)',
               boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
               border: '3px solid #F0F0F0'
             }}
@@ -309,20 +310,20 @@ export default function ProfilePage() {
               >
                 <Target className="size-6" style={{ color: '#9575CD' }} />
               </div>
-              <h3 className="text-xl font-semibold" style={{ color: '#1E1E1E' }}>
+              <h3 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
                 Progreso por Area
               </h3>
             </div>
             <div className="space-y-5 relative z-10">
               {areasProgress.length > 0 ? areasProgress.map((area) => (
                 <div key={area.name}>
-                  <div className="flex justify-between mb-2" style={{ color: '#646464' }}>
+                  <div className="flex justify-between mb-2" style={{ color: 'var(--muted-foreground)' }}>
                     <span className="font-medium">{area.name}</span>
                     <span className="font-semibold">{area.progress}%</span>
                   </div>
                   <div
                     className="h-3 rounded-full overflow-hidden relative"
-                    style={{ backgroundColor: '#F6F6F6' }}
+                    style={{ backgroundColor: 'var(--muted)' }}
                   >
                     <div
                       className="h-full rounded-full transition-all duration-1000 relative"
@@ -342,7 +343,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
               )) : (
-                <p className="text-center py-4" style={{ color: '#646464' }}>Crea notas para ver tu progreso</p>
+                <p className="text-center py-4" style={{ color: 'var(--muted-foreground)' }}>Crea notas para ver tu progreso</p>
               )}
             </div>
           </div>
@@ -351,7 +352,7 @@ export default function ProfilePage() {
           <div
             className="rounded-3xl p-6 relative overflow-hidden"
             style={{
-              backgroundColor: 'white',
+              backgroundColor: 'var(--card)',
               boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
               border: '3px solid #F0F0F0'
             }}
@@ -375,20 +376,20 @@ export default function ProfilePage() {
               >
                 <TrendingUp className="size-6" style={{ color: '#5A8FCC' }} />
               </div>
-              <h3 className="text-xl font-semibold" style={{ color: '#1E1E1E' }}>
+              <h3 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
                 Rutas de Aprendizaje
               </h3>
             </div>
             <div className="space-y-5 relative z-10">
               {learningPaths.map(path => (
                 <div key={path.id}>
-                  <div className="flex justify-between mb-2" style={{ color: '#646464' }}>
+                  <div className="flex justify-between mb-2" style={{ color: 'var(--muted-foreground)' }}>
                     <span className="font-medium">{path.name}</span>
                     <span className="font-semibold">{path.progress}%</span>
                   </div>
                   <div
                     className="h-3 rounded-full overflow-hidden"
-                    style={{ backgroundColor: '#F6F6F6' }}
+                    style={{ backgroundColor: 'var(--muted)' }}
                   >
                     <div
                       className="h-full rounded-full transition-all duration-1000"
@@ -415,7 +416,7 @@ export default function ProfilePage() {
         <div
           className="rounded-3xl p-6 relative overflow-hidden"
           style={{
-            backgroundColor: 'white',
+            backgroundColor: 'var(--card)',
             boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
             border: '3px solid #F0F0F0'
           }}
@@ -440,7 +441,7 @@ export default function ProfilePage() {
             >
               <Calendar className="size-6" style={{ color: '#CC7A3C' }} />
             </div>
-            <h3 className="text-xl font-semibold" style={{ color: '#1E1E1E' }}>
+            <h3 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
               Actividad Esta Semana
             </h3>
           </div>
@@ -479,12 +480,12 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   </div>
-                  <span className="text-sm font-medium" style={{ color: '#646464' }}>{day}</span>
+                  <span className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>{day}</span>
                 </div>
               )
             })}
           </div>
-          <div className="mt-8 flex items-center justify-center gap-3 text-sm relative z-10" style={{ color: '#646464' }}>
+          <div className="mt-8 flex items-center justify-center gap-3 text-sm relative z-10" style={{ color: 'var(--muted-foreground)' }}>
             <Clock className="size-5" />
             <span className="font-medium">Total esta semana: {weekActivity.reduce((a, b) => a + b, 0)} minutos</span>
           </div>
@@ -495,7 +496,7 @@ export default function ProfilePage() {
           <div
             className="rounded-3xl p-6 relative overflow-hidden"
             style={{
-              backgroundColor: 'white',
+              backgroundColor: 'var(--card)',
               boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
               border: '3px solid #F0F0F0'
             }}
@@ -516,11 +517,11 @@ export default function ProfilePage() {
                   style={{ backgroundColor: '#FFD700', border: '2px solid white' }}
                 />
               </div>
-              <h3 className="text-xl font-semibold" style={{ color: '#1E1E1E' }}>
+              <h3 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
                 Temas Centrales Dominados
               </h3>
             </div>
-            <p className="mb-6 font-medium relative z-10" style={{ color: '#646464' }}>
+            <p className="mb-6 font-medium relative z-10" style={{ color: 'var(--muted-foreground)' }}>
               Has completado {centralTopicsMastered.length} temas centrales
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 relative z-10">
@@ -544,7 +545,7 @@ export default function ProfilePage() {
                   />
                   <span className="text-2xl relative z-10">⭐</span>
                   <div className="flex-1 min-w-0 relative z-10">
-                    <p className="font-semibold text-sm truncate" style={{ color: '#1E1E1E' }}>
+                    <p className="font-semibold text-sm truncate" style={{ color: 'var(--foreground)' }}>
                       {topic.name}
                     </p>
                     <p className="text-xs font-medium" style={{ color: '#2F8F4F' }}>
@@ -568,7 +569,7 @@ export default function ProfilePage() {
         <div
           className="rounded-3xl p-6 relative overflow-hidden"
           style={{
-            backgroundColor: 'white',
+            backgroundColor: 'var(--card)',
             boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
             border: '3px solid #F0F0F0'
           }}
@@ -584,7 +585,7 @@ export default function ProfilePage() {
             >
               <Award className="size-6" style={{ color: '#C9B7F3' }} />
             </div>
-            <h3 className="text-xl font-semibold" style={{ color: '#1E1E1E' }}>
+            <h3 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
               Logros y Badges
             </h3>
           </div>
@@ -666,7 +667,7 @@ export default function ProfilePage() {
           <div
             className="rounded-3xl p-6 relative overflow-hidden"
             style={{
-              backgroundColor: 'white',
+              backgroundColor: 'var(--card)',
               boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
               border: '3px solid #F0F0F0'
             }}
@@ -687,7 +688,7 @@ export default function ProfilePage() {
               >
                 <Clock className="size-6" style={{ color: '#5A8FCC' }} />
               </div>
-              <h3 className="text-xl font-semibold" style={{ color: '#1E1E1E' }}>
+              <h3 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
                 Actividad Reciente
               </h3>
             </div>
@@ -727,7 +728,7 @@ export default function ProfilePage() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold" style={{ color: '#1E1E1E' }}>
+                      <p className="font-semibold" style={{ color: 'var(--foreground)' }}>
                         {activity.title}
                       </p>
                       <p className="text-sm font-medium" style={{ color: style.accent }}>
@@ -745,7 +746,7 @@ export default function ProfilePage() {
         <div
           className="rounded-3xl p-6"
           style={{
-            backgroundColor: 'white',
+            backgroundColor: 'var(--card)',
             boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
             border: '3px solid #F0F0F0'
           }}
@@ -753,11 +754,11 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3 mb-6">
             <div
               className="p-3 rounded-2xl"
-              style={{ backgroundColor: '#F6F6F6' }}
+              style={{ backgroundColor: 'var(--muted)' }}
             >
-              <Settings className="size-6" style={{ color: '#646464' }} />
+              <Settings className="size-6" style={{ color: 'var(--muted-foreground)' }} />
             </div>
-            <h3 className="text-xl font-semibold" style={{ color: '#1E1E1E' }}>
+            <h3 className="text-xl font-semibold" style={{ color: 'var(--foreground)' }}>
               Configuracion
             </h3>
           </div>
@@ -765,29 +766,30 @@ export default function ProfilePage() {
             {/* Dark Mode */}
             <div
               className="flex items-center justify-between p-4 rounded-2xl"
-              style={{ backgroundColor: '#F6F6F6' }}
+              style={{ backgroundColor: 'var(--color-gray-ui)' }}
             >
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white">
-                  {darkMode ? <Moon className="size-5" style={{ color: '#646464' }} /> : <Sun className="size-5" style={{ color: '#646464' }} />}
+                <div className="p-2 rounded-xl" style={{ backgroundColor: 'var(--card)' }}>
+                  {isDark ? <Moon className="size-5" style={{ color: 'var(--color-gray-text)' }} /> : <Sun className="size-5" style={{ color: 'var(--color-gray-text)' }} />}
                 </div>
                 <div>
-                  <p className="font-semibold" style={{ color: '#1E1E1E' }}>Modo Oscuro</p>
-                  <p className="text-sm" style={{ color: '#646464' }}>Cambiar apariencia de la app</p>
+                  <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Modo Oscuro</p>
+                  <p className="text-sm" style={{ color: 'var(--color-gray-text)' }}>Cambiar apariencia de la app</p>
                 </div>
               </div>
               <button
-                onClick={() => setDarkMode(!darkMode)}
+                onClick={toggleTheme}
                 className="w-14 h-8 rounded-full transition-all p-1"
                 style={{
-                  background: darkMode ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)' : '#E6E6E6'
+                  background: isDark ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)' : 'var(--switch-background)'
                 }}
               >
                 <div
-                  className="w-6 h-6 bg-white rounded-full transition-transform"
+                  className="w-6 h-6 rounded-full transition-transform"
                   style={{
-                    transform: darkMode ? 'translateX(24px)' : 'translateX(0)',
-                    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.15)'
+                    transform: isDark ? 'translateX(24px)' : 'translateX(0)',
+                    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.15)',
+                    backgroundColor: 'var(--card)'
                   }}
                 />
               </button>
@@ -796,15 +798,15 @@ export default function ProfilePage() {
             {/* Notifications */}
             <div
               className="flex items-center justify-between p-4 rounded-2xl"
-              style={{ backgroundColor: '#F6F6F6' }}
+              style={{ backgroundColor: 'var(--muted)' }}
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-white">
-                  <Bell className="size-5" style={{ color: '#646464' }} />
+                  <Bell className="size-5" style={{ color: 'var(--muted-foreground)' }} />
                 </div>
                 <div>
-                  <p className="font-semibold" style={{ color: '#1E1E1E' }}>Notificaciones</p>
-                  <p className="text-sm" style={{ color: '#646464' }}>Recordatorios de estudio</p>
+                  <p className="font-semibold" style={{ color: 'var(--foreground)' }}>Notificaciones</p>
+                  <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Recordatorios de estudio</p>
                 </div>
               </div>
               <button
