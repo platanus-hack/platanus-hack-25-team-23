@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Network, GitBranch, User, Plus, FolderOpen, Search, LogOut, Flame, Calendar, BookHeart, FileText, X } from 'lucide-react';
 import { useKnowledge } from '@/lib/store/knowledge-context';
-import { useJournal } from '@/lib/store/journal-context';
+import { useJournal, formatDate } from '@/lib/store/journal-context';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
@@ -26,8 +26,8 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { session, notes } = useKnowledge();
-  const { entries: journalEntries } = useJournal();
-  const studyStreak = 0;
+  const { entries: journalEntries, getStreak } = useJournal();
+  const studyStreak = getStreak();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
