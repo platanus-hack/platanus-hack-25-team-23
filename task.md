@@ -24,6 +24,7 @@
     - [x] Implement `useManualChat` hook for reliable streaming
     - [x] Implement Web Search (Perplexity)
 - [x] Resolve Merge Conflicts with `main`
+- [x] Apply Kenko Palette to New Query View
 - [ ] Verify End-to-End Functionality
 - [x] Fix PDF Reading and Web Search
     - [x] Implement PDF Reader tool (pdf2json)

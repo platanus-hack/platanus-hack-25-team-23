@@ -279,7 +279,7 @@ export function ChatView() {
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto p-6 relative size-full h-full flex gap-6">
+    <div className="max-w-[1600px] mx-auto p-6 relative size-full h-full flex gap-6 bg-[#F6F5F2]">
       {/* Left Panel: Chat (Flexible width) */}
       <div className={`flex flex-col h-full transition-all duration-300 ${activeNote ? 'w-1/2' : 'w-full max-w-4xl mx-auto'}`}>
         <Conversation className="h-full">
@@ -310,7 +310,7 @@ export function ChatView() {
                 {/* Handle standard content if parts are missing or empty (backward compatibility) */}
                 {(!message.parts || message.parts.length === 0) && message.content && (
                     <Message from={message.role}>
-                        <MessageContent>
+                        <MessageContent className={message.role === 'user' ? "bg-white text-[#222222] border border-[#EEEBE6] shadow-sm" : "text-[#222222]"}>
                             {message.role === 'user' ? (
                                 <div className="whitespace-pre-wrap">
                                     {message.content}
@@ -366,7 +366,7 @@ export function ChatView() {
                     case 'text':
                       return (
                         <Message key={`${message.id}-${i}`} from={message.role}>
-                          <MessageContent>
+                          <MessageContent className={message.role === 'user' ? "bg-white text-[#222222] border border-[#EEEBE6] shadow-sm" : "text-[#222222]"}>
                             {message.role === 'user' ? (
                                 <div className="whitespace-pre-wrap">{part.text}</div>
                             ) : (
@@ -431,6 +431,7 @@ export function ChatView() {
               onChange={(e) => setInput(e.target.value)}
               value={input}
               placeholder="Ask your Knowledge Graph..."
+              className="text-[#222222] placeholder:text-[#9A9A9A]"
             />
           </PromptInputBody>
           <PromptInputFooter>
@@ -444,6 +445,7 @@ export function ChatView() {
               <PromptInputButton
                 variant={webSearch ? 'default' : 'ghost'}
                 onClick={() => setWebSearch(!webSearch)}
+                className={webSearch ? "bg-[#E6DAFF] text-[#9575CD] hover:bg-[#D6C9F5]" : "text-[#6D6D6D] hover:bg-[#F6F5F2]"}
               >
                 <GlobeIcon size={16} />
                 <span>Search</span>
@@ -454,7 +456,7 @@ export function ChatView() {
                 }}
                 value={model}
               >
-                <PromptInputSelectTrigger>
+                <PromptInputSelectTrigger className="text-[#6D6D6D] hover:bg-[#F6F5F2]">
                   <PromptInputSelectValue />
                 </PromptInputSelectTrigger>
                 <PromptInputSelectContent>
@@ -474,6 +476,7 @@ export function ChatView() {
                         stop();
                     }
                 }}
+                className="bg-[#222222] text-white hover:bg-black"
             >
                 {status === 'submitted' || status === 'streaming' ? (
                     <SquareIcon className="size-4" />
@@ -485,12 +488,12 @@ export function ChatView() {
 
       {/* Right Panel: Note Viewer */}
       {activeNote && (
-        <div className="w-1/2 h-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden flex flex-col animate-in slide-in-from-right-10 duration-300">
-          <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/50">
-            <h2 className="font-bold text-lg truncate">{activeNote.title}</h2>
+        <div className="w-1/2 h-full bg-white border border-[#EEEBE6] rounded-3xl shadow-[0px_8px_30px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col animate-in slide-in-from-right-10 duration-300">
+          <div className="p-4 border-b border-[#EEEBE6] flex items-center justify-between bg-[#F6F5F2]">
+            <h2 className="font-bold text-lg truncate text-[#222222]">{activeNote.title}</h2>
             <button 
               onClick={() => setActiveNote(null)}
-              className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-[#EEEBE6] rounded-xl transition-colors text-[#6D6D6D]"
             >
               ✕
             </button>
