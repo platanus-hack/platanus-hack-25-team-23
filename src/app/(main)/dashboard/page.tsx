@@ -569,16 +569,27 @@ export default function DashboardPage() {
                         Revisa lo que aprendiste
                       </p>
                       <div className="space-y-2">
-                        {recentNotes.slice(0, 2).map(note => (
-                          <Link
-                            key={note.slug}
-                            href={`/study?topic=${encodeURIComponent(note.title)}`}
-                            className="block text-sm font-medium hover:underline"
-                            style={{ color: '#5A8FCC' }}
-                          >
-                            {note.title} →
-                          </Link>
-                        ))}
+                        {recentNotes.slice(0, 2).map(note => {
+                          const noteArea = detectAreaFromContent(note.title, note.content)
+                          return (
+                            <Link
+                              key={note.slug}
+                              href={`/study?topic=${encodeURIComponent(note.title)}`}
+                              className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                              <span className="text-sm">{noteArea?.icon || '📝'}</span>
+                              <span className="flex-1 text-sm font-medium truncate" style={{ color: '#222222' }}>
+                                {note.title}
+                              </span>
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{
+                                backgroundColor: note.status === 'understood' ? '#D4F5E9' : note.status === 'read' ? '#FFF0E6' : '#F6F5F2',
+                                color: note.status === 'understood' ? '#10B981' : note.status === 'read' ? '#F59E0B' : '#9A9A9A'
+                              }}>
+                                {note.status === 'understood' ? '✓' : note.status === 'read' ? '◐' : '○'}
+                              </span>
+                            </Link>
+                          )
+                        })}
                       </div>
                     </div>
                   </div>
