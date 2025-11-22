@@ -38,9 +38,10 @@ function parseContent(content: string) {
   if (!content) return []
 
   const parts: Array<{
-    type: 'text' | 'link' | 'md-link' | 'callout' | 'code' | 'heading' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact',
+    type: 'text' | 'link' | 'md-link' | 'callout' | 'code' | 'heading' | 'h3' | 'h4' | 'hr' | 'list-item' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact',
     value: string,
-    calloutType?: string
+    calloutType?: string,
+    parts?: any[]
   }> = []
 
   // Split by lines first to handle callouts and code blocks
@@ -131,7 +132,7 @@ function parseContent(content: string) {
 // Parse a line for [[links]], inline $math$, **bold**, *italic*, and :::artifact:::
 function parseLineWithMathAndLinks(
   line: string,
-  parts: Array<{ type: 'text' | 'link' | 'md-link' | 'callout' | 'code' | 'heading' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact', value: string, calloutType?: string }>
+  parts: Array<{ type: 'text' | 'link' | 'md-link' | 'callout' | 'code' | 'heading' | 'h3' | 'h4' | 'hr' | 'list-item' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact', value: string, calloutType?: string, parts?: any[] }>
 ) {
   // Combined regex for links, inline math, bold, italic, artifact, AND standard markdown links [text](url)
   // Matches: [[link]] OR [text](url) OR $math$ OR **bold** OR *italic* OR :::artifact{...}:::
@@ -335,13 +336,61 @@ export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRenderer
                 {part.value}
               </Callout>
             )
-// ... rest of the switch case
 
           case 'heading':
             return (
-              <h2 key={index} className="text-xl font-bold mt-6 mb-3" style={{ color: '#1E1E1E' }}>
+              <h2 key={index} className="text-2xl font-bold mt-8 mb-4 text-zinc-900 dark:text-zinc-100 border-b border-zinc-200 dark:border-zinc-800 pb-2">
                 {part.value}
               </h2>
+            )
+          
+          case 'h3':
+            return (
+              <h3 key={index} className="text-xl font-semibold mt-6 mb-3 text-zinc-800 dark:text-zinc-200">
+                {part.value}
+              </h3>
+            )
+
+          case 'h4':
+            return (
+              <h4 key={index} className="text-lg font-medium mt-4 mb-2 text-zinc-700 dark:text-zinc-300">
+                {part.value}
+              </h4>
+            )
+
+          case 'hr':
+            return <hr key={index} className="my-8 border-t-2 border-zinc-100 dark:border-zinc-800" />
+
+          case 'list-item':
+            return (
+                <div key={index} className="flex items-start gap-2 my-1 ml-4">
+                    <span className="mt-2 w-1.5 h-1.5 rounded-full bg-zinc-400 shrink-0" />
+                    <div className="flex-1">
+                        {(part.parts || []).map((p: any, i: number) => {
+                             // Reuse the same rendering logic for inner parts
+                             switch (p.type) {
+                                case 'link':
+                                    const [target, alias] = p.value.split('|');
+                                    return <ConceptLink key={i} term={target} displayText={alias || target} onClick={onLinkClick} />
+                                case 'md-link':
+                                    const isInternal = p.calloutType?.startsWith('/');
+                                    if (isInternal) {
+                                        return (
+                                            <button key={i} onClick={() => onLinkClick?.(p.calloutType!)} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium text-sm cursor-pointer border border-blue-200 hover:border-blue-300 mx-0.5 align-baseline">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4h4"/></svg>
+                                                {p.value}
+                                            </button>
+                                        );
+                                    }
+                                    return <a key={i} href={p.calloutType} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline hover:text-blue-800 transition-colors">{p.value}<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>
+                                case 'bold': return <strong key={i} className="font-bold">{p.value}</strong>
+                                case 'italic': return <em key={i} className="italic">{p.value}</em>
+                                case 'math-inline': return <MathBlock key={i} latex={p.value} displayMode={false} />
+                                default: return <span key={i}>{p.value}</span>
+                             }
+                        })}
+                    </div>
+                </div>
             )
 
           case 'code':
