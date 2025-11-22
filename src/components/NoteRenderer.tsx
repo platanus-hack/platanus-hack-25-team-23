@@ -38,7 +38,7 @@ function parseContent(content: string) {
   if (!content) return []
 
   const parts: Array<{
-    type: 'text' | 'link' | 'callout' | 'code' | 'heading' | 'math-block' | 'math-inline',
+    type: 'text' | 'link' | 'callout' | 'code' | 'heading' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact',
     value: string,
     calloutType?: string
   }> = []
@@ -128,14 +128,14 @@ function parseContent(content: string) {
   return parts
 }
 
-// Parse a line for both [[links]] and inline $math$
+// Parse a line for [[links]], inline $math$, **bold**, *italic*, and :::artifact:::
 function parseLineWithMathAndLinks(
   line: string,
-  parts: Array<{ type: 'text' | 'link' | 'callout' | 'code' | 'heading' | 'math-block' | 'math-inline', value: string, calloutType?: string }>
+  parts: Array<{ type: 'text' | 'link' | 'callout' | 'code' | 'heading' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact', value: string, calloutType?: string }>
 ) {
-  // Combined regex for links and inline math
-  // Matches: [[link]] or $math$ (but not $$)
-  const combinedRegex = /\[\[([^\]]+)\]\]|(?<!\$)\$(?!\$)([^$]+)\$(?!\$)/g
+  // Combined regex for links, inline math, bold, italic, and artifact
+  // Matches: [[link]] OR $math$ OR **bold** OR *italic* OR :::artifact{...}:::
+  const combinedRegex = /\[\[([^\]]+)\]\]|(?<!\$)\$(?!\$)([^$]+)\$(?!\$)|(\*\*|__)(.*?)\3|(\*|_)(.*?)\5|:::artifact\{([^}]+)\}:::/g
   let lastIndex = 0
   let match
 
@@ -151,6 +151,15 @@ function parseLineWithMathAndLinks(
     } else if (match[2]) {
       // It's inline $math$
       parts.push({ type: 'math-inline', value: match[2] })
+    } else if (match[4]) {
+      // It's **bold**
+      parts.push({ type: 'bold', value: match[4] })
+    } else if (match[6]) {
+      // It's *italic*
+      parts.push({ type: 'italic', value: match[6] })
+    } else if (match[7]) {
+      // It's an artifact
+      parts.push({ type: 'artifact', value: match[7] })
     }
 
     lastIndex = match.index + match[0].length
@@ -275,11 +284,13 @@ function MathBlock({ latex, displayMode }: { latex: string, displayMode: boolean
   )
 }
 
+import { FileArtifact } from './FileArtifact';
+
 export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRendererProps) {
   const parsed = useMemo(() => parseContent(content), [content])
 
   return (
-    <div className={`prose prose-gray max-w-none ${isStreaming ? 'animate-pulse-subtle' : ''}`}>
+    <div className={`prose prose-gray max-w-none whitespace-pre-wrap ${isStreaming ? 'animate-pulse-subtle' : ''}`}>
       {parsed.map((part, index) => {
         switch (part.type) {
           case 'link':
@@ -312,6 +323,18 @@ export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRenderer
           case 'math-inline':
             return <MathBlock key={index} latex={part.value} displayMode={false} />
 
+          case 'bold':
+            return <strong key={index} className="font-bold">{part.value}</strong>
+
+          case 'italic':
+            return <em key={index} className="italic">{part.value}</em>
+
+          case 'artifact':
+             // Parse attributes from value string (e.g. path="/notes/foo.md")
+             const pathMatch = part.value.match(/path="([^"]+)"/);
+             const path = pathMatch ? pathMatch[1] : '';
+             return path ? <FileArtifact key={index} path={path} onClick={() => onLinkClick?.(path.replace('/notes/', '').replace('.md', ''))} /> : null;
+
           case 'text':
           default:
             return <span key={index}>{part.value}</span>
@@ -321,20 +344,6 @@ export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRenderer
       {isStreaming && (
         <span className="inline-block w-2 h-5 bg-purple-500 animate-blink ml-1" />
       )}
-    </div>
-  )
-}
-
-// Streaming indicator component
-export function StreamingIndicator() {
-  return (
-    <div className="flex items-center gap-2 text-purple-600">
-      <div className="flex gap-1">
-        <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-      </div>
-      <span className="text-sm font-medium">Nodi está pensando...</span>
     </div>
   )
 }

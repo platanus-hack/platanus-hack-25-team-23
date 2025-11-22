@@ -39,6 +39,10 @@ Return a JSON object with this exact structure:
 6. **Length**: 300-600 words optimal
 7. **Tone**: First person, direct, educational
 
+## User preferences
+Speak in Spanish
+Be concise, don't repeat yourself
+
 ## Example Output
 
 {

@@ -11,6 +11,7 @@ I have successfully transformed **KnowledgeFlow** into a "Deep Agent" system wit
     -   Parses the markdown.
     -   Creates/Updates the node in the `concepts` table.
     -   Extracts `[[WikiLinks]]` and creates edges in `concept_relationships`.
+-   **Robustness**: Added logic to handle duplicate files and ensure unique constraints (`005_fix_vfs_root_duplicates.sql`).
 
 ### 2. Deep Agent Backend (`src/app/api/chat/route.ts`)
 -   Replaced the simple "One-Shot" generator with a **Recursive Agent**.
@@ -18,39 +19,54 @@ I have successfully transformed **KnowledgeFlow** into a "Deep Agent" system wit
     -   `list_files`: To explore the vault.
     -   `read_file`: To get context.
     -   `write_file`: To create knowledge.
+    -   `create_directory`: To organize files.
 -   **Loop**: Enabled `maxSteps: 10` to allow the agent to "Think -> Search -> Write -> Link".
 -   **Token Streaming**: Implemented `streamEvents` to ensure smooth, word-by-word responses instead of large chunks.
+-   **Prompt Alignment**: Updated the system prompt to match the legacy "KnowledgeFlow" persona, ensuring it uses the correct formatting rules (Callouts, WikiLinks, Math).
+-   **Artifacts**: Instructed the agent to use `:::artifact{path="..."}:::` syntax to display created files as cards.
+
+### 4. Real-time Note Streaming
+The system now supports "Obsidian-like" real-time writing:
+- **Streaming Protocol**: The backend streams tool arguments (file content) using a custom `T:` protocol.
+- **Partial Parsing**: A robust `partial-json.ts` parser extracts content from incomplete JSON strings.
+- **Live Preview**: The Right Panel opens immediately when generation starts, showing the note being typed character-by-character.
+- **Smart Navigation**: Clicking "Ghost Nodes" (links to non-existent notes) triggers the agent to generate them.
 
 ### 3. Generative UI (`src/components/views/ChatView.tsx`)
--   **AI Elements**: Migrated to the `ai-elements` component library for a polished, modern chat interface.
--   **Custom Hook**: Implemented `useManualChat` (`src/hooks/use-manual-chat.ts`) to ensure reliable streaming from the Deep Agent backend, bypassing issues with the standard `useChat` hook.
--   **Features**:
-    -   Rich message bubbles with avatars.
-    -   Source citations (ready for future implementation).
-    -   Reasoning blocks (for "Thought" process).
-    -   Attachment support (UI only).
+-   **Hybrid Interface**: Implemented a "Hybrid View" that starts with the beautiful "New Query" UI (`ChatWelcomeScreen`) and transitions to the Chat Interface upon interaction.
+-   **Rich Rendering**: Integrated `NoteRenderer` into the chat, enabling:
+    -   **Callouts**: `> ! Important`
+    -   **WikiLinks**: `[[Concept]]` (clickable, triggers new query)
+    -   **Math**: LaTeX support via KaTeX
+    -   **Formatting**: Added support for **bold**, *italic*, and proper line breaks.
+    -   **Artifact Cards**: Renders beautiful, clickable cards for created files using `FileArtifact` component.
+-   **AI Elements**: Uses `ai-elements` for the chat frame but custom rendering for content.
+-   **Custom Hook**: Implemented `useManualChat` (`src/hooks/use-manual-chat.ts`) to ensure reliable streaming.
+
+### 4. Migration of `/new-query`
+-   **Replaced Legacy View**: Replaced the old `NewQueryView` with the new `ChatView` in `src/app/(main)/new-query/page.tsx`.
+-   **Unified Interface**: Now the `/new-query` route serves as the main entry point for the Deep Agent.
 
 ## Verification Steps
 
-### Step 1: Apply Migration
+### Step 1: Apply Migrations
 > [!IMPORTANT]
-> You must apply the database migration before testing.
-> Run the SQL in `supabase/migrations/002_vfs_schema.sql` in your Supabase SQL Editor.
+> You must apply the database migrations before testing.
+> Run the SQL in `supabase/migrations/` in order (002, 003, 004, 005, 006).
 
-### Step 2: Test the Agent
-1.  Go to the "New Query" page (now the Chat).
-2.  Type: **"Create a study plan for Quantum Physics."**
-3.  **Observe**:
-    -   The agent should say "I'll check if we have any notes first..." (Tool: `list_files`).
-    -   Then "I'll create a main note..." (Tool: `write_file`).
-    -   You should see "Note Created" cards appear.
-    -   The Graph (if you check the Graph View) should now have nodes for "Quantum Physics".
+### Step 2: Test the Hybrid UI
+1.  Go to the "New Query" page (http://localhost:3000/new-query).
+2.  **Verify Initial State**: You should see the "Que quieres aprender hoy?" header, Level Selector, and Suggested Topics (just like the old view).
+3.  **Interact**: Click on a suggested topic (e.g., "Machine Learning") or type a query.
+4.  **Verify Transition**: The view should smoothly switch to the Chat Interface.
 
-### Step 3: Test Recursion
-1.  Type: **"Add a section about Schrödinger's Cat to that note."**
+### Step 3: Test Rich Rendering & Artifacts
+1.  Ask the agent: **"Crea una nota sobre Redes Neuronales."**
 2.  **Observe**:
-    -   The agent should `read_file("Quantum Physics.md")`.
-    -   Then `write_file` with the updated content.
+    -   The response should stream in Spanish.
+    -   The agent should create a file (check logs or DB).
+    -   **Artifact Card**: You should see a clickable card for "Redes Neuronales".
+    -   **Rich Text**: You should see Callouts, Math, and WikiLinks.
 
 ## Next Steps
 -   **Graph View**: Update the Graph View to read from `vfs_nodes` (or keep reading from `concepts` as it is synced).

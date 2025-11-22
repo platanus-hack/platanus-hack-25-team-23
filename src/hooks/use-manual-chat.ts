@@ -50,36 +50,74 @@ export function useManualChat({ api = '/api/chat', onFinish, onError }: any = {}
       
       setMessages(prev => [...prev, assistantMsg]);
 
+      let buffer = '';
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         
         const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
         
-        // Simple parsing for Data Stream Protocol (0:"text")
+        const lines = buffer.split('\n');
+        // Keep the last line in the buffer as it might be incomplete
+        buffer = lines.pop() || '';
+
         let textToAdd = '';
-        
-        if (chunk.startsWith('0:')) {
-            const lines = chunk.split('\n');
-            for (const line of lines) {
-                if (line.startsWith('0:')) {
-                    try {
-                        // Remove "0:" and parse JSON string
-                        // The format is 0:"some text"
-                        // JSON.parse('"some text"') -> "some text"
-                        const jsonStr = line.slice(2);
-                        if (jsonStr.trim()) {
-                            const content = JSON.parse(jsonStr);
-                            textToAdd += content;
-                        }
-                    } catch (e) {
-                        console.error('Parse error:', e);
+
+        for (const line of lines) {
+            if (!line.trim()) continue;
+
+            if (line.startsWith('0:')) {
+                try {
+                    const jsonStr = line.slice(2);
+                    if (jsonStr.trim()) {
+                        const content = JSON.parse(jsonStr);
+                        textToAdd += content;
                     }
+                } catch (e) {
+                    console.error('Parse error 0:', e);
                 }
+            } else if (line.startsWith('T:')) {
+                // Tool Delta
+                try {
+                    const payload = JSON.parse(line.slice(2));
+                    setCurrentTool(prev => {
+                        if (!prev) return { name: payload.name || 'unknown', args: payload.args || '' };
+                        return { ...prev, args: prev.args + (payload.args || '') };
+                    });
+                } catch (e) { console.error('Tool parse error T:', e); }
+            } else if (line.startsWith('S:')) {
+                // Tool Start
+                try {
+                    const payload = JSON.parse(line.slice(2));
+                    // Only set if we don't have a tool yet, or if it's a different tool.
+                    // Crucial: Do NOT reset args if we are already streaming this tool!
+                    setCurrentTool(prev => {
+                        // If we have a tool but name is unknown, update the name but KEEP args!
+                        if (prev && prev.name === 'unknown') {
+                             return { ...prev, name: payload.name };
+                        }
+                        // If we already have this tool, do nothing
+                        if (prev && prev.name === payload.name) {
+                            return prev;
+                        }
+                        // New tool? Reset.
+                        return { name: payload.name, args: '' };
+                    });
+                } catch (e) {}
+            } else if (line.startsWith('E:')) {
+                // Tool End
+                setCurrentTool(null);
+            } else {
+                // Unknown format or raw text?
+                // If we are strict, we ignore. 
+                // If we are loose, we append. 
+                // Given the issue "veo los chunks en raw", we should be strict and NOT append unless we are sure.
+                // But standard Vercel AI SDK might send raw text? No, it uses 0: protocol.
+                // So ignoring is safer to prevent leaks.
+                // console.log('Ignored line:', line);
             }
-        } else {
-            // Fallback for raw text or other formats
-            textToAdd = chunk;
         }
 
         if (textToAdd) {
@@ -104,6 +142,8 @@ export function useManualChat({ api = '/api/chat', onFinish, onError }: any = {}
     }
   }, [messages, api, onFinish, onError]);
 
+  const [currentTool, setCurrentTool] = useState<{ name: string; args: string } | null>(null);
+
   const handleSubmit = (e?: any) => {
     if (e && e.preventDefault) e.preventDefault();
     if (!input.trim()) return;
@@ -112,8 +152,6 @@ export function useManualChat({ api = '/api/chat', onFinish, onError }: any = {}
   };
 
   const reload = () => {
-      // Simple reload: remove last assistant message and re-send last user message
-      // Not fully implemented for this demo but prevents crash
       console.log('Reload not fully implemented in manual hook');
   };
 
@@ -131,6 +169,7 @@ export function useManualChat({ api = '/api/chat', onFinish, onError }: any = {}
     error,
     reload,
     stop,
-    sendMessage: append // Alias for compatibility
+    sendMessage: append,
+    currentTool // Expose this!
   };
 }

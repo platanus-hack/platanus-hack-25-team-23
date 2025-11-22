@@ -108,7 +108,7 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
       }
     })
 
-    // Listen for changes
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -123,8 +123,28 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
       }
     })
 
-    return () => subscription.unsubscribe()
-  }, [loadUserNotes])
+    // Realtime subscription for notes
+    const notesSubscription = supabase
+      .channel('notes-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notes' },
+        (payload) => {
+          console.log('Realtime update:', payload)
+          if (session?.user) {
+             // For simplicity, just reload all notes to ensure consistency
+             // In a production app, we would optimistically update the state based on the payload
+             loadUserNotes(session.user.id)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
+      notesSubscription.unsubscribe()
+    }
+  }, [loadUserNotes, session?.user?.id])
 
   const pendingParentTopic = React.useRef<string | undefined>(undefined)
 

@@ -9,7 +9,6 @@ import {
 import {
   Message,
   MessageContent,
-  MessageResponse,
   MessageActions,
   MessageAction,
 } from '@/components/ai-elements/message';
@@ -35,7 +34,7 @@ import {
   PromptInputFooter,
   PromptInputTools,
 } from '@/components/ai-elements/prompt-input';
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useManualChat } from '@/hooks/use-manual-chat';
 import { CopyIcon, GlobeIcon, RefreshCcwIcon } from 'lucide-react';
 import {
@@ -50,6 +49,10 @@ import {
   ReasoningTrigger,
 } from '@/components/ai-elements/reasoning';
 import { Loader } from '@/components/ai-elements/loader';
+import { ChatWelcomeScreen } from './ChatWelcomeScreen';
+import { NoteRenderer } from '@/components/NoteRenderer';
+import { useKnowledge } from '@/lib/store/knowledge-context';
+import { extractAttributeFromPartialJson } from '@/lib/partial-json';
 
 const models = [
   {
@@ -66,7 +69,17 @@ export function ChatView() {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
   const [webSearch, setWebSearch] = useState(false);
+  const [level, setLevel] = useState<'beginner' | 'intermediate' | 'expert'>('beginner');
   
+  // Use context to get recent notes for the welcome screen
+  const { notes } = useKnowledge();
+  const recentTopics = Array.from(new Set(notes
+    .slice(-5) // Take a few more to ensure we have enough after dedup
+    .reverse()
+    .map(note => note.title)
+    .filter(title => title && title.length > 0)))
+    .slice(0, 3); // Take top 3 unique
+
   // Use our custom manual hook
   const chatHelpers = useManualChat({
     api: '/api/chat',
@@ -77,14 +90,98 @@ export function ChatView() {
     }
   });
   
-  const { messages, append, sendMessage, status, reload, stop } = chatHelpers;
+  const { messages, append, sendMessage, status, reload, stop, currentTool } = chatHelpers;
   
   console.log('ChatView: useChat keys:', Object.keys(chatHelpers));
   
-  const handleSubmit = (message: PromptInputMessage) => {
-    console.log('ChatView: handleSubmit triggered', message);
-    const hasText = Boolean(message.text);
-    const hasAttachments = Boolean(message.files?.length);
+  const [activeNote, setActiveNote] = useState<{ title: string; content: string } | null>(null);
+
+  // Effect to handle streaming tool updates
+  useEffect(() => {
+    if (currentTool && currentTool.name === 'write_file') {
+        let content = '';
+        let title = 'Generating...';
+        
+        // Use robust partial parser
+        const extractedContent = extractAttributeFromPartialJson(currentTool.args, 'content');
+        const extractedPath = extractAttributeFromPartialJson(currentTool.args, 'path') || extractAttributeFromPartialJson(currentTool.args, 'file_path');
+        
+        if (extractedContent) {
+            content = extractedContent;
+        } else {
+            // Fallback: If extraction fails, show raw args wrapped in code block so we see what's happening
+            // This is better than blank screen.
+            content = "```json\n" + currentTool.args + "\n```";
+        }
+
+        if (extractedPath) {
+            title = extractedPath.split('/').pop() || 'New Note';
+        }
+
+        setActiveNote({
+            title: title,
+            content: content
+        });
+    }
+  }, [currentTool]);
+
+  // Helper to handle link/artifact clicks
+  const handleLinkClick = (term: string) => {
+    console.log('Link clicked:', term);
+
+    // 0. Check if we are currently streaming this note!
+    // This prevents "Loading..." from overwriting the live stream if user clicks the card.
+    if (currentTool && currentTool.name === 'write_file') {
+        const streamingPath = extractAttributeFromPartialJson(currentTool.args, 'path') || extractAttributeFromPartialJson(currentTool.args, 'file_path');
+        const streamingTitle = streamingPath ? streamingPath.split('/').pop() : '';
+        
+        // Fuzzy match: if term is contained in streaming path/title or vice versa
+        if (streamingPath && (streamingPath.includes(term) || term.includes(streamingTitle || '____'))) {
+             console.log('Link click matches streaming note, ignoring DB fetch');
+             // We don't need to do anything because the useEffect is already updating activeNote!
+             // Just ensure panel is open (it should be).
+             return;
+        }
+    }
+
+    // 1. Normalize term (handle file paths like /notes/Foo.md)
+    let searchTitle = term;
+    if (term.includes('/') || term.endsWith('.md')) {
+        searchTitle = term.split('/').pop()?.replace('.md', '') || term;
+    }
+    
+    // 2. Try to find in loaded notes using fuzzy matching on title/slug
+    const note = notes.find(n => 
+        n.title === searchTitle || 
+        n.slug === searchTitle || 
+        n.title.toLowerCase() === searchTitle.toLowerCase() ||
+        n.title === term // Fallback to original term just in case
+    );
+    
+    if (note) {
+      setActiveNote({ title: note.title, content: note.content });
+    } else {
+      // If not found, DO NOT auto-send message. User finds this annoying.
+      // Instead, open the panel with a "Ghost Node" state.
+      console.log('Note not found locally:', term);
+      
+      // Check if it looks like a path
+      const displayTitle = term.split('/').pop()?.replace('.md', '') || term;
+      
+      setActiveNote({ 
+          title: displayTitle, 
+          content: `# ${displayTitle}\n\nThis note does not exist yet.\n\n[Generate this note](action:generate:${term})` 
+      });
+    }
+  };
+
+  const handleSubmit = (message: PromptInputMessage | string) => {
+    const text = typeof message === 'string' ? message : message.text;
+    const files = typeof message === 'string' ? undefined : message.files;
+
+    console.log('ChatView: handleSubmit triggered', text);
+    const hasText = Boolean(text);
+    const hasAttachments = Boolean(files?.length);
 
     if (!(hasText || hasAttachments)) {
       console.warn('ChatView: Empty submission');
@@ -94,22 +191,37 @@ export function ChatView() {
     append(
       { 
         role: 'user',
-        content: message.text || 'Sent with attachments',
-        // files: message.files // Attachments not yet supported by backend
+        content: text || 'Sent with attachments',
+        // files: files // Attachments not yet supported by backend
       },
       {
         body: {
           model: model,
           webSearch: webSearch,
+          level: level, // Pass level to backend (needs backend support to use it)
         },
       },
     );
     setInput('');
   };
 
+  // If no messages, show the Welcome Screen
+  if (messages.length === 0) {
+    return (
+      <ChatWelcomeScreen 
+        onQuery={handleSubmit}
+        level={level}
+        setLevel={setLevel}
+        recentTopics={recentTopics}
+        isLoading={status === 'submitted' || status === 'streaming'}
+      />
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto p-6 relative size-full h-full">
-      <div className="flex flex-col h-full">
+    <div className="max-w-[1600px] mx-auto p-6 relative size-full h-full flex gap-6">
+      {/* Left Panel: Chat (Flexible width) */}
+      <div className={`flex flex-col h-full transition-all duration-300 ${activeNote ? 'w-1/2' : 'w-full max-w-4xl mx-auto'}`}>
         <Conversation className="h-full">
           <ConversationContent>
             {messages.map((message) => (
@@ -139,9 +251,15 @@ export function ChatView() {
                 {(!message.parts || message.parts.length === 0) && message.content && (
                     <Message from={message.role}>
                         <MessageContent>
-                            <MessageResponse>
-                                {message.content}
-                            </MessageResponse>
+                            {message.role === 'user' ? (
+                                <div className="whitespace-pre-wrap">{message.content}</div>
+                            ) : (
+                                <NoteRenderer 
+                                    content={message.content} 
+                                    isStreaming={status === 'streaming' && message.id === messages.at(-1)?.id}
+                                    onLinkClick={handleLinkClick}
+                                />
+                            )}
                         </MessageContent>
                     </Message>
                 )}
@@ -152,9 +270,15 @@ export function ChatView() {
                       return (
                         <Message key={`${message.id}-${i}`} from={message.role}>
                           <MessageContent>
-                            <MessageResponse>
-                                {part.text}
-                            </MessageResponse>
+                            {message.role === 'user' ? (
+                                <div className="whitespace-pre-wrap">{part.text}</div>
+                            ) : (
+                                <NoteRenderer 
+                                    content={part.text} 
+                                    isStreaming={status === 'streaming' && i === message.parts.length - 1 && message.id === messages.at(-1)?.id}
+                                    onLinkClick={handleLinkClick}
+                                />
+                            )}
                           </MessageContent>
                           {message.role === 'assistant' && i === messages.length - 1 && (
                             <MessageActions>
@@ -248,6 +372,24 @@ export function ChatView() {
           </PromptInputFooter>
         </PromptInput>
       </div>
+
+      {/* Right Panel: Note Viewer */}
+      {activeNote && (
+        <div className="w-1/2 h-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden flex flex-col animate-in slide-in-from-right-10 duration-300">
+          <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/50">
+            <h2 className="font-bold text-lg truncate">{activeNote.title}</h2>
+            <button 
+              onClick={() => setActiveNote(null)}
+              className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-8">
+             <NoteRenderer content={activeNote.content} onLinkClick={handleLinkClick} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

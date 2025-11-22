@@ -38,15 +38,18 @@ export async function POST(req: Request) {
     );
 
     const writeFile = tool(
-      async ({ path, content }) => {
-        await vfs.writeFile(path, content);
-        return `File '${path}' written successfully.`;
+      async ({ path, file_path, content }) => {
+        const targetPath = path || file_path;
+        if (!targetPath) throw new Error('Path is required');
+        await vfs.writeFile(targetPath, content);
+        return `File '${targetPath}' written successfully.`;
       },
       {
         name: 'write_file',
-        description: 'Create or update a markdown file.',
+        description: 'Create or update a markdown file. You must provide the path and content.',
         schema: z.object({
-          path: z.string().describe('The full path to the file'),
+          path: z.string().optional().describe('The full path to the file (e.g. /notes/React.md)'),
+          file_path: z.string().optional().describe('Alias for path'),
           content: z.string().describe('The markdown content'),
         }),
       }
@@ -80,9 +83,38 @@ export async function POST(req: Request) {
       }
     );
 
-    const SYSTEM_PROMPT = `You are a Knowledge Graph assistant. 
-      Use the VFS tools to manage notes. 
-      ALWAYS use [[WikiLinks]] for concepts.`;
+    const SYSTEM_PROMPT = `You are KnowledgeFlow, an AI that generates atomic, interconnected knowledge notes.
+    
+    ## Core Objective
+    You are NOT a chatbot. You are a **Graph Builder**.
+    Your goal is to build a Knowledge Graph by creating Markdown files in the Virtual File System (VFS).
+    
+    ## Critical Rules
+    1. **ALWAYS Create a File**: When the user asks about a topic, you MUST create a new Markdown file for it using \`write_file\`.
+    2. **File = Node**: Every file you create becomes a node in the graph.
+    3. **Links = Edges**: Use [[WikiLinks]] to connect concepts. These become edges in the graph.
+    4. **Language**: Speak in **Spanish** (Español) unless requested otherwise.
+    5. **Conciseness**: Be concise. Don't repeat yourself.
+    6. **Artifacts**: When you create a file, you MUST display it to the user using this specific syntax in your response:
+       :::artifact{path="/notes/Topic.md"}:::
+       (Replace /notes/Topic.md with the actual path you wrote to).
+
+    ## Content Format Rules (for the file content)
+    1. **Structure**: Start with a clear definition, then expand with sections.
+    2. **Clickable Terms**: Wrap technical terms in [[double brackets]].
+       - Terms should be singular and capitalized: [[Machine Learning]], not [[machine learning]].
+       - Only link terms that genuinely need explanation.
+    3. **Callouts**: Use these markers for emphasis (start line with "- marker "):
+       - "- & " Key insight
+       - "- ! " Important point
+       - "- !! " Warning or common misconception
+       - "- ? " Question to explore further
+       - "- Ex: " Brief example
+       - "- Obs: " Observation
+    4. **Math**: Use LaTeX with single $ for inline, $$ for block.
+    5. **Code**: Use fenced code blocks with language identifier.
+    6. **Tone**: First person, direct, educational.
+    `;
 
     // Initialize Agent
     const modelInstance = new ChatOpenAI({
@@ -126,19 +158,41 @@ export async function POST(req: Request) {
 
           let chunkCount = 0;
           for await (const event of eventStream) {
+            // console.log('API: Event:', event.event, event.name); // DEBUG ALL EVENTS
             if (event.event === 'on_chat_model_stream') {
                 // This is a token chunk from the LLM
-                const token = event.data.chunk.content;
-                if (token) {
-                    // console.log('API: Token:', token); // Too noisy for production logs
-                    controller.enqueue(encoder.encode(`0:${JSON.stringify(token)}\n`));
+                const chunk = event.data.chunk;
+                
+                // Handle text content
+                if (chunk.content) {
+                    controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk.content)}\n`));
                     chunkCount++;
+                }
+
+                // Handle tool call chunks (streaming arguments)
+                if (chunk.tool_call_chunks && chunk.tool_call_chunks.length > 0) {
+                    for (const toolChunk of chunk.tool_call_chunks) {
+                        
+                        // Crucial: Send if it has args OR name. 
+                        // The first chunk usually has name but empty args.
+                        if (toolChunk.args || toolChunk.name) {
+                            const payload = {
+                                name: toolChunk.name,
+                                args: toolChunk.args,
+                                id: toolChunk.id,
+                                index: toolChunk.index
+                            };
+                            controller.enqueue(encoder.encode(`T:${JSON.stringify(payload)}\n`));
+                        }
+                    }
                 }
             } else if (event.event === 'on_tool_start') {
                 console.log('API: Tool Start:', event.name);
-                // Optional: Send tool status to UI if needed
+                // Notify frontend tool started (optional, but good for UI state)
+                controller.enqueue(encoder.encode(`S:${JSON.stringify({ name: event.name })}\n`));
             } else if (event.event === 'on_tool_end') {
                 console.log('API: Tool End:', event.name);
+                controller.enqueue(encoder.encode(`E:${JSON.stringify({ name: event.name })}\n`));
             }
           }
           console.log(`API: Stream finished. Total token chunks: ${chunkCount}`);

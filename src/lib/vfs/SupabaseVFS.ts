@@ -159,7 +159,9 @@ export class SupabaseVFS {
     if (parentId) query.eq('parent_id', parentId);
     else query.is('parent_id', null);
 
-    const { data: existing } = await query.single();
+    // Use maybeSingle() to avoid error if 0 rows, but it still errors if >1 rows.
+    // So we use limit(1) to be safe against duplicates, then single() or maybeSingle().
+    const { data: existing } = await query.limit(1).maybeSingle();
 
     if (existing) {
       await supabase
