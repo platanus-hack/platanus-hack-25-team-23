@@ -1,10 +1,12 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Check, X, Loader2 } from 'lucide-react'
 
-export default function GoogleCallbackPage() {
+export const dynamic = 'force-dynamic'
+
+function CallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -98,71 +100,91 @@ export default function GoogleCallbackPage() {
   }, [router, searchParams])
 
   return (
+    <div className="text-center max-w-md p-8">
+      {status === 'loading' && (
+        <>
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+            style={{ backgroundColor: '#E6DAFF' }}
+          >
+            <Loader2 className="size-10 animate-spin" style={{ color: '#9575CD' }} />
+          </div>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+            Conectando con Google Calendar...
+          </h2>
+          <p style={{ color: 'var(--muted-foreground)' }}>
+            Por favor espera mientras procesamos tu autorizacion
+          </p>
+        </>
+      )}
+
+      {status === 'success' && (
+        <>
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+            style={{ backgroundColor: '#D4F5E9' }}
+          >
+            <Check className="size-10" style={{ color: '#10B981' }} />
+          </div>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+            Conectado exitosamente!
+          </h2>
+          <p style={{ color: 'var(--muted-foreground)' }}>
+            Tu Google Calendar ha sido vinculado permanentemente. Redirigiendo...
+          </p>
+        </>
+      )}
+
+      {status === 'error' && (
+        <>
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+            style={{ backgroundColor: '#FFD9D9' }}
+          >
+            <X className="size-10" style={{ color: '#D46A6A' }} />
+          </div>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+            Error de conexion
+          </h2>
+          <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>
+            {errorMessage}
+          </p>
+          <button
+            onClick={() => router.push('/calendar')}
+            className="px-6 py-3 rounded-xl font-medium text-white transition-all hover:scale-[1.02]"
+            style={{
+              background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
+            }}
+          >
+            Volver al calendario
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
+export default function GoogleCallbackPage() {
+  return (
     <div
       className="flex-1 flex items-center justify-center"
       style={{ backgroundColor: 'var(--background)' }}
     >
-      <div className="text-center max-w-md p-8">
-        {status === 'loading' && (
-          <>
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-              style={{ backgroundColor: '#E6DAFF' }}
-            >
-              <Loader2 className="size-10 animate-spin" style={{ color: '#9575CD' }} />
-            </div>
-            <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
-              Conectando con Google Calendar...
-            </h2>
-            <p style={{ color: 'var(--muted-foreground)' }}>
-              Por favor espera mientras procesamos tu autorizacion
-            </p>
-          </>
-        )}
-
-        {status === 'success' && (
-          <>
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-              style={{ backgroundColor: '#D4F5E9' }}
-            >
-              <Check className="size-10" style={{ color: '#10B981' }} />
-            </div>
-            <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
-              Conectado exitosamente!
-            </h2>
-            <p style={{ color: 'var(--muted-foreground)' }}>
-              Tu Google Calendar ha sido vinculado permanentemente. Redirigiendo...
-            </p>
-          </>
-        )}
-
-        {status === 'error' && (
-          <>
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-              style={{ backgroundColor: '#FFD9D9' }}
-            >
-              <X className="size-10" style={{ color: '#D46A6A' }} />
-            </div>
-            <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
-              Error de conexion
-            </h2>
-            <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>
-              {errorMessage}
-            </p>
-            <button
-              onClick={() => router.push('/calendar')}
-              className="px-6 py-3 rounded-xl font-medium text-white transition-all hover:scale-[1.02]"
-              style={{
-                background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
-              }}
-            >
-              Volver al calendario
-            </button>
-          </>
-        )}
-      </div>
+      <Suspense fallback={
+        <div className="text-center max-w-md p-8">
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+            style={{ backgroundColor: '#E6DAFF' }}
+          >
+            <Loader2 className="size-10 animate-spin" style={{ color: '#9575CD' }} />
+          </div>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+            Cargando...
+          </h2>
+        </div>
+      }>
+        <CallbackContent />
+      </Suspense>
     </div>
   )
 }

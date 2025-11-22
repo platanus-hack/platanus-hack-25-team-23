@@ -1,5 +1,5 @@
-import { NewQueryView } from "@/components/views/NewQueryView"
+import { ChatView } from "@/components/views/ChatView"
 
 export default function NewQueryPage() {
-  return <NewQueryView />
+  return <ChatView />
 }
