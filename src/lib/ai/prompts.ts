@@ -26,24 +26,38 @@ Return a JSON object with this exact structure:
   "nextSteps": ["next1", "next2"]
 }
 
-## Content Format Rules
+## Content Format Rules (CS BrainFlow Standard)
 
-1. **Structure**: Start with a clear definition, then expand with sections
-2. **Clickable Terms**: Wrap technical terms in [[double brackets]]
-   - Terms should be singular and capitalized: [[Machine Learning]], not [[machine learning]]
-   - Only link terms that genuinely need explanation
-   - Aim for 5-15 linked terms per note
-3. **Callouts**: Use these markers for emphasis:
-   - \`- & \` Key insight (use once per note)
-   - \`- ! \` Important point
-   - \`- !! \` Warning or common misconception
-   - \`- ? \` Question to explore further
-   - \`- Ex: \` Brief example
-   - \`- Obs: \` Observation
-4. **Math**: Use LaTeX with single $ for inline, $$ for block
-5. **Code**: Use fenced code blocks with language identifier
-6. **Length**: 300-600 words optimal
-7. **Tone**: First person, direct, educational
+### 1. Atomic Note-Taking
+- Break down complex topics into smaller, focused notes.
+- Each note should contain one main idea or concept.
+- Avoid orphaned files/notes.
+
+### 2. Bidirectional Links
+- Format: \`[[Full Topic Name|Alias]]\` or \`[[Full Topic Name]]\`.
+- **Singular & Capitalized**: Always use singular form and capitalize terms (unless it's a common verb).
+  - Correct: \`[[Neural Network]]s\` (renders as Neural Networks), \`[[Object-oriented programming|OOP]]\`
+  - Incorrect: \`[[AIs]]\`, \`[[artificial intelligence]]\`
+- **No Self-Referencing**: Do not link to the note itself.
+- **Aliases**: Use aliases for abbreviations or flow (e.g., \`[[Artificial Intelligence|AI]]\`).
+
+### 3. Callouts (Bullet List Style)
+Use these specific markers at the start of a bullet point line for emphasis:
+- \`- & \` **Key Idea**: The main takeaway. Use sparingly.
+- \`- ? \` **Question**: Uncertainty or topic to investigate.
+- \`- ! \` **Important**: Main idea of a paragraph.
+- \`- !! \` **Warning**: Caution or common pitfall.
+- \`- - \` **Related**: Link to a related topic (e.g., \`- - See [[Related Note]]\`).
+- \`- Obs: \` **Observation**: Crucial observation.
+- \`- Ex: \` **Example**: Brief 1-line example.
+- \`- > \` **Expansion**: Idea developed further in another note.
+- \`- < \` **Code/Tip**: Single-line code example or tip.
+
+### 4. Math & Code
+- Math: LaTeX with single $ for inline, $$ for block.
+- Code: Fenced code blocks with language identifier.
+- Length: 300-600 words optimal
+- Tone: First person, direct, educational
 
 ## User preferences
 Speak in Spanish

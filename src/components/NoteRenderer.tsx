@@ -250,14 +250,14 @@ function Callout({ type, children }: { type: string, children: React.ReactNode }
 }
 
 // Link component
-function ConceptLink({ term, onClick }: { term: string, onClick?: (term: string) => void }) {
+function ConceptLink({ term, displayText, onClick }: { term: string, displayText?: string, onClick?: (term: string) => void }) {
   return (
     <button
       onClick={() => onClick?.(term)}
       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors font-medium text-sm cursor-pointer border border-indigo-200 hover:border-indigo-300"
     >
       <BookOpen className="size-3" />
-      {term}
+      {displayText || term}
     </button>
   )
 }
@@ -297,7 +297,8 @@ export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRenderer
       {parsed.map((part, index) => {
         switch (part.type) {
           case 'link':
-            return <ConceptLink key={index} term={part.value} onClick={onLinkClick} />
+            const [target, alias] = part.value.split('|');
+            return <ConceptLink key={index} term={target} displayText={alias || target} onClick={onLinkClick} />
 
           case 'md-link':
             // Check if it's an internal file path (starts with /) or external URL
