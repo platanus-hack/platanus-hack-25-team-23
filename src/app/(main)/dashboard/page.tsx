@@ -72,8 +72,8 @@ export default function DashboardPage() {
   const { getEntry, getStreak: getJournalStreak } = useJournal()
   // No async loading needed - all data comes from context
   const loading = false
-  // Streak disabled - user_progress table doesn't exist in Supabase
-  const streak = 0
+  // Get streak from journal entries
+  const streak = getJournalStreak()
 
   // Journal data
   const todayDate = formatDate(new Date())
@@ -139,8 +139,9 @@ export default function DashboardPage() {
       .filter(a => a.total > 0)
   }, [notes, contextAreas])
 
+  // Progress: understood = 100%, in progress = 50% credit (same as area progress)
   const progressPercent = stats.total_notes > 0
-    ? Math.round((stats.understood_notes / stats.total_notes) * 100)
+    ? Math.round(((stats.understood_notes + stats.in_progress_notes * 0.5) / stats.total_notes) * 100)
     : 0
 
   const completedHours = stats.understood_notes * 2
@@ -214,7 +215,18 @@ export default function DashboardPage() {
               />
             </div>
             <p className="text-xs mt-2" style={{ color: '#9A9A9A' }}>
-              {loading ? '-' : `${stats.understood_notes} de ${stats.total_notes} notas`}
+              {loading ? '-' : (
+                stats.understood_notes > 0 || stats.in_progress_notes > 0 ? (
+                  <>
+                    {stats.understood_notes > 0 && <span style={{ color: '#10B981' }}>✓{stats.understood_notes}</span>}
+                    {stats.understood_notes > 0 && stats.in_progress_notes > 0 && ' '}
+                    {stats.in_progress_notes > 0 && <span style={{ color: '#F59E0B' }}>◐{stats.in_progress_notes}</span>}
+                    {' / '}{stats.total_notes} notas
+                  </>
+                ) : (
+                  `${stats.total_notes} notas pendientes`
+                )
+              )}
             </p>
           </div>
 
