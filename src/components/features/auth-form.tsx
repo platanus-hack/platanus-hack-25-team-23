@@ -60,7 +60,7 @@ export function AuthForm() {
     <div className="flex items-center justify-center h-full p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Welcome to KnowledgeFlow</CardTitle>
+          <CardTitle>Welcome to BrainFlow</CardTitle>
           <CardDescription>Sign in to start your learning journey</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

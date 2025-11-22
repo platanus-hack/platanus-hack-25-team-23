@@ -18,7 +18,7 @@ export function MainLayout({ notePanel, graphPanel }: MainLayoutProps) {
   return (
     <div className="h-screen w-full bg-background text-foreground flex flex-col">
       <header className="h-14 border-b flex items-center px-4 shrink-0">
-        <h1 className="font-bold text-lg">KnowledgeFlow</h1>
+        <h1 className="font-bold text-lg">BrainFlow</h1>
         <div className="ml-auto flex items-center gap-2">
           {/* User profile, stats, etc. */}
         </div>

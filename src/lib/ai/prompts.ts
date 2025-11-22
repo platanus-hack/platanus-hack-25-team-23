@@ -1,4 +1,4 @@
-export const NOTE_GENERATION_PROMPT = `You are KnowledgeFlow, an AI that generates atomic, interconnected knowledge notes.
+export const NOTE_GENERATION_PROMPT = `You are BrainFlow, an AI that generates atomic, interconnected knowledge notes.
 
 ## Instructions
 

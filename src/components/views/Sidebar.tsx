@@ -1,8 +1,9 @@
 "use client"
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Network, GitBranch, User, Plus, FolderOpen, Search, Brain, LogOut, Flame, Calendar } from 'lucide-react';
+import { Home, Network, GitBranch, User, Plus, FolderOpen, Search, LogOut, Flame, Calendar, BookHeart } from 'lucide-react';
 import { useKnowledge } from '@/lib/store/knowledge-context';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -29,6 +30,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
     { id: 'dashboard', label: 'Dashboard', icon: Home, href: '/dashboard' },
     { id: 'new-query', label: 'Nueva Consulta', icon: Plus, href: '/new-query', highlight: true },
     { id: 'library', label: 'Biblioteca', icon: FolderOpen, href: '/library' },
+    { id: 'journal', label: 'Journal', icon: BookHeart, href: '/journal' },
     { id: 'graph', label: 'Grafo', icon: Network, href: '/graph' },
     { id: 'tree', label: 'Ruta', icon: GitBranch, href: '/tree' },
     { id: 'calendar', label: 'Calendario', icon: Calendar, href: '/calendar' },
@@ -51,21 +53,19 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
         style={{ borderBottom: '1px solid var(--sidebar-border)' }}
       >
         <Link href="/dashboard" className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center"
-            style={{
-              background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
-              boxShadow: '0px 2px 8px rgba(201, 183, 243, 0.3)'
-            }}
-          >
-            <Brain className="size-5 text-white" />
-          </div>
+          <Image
+            src="/logo.png"
+            alt="BrainFlow"
+            width={40}
+            height={40}
+            className="object-contain"
+          />
           {!isCollapsed && (
             <span
               className="text-xl font-bold"
               style={{ color: '#C9B7F3' }}
             >
-              KnowledgeFlow
+              BrainFlow
             </span>
           )}
         </Link>
