@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useMemo } from 'react'
-import { useKnowledge } from '@/lib/store/knowledge-context'
+import React, { useMemo, useEffect, useState } from 'react'
 import { AlertCircle, Lightbulb, HelpCircle, Code, Eye, Sparkles } from 'lucide-react'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 
 interface NoteRendererProps {
   content: string
@@ -10,19 +11,68 @@ interface NoteRendererProps {
   isStreaming?: boolean
 }
 
-// Parse [[links]] and callouts from content
+// Render LaTeX to HTML using KaTeX
+function renderLatex(latex: string, displayMode: boolean = false): string {
+  try {
+    return katex.renderToString(latex, {
+      displayMode,
+      throwOnError: false,
+      strict: false,
+      trust: true,
+      macros: {
+        "\\R": "\\mathbb{R}",
+        "\\N": "\\mathbb{N}",
+        "\\Z": "\\mathbb{Z}",
+        "\\Q": "\\mathbb{Q}",
+        "\\C": "\\mathbb{C}",
+      }
+    })
+  } catch (error) {
+    console.error('KaTeX error:', error)
+    return `<span class="text-red-500">${latex}</span>`
+  }
+}
+
+// Parse [[links]], callouts, and math from content
 function parseContent(content: string) {
   if (!content) return []
 
-  const parts: Array<{ type: 'text' | 'link' | 'callout' | 'code' | 'heading' | 'math', value: string, calloutType?: string }> = []
+  const parts: Array<{
+    type: 'text' | 'link' | 'callout' | 'code' | 'heading' | 'math-block' | 'math-inline',
+    value: string,
+    calloutType?: string
+  }> = []
 
   // Split by lines first to handle callouts and code blocks
   const lines = content.split('\n')
   let inCodeBlock = false
   let codeContent = ''
   let codeLanguage = ''
+  let inMathBlock = false
+  let mathContent = ''
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    // Handle multi-line math blocks ($$...$$)
+    if (line.trim() === '$$') {
+      if (inMathBlock) {
+        // End of math block
+        parts.push({ type: 'math-block', value: mathContent.trim() })
+        mathContent = ''
+        inMathBlock = false
+      } else {
+        // Start of math block
+        inMathBlock = true
+      }
+      continue
+    }
+
+    if (inMathBlock) {
+      mathContent += (mathContent ? '\n' : '') + line
+      continue
+    }
+
     // Handle code blocks
     if (line.startsWith('```')) {
       if (inCodeBlock) {
@@ -60,43 +110,58 @@ function parseContent(content: string) {
       continue
     }
 
-    // Handle math blocks
-    if (line.includes('$$')) {
-      const mathMatch = line.match(/\$\$(.+?)\$\$/)
-      if (mathMatch) {
-        parts.push({ type: 'math', value: mathMatch[1] })
-        continue
-      }
+    // Handle inline math blocks on single line ($$...$$)
+    const blockMathMatch = line.match(/^\$\$(.+?)\$\$$/)
+    if (blockMathMatch) {
+      parts.push({ type: 'math-block', value: blockMathMatch[1] })
+      continue
     }
 
-    // Parse regular text with [[links]]
+    // Parse regular text with [[links]] and inline math ($...$)
     if (line.trim()) {
-      const linkRegex = /\[\[([^\]]+)\]\]/g
-      let lastIndex = 0
-      let match
-
-      while ((match = linkRegex.exec(line)) !== null) {
-        // Add text before the link
-        if (match.index > lastIndex) {
-          parts.push({ type: 'text', value: line.slice(lastIndex, match.index) })
-        }
-        // Add the link
-        parts.push({ type: 'link', value: match[1] })
-        lastIndex = match.index + match[0].length
-      }
-
-      // Add remaining text
-      if (lastIndex < line.length) {
-        parts.push({ type: 'text', value: line.slice(lastIndex) + '\n' })
-      } else {
-        parts.push({ type: 'text', value: '\n' })
-      }
+      parseLineWithMathAndLinks(line, parts)
     } else {
       parts.push({ type: 'text', value: '\n' })
     }
   }
 
   return parts
+}
+
+// Parse a line for both [[links]] and inline $math$
+function parseLineWithMathAndLinks(
+  line: string,
+  parts: Array<{ type: 'text' | 'link' | 'callout' | 'code' | 'heading' | 'math-block' | 'math-inline', value: string, calloutType?: string }>
+) {
+  // Combined regex for links and inline math
+  // Matches: [[link]] or $math$ (but not $$)
+  const combinedRegex = /\[\[([^\]]+)\]\]|(?<!\$)\$(?!\$)([^$]+)\$(?!\$)/g
+  let lastIndex = 0
+  let match
+
+  while ((match = combinedRegex.exec(line)) !== null) {
+    // Add text before the match
+    if (match.index > lastIndex) {
+      parts.push({ type: 'text', value: line.slice(lastIndex, match.index) })
+    }
+
+    if (match[1]) {
+      // It's a [[link]]
+      parts.push({ type: 'link', value: match[1] })
+    } else if (match[2]) {
+      // It's inline $math$
+      parts.push({ type: 'math-inline', value: match[2] })
+    }
+
+    lastIndex = match.index + match[0].length
+  }
+
+  // Add remaining text
+  if (lastIndex < line.length) {
+    parts.push({ type: 'text', value: line.slice(lastIndex) + '\n' })
+  } else {
+    parts.push({ type: 'text', value: '\n' })
+  }
 }
 
 // Callout component
@@ -185,6 +250,31 @@ function ConceptLink({ term, onClick }: { term: string, onClick?: (term: string)
   )
 }
 
+// Math component for rendering LaTeX
+function MathBlock({ latex, displayMode }: { latex: string, displayMode: boolean }) {
+  const html = useMemo(() => renderLatex(latex, displayMode), [latex, displayMode])
+
+  if (displayMode) {
+    return (
+      <div
+        className="my-4 py-4 px-6 rounded-2xl overflow-x-auto"
+        style={{
+          backgroundColor: '#F6F8FA',
+          border: '1px solid #E6E6E6'
+        }}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    )
+  }
+
+  return (
+    <span
+      className="mx-1"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
+}
+
 export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRendererProps) {
   const parsed = useMemo(() => parseContent(content), [content])
 
@@ -216,12 +306,11 @@ export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRenderer
               </pre>
             )
 
-          case 'math':
-            return (
-              <div key={index} className="bg-gray-100 rounded-xl p-4 my-4 font-mono text-center overflow-x-auto">
-                {part.value}
-              </div>
-            )
+          case 'math-block':
+            return <MathBlock key={index} latex={part.value} displayMode={true} />
+
+          case 'math-inline':
+            return <MathBlock key={index} latex={part.value} displayMode={false} />
 
           case 'text':
           default:
