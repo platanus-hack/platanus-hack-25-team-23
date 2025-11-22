@@ -38,7 +38,7 @@ function parseContent(content: string) {
   if (!content) return []
 
   const parts: Array<{
-    type: 'text' | 'link' | 'callout' | 'code' | 'heading' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact',
+    type: 'text' | 'link' | 'md-link' | 'callout' | 'code' | 'heading' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact',
     value: string,
     calloutType?: string
   }> = []
@@ -131,11 +131,11 @@ function parseContent(content: string) {
 // Parse a line for [[links]], inline $math$, **bold**, *italic*, and :::artifact:::
 function parseLineWithMathAndLinks(
   line: string,
-  parts: Array<{ type: 'text' | 'link' | 'callout' | 'code' | 'heading' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact', value: string, calloutType?: string }>
+  parts: Array<{ type: 'text' | 'link' | 'md-link' | 'callout' | 'code' | 'heading' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact', value: string, calloutType?: string }>
 ) {
-  // Combined regex for links, inline math, bold, italic, and artifact
-  // Matches: [[link]] OR $math$ OR **bold** OR *italic* OR :::artifact{...}:::
-  const combinedRegex = /\[\[([^\]]+)\]\]|(?<!\$)\$(?!\$)([^$]+)\$(?!\$)|(\*\*|__)(.*?)\3|(\*|_)(.*?)\5|:::artifact\{([^}]+)\}:::/g
+  // Combined regex for links, inline math, bold, italic, artifact, AND standard markdown links [text](url)
+  // Matches: [[link]] OR [text](url) OR $math$ OR **bold** OR *italic* OR :::artifact{...}:::
+  const combinedRegex = /\[\[([^\]]+)\]\]|\[([^\]]+)\]\(([^)]+)\)|(?<!\$)\$(?!\$)([^$]+)\$(?!\$)|(\*\*|__)(.*?)\5|(\*|_)(.*?)\7|:::artifact\{([^}]+)\}:::/g
   let lastIndex = 0
   let match
 
@@ -148,18 +148,21 @@ function parseLineWithMathAndLinks(
     if (match[1]) {
       // It's a [[link]]
       parts.push({ type: 'link', value: match[1] })
-    } else if (match[2]) {
-      // It's inline $math$
-      parts.push({ type: 'math-inline', value: match[2] })
+    } else if (match[2] && match[3]) {
+      // It's a [text](url)
+      parts.push({ type: 'md-link', value: match[2], calloutType: match[3] }) // value=text, calloutType=url
     } else if (match[4]) {
-      // It's **bold**
-      parts.push({ type: 'bold', value: match[4] })
+      // It's inline $math$
+      parts.push({ type: 'math-inline', value: match[4] })
     } else if (match[6]) {
+      // It's **bold**
+      parts.push({ type: 'bold', value: match[6] })
+    } else if (match[8]) {
       // It's *italic*
-      parts.push({ type: 'italic', value: match[6] })
-    } else if (match[7]) {
+      parts.push({ type: 'italic', value: match[8] })
+    } else if (match[9]) {
       // It's an artifact
-      parts.push({ type: 'artifact', value: match[7] })
+      parts.push({ type: 'artifact', value: match[9] })
     }
 
     lastIndex = match.index + match[0].length
@@ -296,12 +299,42 @@ export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRenderer
           case 'link':
             return <ConceptLink key={index} term={part.value} onClick={onLinkClick} />
 
+          case 'md-link':
+            // Check if it's an internal file path (starts with /) or external URL
+            const isInternal = part.calloutType?.startsWith('/');
+            if (isInternal) {
+                return (
+                    <button 
+                        key={index} 
+                        onClick={() => onLinkClick?.(part.calloutType!)}
+                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-medium text-sm cursor-pointer border border-blue-200 hover:border-blue-300 mx-0.5 align-baseline"
+                        title={part.calloutType}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4h4"/></svg>
+                        {part.value}
+                    </button>
+                );
+            }
+            return (
+                <a 
+                    key={index} 
+                    href={part.calloutType} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-blue-600 hover:underline hover:text-blue-800 transition-colors"
+                >
+                    {part.value}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-external-link"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                </a>
+            );
+
           case 'callout':
             return (
               <Callout key={index} type={part.calloutType || '!'}>
                 {part.value}
               </Callout>
             )
+// ... rest of the switch case
 
           case 'heading':
             return (

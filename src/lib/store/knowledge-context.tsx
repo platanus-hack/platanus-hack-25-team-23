@@ -49,24 +49,25 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
   const loadUserNotes = useCallback(async (userId: string) => {
     const supabase = createClient()
 
-    // Load notes from the correct 'notes' table
+    // Load notes from the VFS 'vfs_nodes' table
     const { data: notesData, error: notesError } = await supabase
-      .from('notes')
+      .from('vfs_nodes')
       .select('*')
       .eq('user_id', userId)
+      .eq('type', 'file') // Only load files, not directories
       .order('created_at', { ascending: false })
 
     if (notesError) {
-      console.error('Error loading notes:', notesError)
+      console.error('Error loading notes from VFS:', notesError)
     }
 
     if (notesData) {
       const loadedNotes: Note[] = notesData.map(n => ({
         id: n.id,
-        title: n.title,
-        content: n.content,
-        slug: n.slug,
-        status: (n.status || 'new') as 'new' | 'read' | 'understood',
+        title: n.name.replace(/\.md$/i, ''), // Remove .md extension for title
+        content: n.content || '',
+        slug: n.name.replace(/\.md$/i, ''), // Use filename without extension as slug
+        status: 'new', // Default status as VFS doesn't track read status yet
         linkedTerms: [],
         prerequisites: [],
         nextSteps: [],
@@ -128,7 +129,7 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
       .channel('notes-realtime')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'notes' },
+        { event: '*', schema: 'public', table: 'vfs_nodes' },
         (payload) => {
           console.log('Realtime update:', payload)
           if (session?.user) {

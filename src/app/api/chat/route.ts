@@ -142,8 +142,9 @@ export async function POST(req: Request) {
     2. **No Duplicates**: If "Energy.md" exists, do NOT create "Energy (duplicate).md".
     3. **File = Node**: Every file you create becomes a node in the graph.
     4. **Links = Edges**: Use [[WikiLinks]] to connect concepts. These become edges in the graph.
-    5. **Language**: Speak in **Spanish** (Español) unless requested otherwise.
-    6. **Conciseness**: Be concise. Don't repeat yourself.
+    5. **File References**: When mentioning an existing file, ALWAYS use Markdown link syntax: \`[filename](/path/to/file.md)\`. This makes it clickable.
+    6. **Language**: Speak in **Spanish** (Español) unless requested otherwise.
+    7. **Conciseness**: Be concise. Don't repeat yourself.
     7. **Artifacts**: When you create a file, you MUST display it to the user using this specific syntax in your response:
        :::artifact{path="/notes/Topic.md"}:::
        (Replace /notes/Topic.md with the actual path you wrote to).
