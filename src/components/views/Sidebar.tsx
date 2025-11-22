@@ -16,7 +16,6 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { session } = useKnowledge();
-  // Streak disabled - table doesn't exist in Supabase
   const studyStreak = 0;
 
   const handleLogout = async () => {
@@ -43,27 +42,31 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
     <div
       className={`${isCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 flex flex-col h-screen`}
       style={{
-        backgroundColor: 'var(--sidebar)',
-        borderRight: '1px solid var(--sidebar-border)'
+        backgroundColor: '#FFFFFF',
+        borderRight: '1px solid #EEEBE6'
       }}
     >
       {/* Logo */}
       <div
-        className="p-6"
-        style={{ borderBottom: '1px solid var(--sidebar-border)' }}
+        className="p-5"
+        style={{ borderBottom: '1px solid #EEEBE6' }}
       >
         <Link href="/dashboard" className="flex items-center gap-3">
           <Image
             src="/logo.png"
             alt="BrainFlow"
-            width={40}
-            height={40}
+            width={36}
+            height={36}
             className="object-contain"
           />
           {!isCollapsed && (
             <span
-              className="text-xl font-bold"
-              style={{ color: '#C9B7F3' }}
+              className="text-lg font-semibold"
+              style={{
+                color: '#222222',
+                fontFamily: 'Manrope, sans-serif',
+                letterSpacing: '-0.02em'
+              }}
             >
               BrainFlow
             </span>
@@ -73,23 +76,21 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
 
       {/* Search */}
       {!isCollapsed && (
-        <div
-          className="p-4"
-          style={{ borderBottom: '1px solid var(--sidebar-border)' }}
-        >
+        <div className="p-4">
           <div className="relative">
             <Search
               className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4"
-              style={{ color: 'var(--muted-foreground)' }}
+              style={{ color: '#9A9A9A' }}
             />
             <input
               type="text"
               placeholder="Buscar concepto..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2"
               style={{
-                backgroundColor: 'var(--input-background)',
-                border: '1px solid var(--border)',
-                color: 'var(--foreground)'
+                backgroundColor: '#F6F5F2',
+                border: '1px solid #EEEBE6',
+                color: '#222222',
+                fontFamily: 'Inter, sans-serif'
               }}
             />
           </div>
@@ -97,34 +98,37 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 px-3 py-2">
         <ul className="space-y-1">
           {menuItems.map((item) => (
             <li key={item.id}>
               <Link
                 href={item.href}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                  isActive(item.href) ? 'scale-[1.02]' : 'hover:scale-[1.02]'
+                  isActive(item.href) ? '' : 'hover:bg-[#FFF0E6]'
                 }`}
                 style={{
-                  background: isActive(item.href)
-                    ? 'linear-gradient(135deg, rgba(201, 183, 243, 0.2) 0%, rgba(214, 201, 245, 0.2) 100%)'
+                  backgroundColor: isActive(item.href)
+                    ? '#FFF0E6'
                     : item.highlight && !isActive(item.href)
-                    ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)'
+                    ? '#FFD9D9'
                     : 'transparent',
                   color: isActive(item.href)
-                    ? 'var(--sidebar-primary)'
+                    ? '#222222'
                     : item.highlight && !isActive(item.href)
-                    ? 'white'
-                    : 'var(--sidebar-foreground)',
-                  boxShadow: item.highlight && !isActive(item.href)
-                    ? '0px 2px 8px rgba(201, 183, 243, 0.3)'
-                    : 'none'
+                    ? '#222222'
+                    : '#6D6D6D',
+                  fontWeight: isActive(item.href) ? 500 : 400
                 }}
               >
                 <item.icon className="size-5" />
                 {!isCollapsed && (
-                  <span className="font-medium">{item.label}</span>
+                  <span
+                    className="text-sm"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
+                  >
+                    {item.label}
+                  </span>
                 )}
               </Link>
             </li>
@@ -135,7 +139,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
       {/* Footer */}
       <div
         className="p-4"
-        style={{ borderTop: '1px solid var(--sidebar-border)' }}
+        style={{ borderTop: '1px solid #EEEBE6' }}
       >
         {!isCollapsed && (
           <>
@@ -144,38 +148,42 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
                 {/* Study Streak */}
                 <div
                   className="rounded-2xl p-4 mb-3"
-                  style={{
-                    background: 'linear-gradient(135deg, #FFE8CC 0%, #FFF4E6 100%)',
-                    border: '2px solid #FFD5A5'
-                  }}
+                  style={{ backgroundColor: '#FFF0E6' }}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <Flame className="size-4" style={{ color: '#FF9D5D' }} />
-                    <p className="text-sm font-medium" style={{ color: '#1E1E1E' }}>Racha de estudio</p>
+                    <Flame className="size-4" style={{ color: '#F5A962' }} />
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: '#222222' }}
+                    >
+                      Racha de estudio
+                    </p>
                   </div>
-                  <p className="text-lg font-bold" style={{ color: '#CC7E4A' }}>
-                    {studyStreak} dias consecutivos 🔥
+                  <p
+                    className="text-lg font-bold"
+                    style={{ color: '#F5A962' }}
+                  >
+                    {studyStreak} dias
                   </p>
                 </div>
 
                 {/* User Info */}
                 <div
                   className="rounded-2xl p-4"
-                  style={{ backgroundColor: 'var(--sidebar-accent)' }}
+                  style={{ backgroundColor: '#F6F5F2' }}
                 >
                   <p
                     className="text-xs truncate mb-3"
-                    style={{ color: 'var(--muted-foreground)' }}
+                    style={{ color: '#6D6D6D' }}
                   >
                     {session.user.email}
                   </p>
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:scale-[1.02]"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all hover:opacity-80"
                     style={{
-                      backgroundColor: 'rgba(255, 177, 177, 0.2)',
-                      color: '#E57373',
-                      border: '1px solid rgba(255, 177, 177, 0.5)'
+                      backgroundColor: '#FFEEEE',
+                      color: '#D46A6A'
                     }}
                   >
                     <LogOut className="size-4" />
@@ -186,11 +194,10 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
             ) : (
               <Link
                 href="/login"
-                className="block w-full px-4 py-3 text-center rounded-2xl font-medium transition-all hover:scale-[1.02]"
+                className="block w-full px-4 py-3 text-center rounded-2xl font-medium text-sm transition-all hover:opacity-90"
                 style={{
-                  background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
-                  color: 'white',
-                  boxShadow: '0px 4px 14px rgba(201, 183, 243, 0.3)'
+                  backgroundColor: '#FFD9D9',
+                  color: '#222222'
                 }}
               >
                 Iniciar sesion

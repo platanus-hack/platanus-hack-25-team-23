@@ -164,71 +164,78 @@ function parseLineWithMathAndLinks(
   }
 }
 
-// Callout component
+// Callout component with Kenko styling
 function Callout({ type, children }: { type: string, children: React.ReactNode }) {
   const config = {
     '&': {
       icon: Lightbulb,
-      bg: 'bg-amber-50',
-      border: 'border-amber-200',
-      text: 'text-amber-800',
-      iconColor: 'text-amber-500',
+      bg: '#FFF0E6',
+      border: '#FFE4D1',
+      text: '#CC7E4A',
+      iconColor: '#CC7E4A',
       label: 'Insight clave'
     },
     '!': {
       icon: AlertCircle,
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
-      text: 'text-blue-800',
-      iconColor: 'text-blue-500',
+      bg: '#CFE4FF',
+      border: '#A3D4FF',
+      text: '#5A8FCC',
+      iconColor: '#5A8FCC',
       label: 'Importante'
     },
     '!!': {
       icon: AlertCircle,
-      bg: 'bg-red-50',
-      border: 'border-red-200',
-      text: 'text-red-800',
-      iconColor: 'text-red-500',
+      bg: '#FFD9D9',
+      border: '#FFCACA',
+      text: '#D46A6A',
+      iconColor: '#D46A6A',
       label: 'Advertencia'
     },
     '?': {
       icon: HelpCircle,
-      bg: 'bg-purple-50',
-      border: 'border-purple-200',
-      text: 'text-purple-800',
-      iconColor: 'text-purple-500',
+      bg: '#E6DAFF',
+      border: '#D6C9F5',
+      text: '#9575CD',
+      iconColor: '#9575CD',
       label: 'Explorar'
     },
     'Ex:': {
       icon: Code,
-      bg: 'bg-green-50',
-      border: 'border-green-200',
-      text: 'text-green-800',
-      iconColor: 'text-green-500',
+      bg: '#D4F5E9',
+      border: '#A3E4B6',
+      text: '#10B981',
+      iconColor: '#10B981',
       label: 'Ejemplo'
     },
     'Obs:': {
       icon: Eye,
-      bg: 'bg-gray-50',
-      border: 'border-gray-200',
-      text: 'text-gray-800',
-      iconColor: 'text-gray-500',
-      label: 'Observación'
+      bg: '#F6F5F2',
+      border: '#EEEBE6',
+      text: '#6D6D6D',
+      iconColor: '#6D6D6D',
+      label: 'Observacion'
     },
   }[type] || {
     icon: Lightbulb,
-    bg: 'bg-gray-50',
-    border: 'border-gray-200',
-    text: 'text-gray-800',
-    iconColor: 'text-gray-500',
+    bg: '#F6F5F2',
+    border: '#EEEBE6',
+    text: '#6D6D6D',
+    iconColor: '#6D6D6D',
     label: ''
   }
 
   const Icon = config.icon
 
   return (
-    <div className={`${config.bg} ${config.border} ${config.text} border rounded-xl p-4 my-3 flex items-start gap-3`}>
-      <Icon className={`size-5 mt-0.5 ${config.iconColor} shrink-0`} />
+    <div
+      className="rounded-2xl p-4 my-3 flex items-start gap-3"
+      style={{
+        backgroundColor: config.bg,
+        border: `2px solid ${config.border}`,
+        color: config.text
+      }}
+    >
+      <Icon className="size-5 mt-0.5 shrink-0" style={{ color: config.iconColor }} />
       <div>
         {config.label && <span className="font-semibold text-sm">{config.label}: </span>}
         {children}
@@ -237,12 +244,17 @@ function Callout({ type, children }: { type: string, children: React.ReactNode }
   )
 }
 
-// Link component
+// Link component with Kenko styling
 function ConceptLink({ term, onClick }: { term: string, onClick?: (term: string) => void }) {
   return (
     <button
       onClick={() => onClick?.(term)}
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors font-medium text-sm cursor-pointer border border-purple-200 hover:border-purple-300"
+      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl font-medium text-sm cursor-pointer transition-all hover:scale-[1.02]"
+      style={{
+        backgroundColor: '#E6DAFF',
+        color: '#9575CD',
+        border: '1px solid #D6C9F5'
+      }}
     >
       <Sparkles className="size-3" />
       {term}
@@ -259,8 +271,8 @@ function MathBlock({ latex, displayMode }: { latex: string, displayMode: boolean
       <div
         className="my-4 py-4 px-6 rounded-2xl overflow-x-auto"
         style={{
-          backgroundColor: '#F6F8FA',
-          border: '1px solid #E6E6E6'
+          backgroundColor: '#F6F5F2',
+          border: '2px solid #EEEBE6'
         }}
         dangerouslySetInnerHTML={{ __html: html }}
       />
@@ -279,7 +291,7 @@ export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRenderer
   const parsed = useMemo(() => parseContent(content), [content])
 
   return (
-    <div className={`prose prose-gray max-w-none ${isStreaming ? 'animate-pulse-subtle' : ''}`}>
+    <div className={`max-w-none ${isStreaming ? 'animate-pulse-subtle' : ''}`} style={{ color: '#222222' }}>
       {parsed.map((part, index) => {
         switch (part.type) {
           case 'link':
@@ -294,14 +306,18 @@ export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRenderer
 
           case 'heading':
             return (
-              <h2 key={index} className="text-xl font-bold mt-6 mb-3" style={{ color: '#1E1E1E' }}>
+              <h2 key={index} className="text-xl font-bold mt-6 mb-3" style={{ color: '#222222' }}>
                 {part.value}
               </h2>
             )
 
           case 'code':
             return (
-              <pre key={index} className="bg-gray-900 text-gray-100 rounded-xl p-4 overflow-x-auto my-4 text-sm">
+              <pre
+                key={index}
+                className="rounded-2xl p-4 overflow-x-auto my-4 text-sm font-mono"
+                style={{ backgroundColor: '#222222', color: '#F6F5F2' }}
+              >
                 <code>{part.value}</code>
               </pre>
             )
@@ -319,22 +335,34 @@ export function NoteRenderer({ content, onLinkClick, isStreaming }: NoteRenderer
       })}
 
       {isStreaming && (
-        <span className="inline-block w-2 h-5 bg-purple-500 animate-blink ml-1" />
+        <span
+          className="inline-block w-2 h-5 ml-1 animate-pulse"
+          style={{ backgroundColor: '#C9B7F3' }}
+        />
       )}
     </div>
   )
 }
 
-// Streaming indicator component
+// Streaming indicator component with Kenko styling
 export function StreamingIndicator() {
   return (
-    <div className="flex items-center gap-2 text-purple-600">
+    <div className="flex items-center gap-2" style={{ color: '#9575CD' }}>
       <div className="flex gap-1">
-        <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        <span
+          className="w-2 h-2 rounded-full animate-bounce"
+          style={{ backgroundColor: '#C9B7F3', animationDelay: '0ms' }}
+        />
+        <span
+          className="w-2 h-2 rounded-full animate-bounce"
+          style={{ backgroundColor: '#C9B7F3', animationDelay: '150ms' }}
+        />
+        <span
+          className="w-2 h-2 rounded-full animate-bounce"
+          style={{ backgroundColor: '#C9B7F3', animationDelay: '300ms' }}
+        />
       </div>
-      <span className="text-sm font-medium">Nodi está pensando...</span>
+      <span className="text-sm font-medium">Nodi esta pensando...</span>
     </div>
   )
 }

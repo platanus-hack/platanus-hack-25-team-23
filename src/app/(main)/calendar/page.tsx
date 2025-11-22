@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react'
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Settings, RefreshCw, Check, X, Clock, BookOpen } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, RefreshCw, X, Clock, BookOpen, UserCog, LogOut, CalendarDays, LayoutGrid } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface CalendarEvent {
@@ -23,8 +23,10 @@ interface GoogleCalendarEvent {
   colorId?: string
 }
 
-const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+const DAYS = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab']
+const DAYS_FULL = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado']
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
 const COLOR_MAP: Record<string, string> = {
   '1': '#7986CB', '2': '#33B679', '3': '#8E24AA', '4': '#E67C73',
@@ -43,15 +45,99 @@ export default function CalendarPage() {
   const [newEventTitle, setNewEventTitle] = useState('')
   const [newEventTime, setNewEventTime] = useState('09:00')
   const [newEventDuration, setNewEventDuration] = useState('60')
+  const [connectedEmail, setConnectedEmail] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
 
-  // Check if Google Calendar is connected
+  // Refresh access token using refresh token
+  const refreshAccessToken = useCallback(async (): Promise<string | null> => {
+    const refreshToken = localStorage.getItem('google_calendar_refresh_token')
+    if (!refreshToken) {
+      return null
+    }
+
+    try {
+      const response = await fetch('/api/auth/google-calendar', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || data.error) {
+        console.error('Token refresh failed:', data.error)
+        return null
+      }
+
+      // Update stored tokens
+      localStorage.setItem('google_calendar_token', data.access_token)
+      const expirationTime = Date.now() + data.expires_in * 1000
+      localStorage.setItem('google_calendar_token_expiry', expirationTime.toString())
+
+      return data.access_token
+    } catch (error) {
+      console.error('Error refreshing token:', error)
+      return null
+    }
+  }, [])
+
+  // Get valid access token (refresh if needed)
+  const getValidToken = useCallback(async (): Promise<string | null> => {
+    const token = localStorage.getItem('google_calendar_token')
+    const expiry = localStorage.getItem('google_calendar_token_expiry')
+
+    if (!token) {
+      return null
+    }
+
+    // Check if token is expired or will expire in next 5 minutes
+    if (expiry) {
+      const expiryTime = parseInt(expiry)
+      const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000
+
+      if (expiryTime < fiveMinutesFromNow) {
+        // Token expired or expiring soon, try to refresh
+        const newToken = await refreshAccessToken()
+        return newToken
+      }
+    }
+
+    return token
+  }, [refreshAccessToken])
+
+  // Check connection and get user info
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        const token = localStorage.getItem('google_calendar_token')
+        const token = await getValidToken()
+
         if (token) {
           setIsConnected(true)
-          await fetchEvents()
+
+          // Get user info
+          try {
+            const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            if (userResponse.ok) {
+              const userData = await userResponse.json()
+              setConnectedEmail(userData.email)
+            }
+          } catch (e) {
+            // Ignore user info errors
+          }
+
+          await fetchEvents(token)
+        } else {
+          // Check if we have a refresh token to try
+          const refreshToken = localStorage.getItem('google_calendar_refresh_token')
+          if (refreshToken) {
+            const newToken = await refreshAccessToken()
+            if (newToken) {
+              setIsConnected(true)
+              await fetchEvents(newToken)
+            }
+          }
         }
       } catch (error) {
         console.error('Error checking connection:', error)
@@ -60,10 +146,10 @@ export default function CalendarPage() {
       }
     }
     checkConnection()
-  }, [])
+  }, [getValidToken, refreshAccessToken])
 
-  const fetchEvents = useCallback(async () => {
-    const token = localStorage.getItem('google_calendar_token')
+  const fetchEvents = useCallback(async (tokenOverride?: string) => {
+    const token = tokenOverride || await getValidToken()
     if (!token) return
 
     setIsSyncing(true)
@@ -74,18 +160,23 @@ export default function CalendarPage() {
       const response = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       )
 
       if (response.status === 401) {
-        // Token expired
-        localStorage.removeItem('google_calendar_token')
-        setIsConnected(false)
-        toast.error('Sesión expirada. Por favor, reconecta tu calendario.')
-        return
+        // Token invalid, try to refresh
+        const newToken = await refreshAccessToken()
+        if (newToken) {
+          // Retry with new token
+          await fetchEvents(newToken)
+          return
+        } else {
+          // Refresh failed, disconnect
+          handleDisconnect()
+          toast.error('Sesion expirada. Por favor, reconecta tu calendario.')
+          return
+        }
       }
 
       const data = await response.json()
@@ -93,7 +184,7 @@ export default function CalendarPage() {
       if (data.items) {
         const calendarEvents: CalendarEvent[] = data.items.map((event: GoogleCalendarEvent) => ({
           id: event.id,
-          title: event.summary || 'Sin título',
+          title: event.summary || 'Sin titulo',
           description: event.description,
           start: new Date(event.start.dateTime || event.start.date || ''),
           end: new Date(event.end.dateTime || event.end.date || ''),
@@ -108,7 +199,7 @@ export default function CalendarPage() {
     } finally {
       setIsSyncing(false)
     }
-  }, [currentDate])
+  }, [currentDate, getValidToken, refreshAccessToken])
 
   useEffect(() => {
     if (isConnected) {
@@ -119,28 +210,41 @@ export default function CalendarPage() {
   const handleGoogleConnect = () => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
     if (!clientId) {
-      toast.error('Google Calendar no está configurado. Contacta al administrador.')
+      toast.error('Google Calendar no esta configurado. Contacta al administrador.')
       return
     }
 
-    const redirectUri = `${window.location.origin}/api/auth/callback/google`
-    const scope = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events'
+    // Use authorization code flow for refresh tokens
+    const redirectUri = `${window.location.origin}/calendar/callback`
+    const scope = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email'
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${clientId}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&response_type=token` +
+      `&response_type=code` + // Changed from 'token' to 'code'
       `&scope=${encodeURIComponent(scope)}` +
-      `&prompt=consent`
+      `&access_type=offline` + // Request refresh token
+      `&prompt=consent` // Always show consent to get refresh token
 
     window.location.href = authUrl
   }
 
   const handleDisconnect = () => {
     localStorage.removeItem('google_calendar_token')
+    localStorage.removeItem('google_calendar_refresh_token')
+    localStorage.removeItem('google_calendar_token_expiry')
     setIsConnected(false)
+    setConnectedEmail(null)
     setEvents([])
     toast.success('Calendario desconectado')
+  }
+
+  const handleChangeAccount = () => {
+    // Disconnect current and reconnect with new account
+    handleDisconnect()
+    setTimeout(() => {
+      handleGoogleConnect()
+    }, 500)
   }
 
   const getDaysInMonth = (date: Date) => {
@@ -153,12 +257,10 @@ export default function CalendarPage() {
 
     const days: (number | null)[] = []
 
-    // Add empty slots for days before the first day of the month
     for (let i = 0; i < startingDay; i++) {
       days.push(null)
     }
 
-    // Add all days of the month
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(i)
     }
@@ -187,6 +289,55 @@ export default function CalendarPage() {
     })
   }
 
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    setCurrentDate(prev => {
+      const newDate = new Date(prev)
+      if (direction === 'prev') {
+        newDate.setDate(newDate.getDate() - 7)
+      } else {
+        newDate.setDate(newDate.getDate() + 7)
+      }
+      return newDate
+    })
+  }
+
+  // Get the week's dates (Sunday to Saturday)
+  const getWeekDates = useMemo(() => {
+    const startOfWeek = new Date(currentDate)
+    const day = startOfWeek.getDay()
+    startOfWeek.setDate(startOfWeek.getDate() - day)
+
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(startOfWeek)
+      date.setDate(startOfWeek.getDate() + i)
+      return date
+    })
+  }, [currentDate])
+
+  // Get events for a specific day in week view
+  const getEventsForWeekDay = (date: Date) => {
+    return events.filter(event => {
+      const eventDate = new Date(event.start)
+      return eventDate.toDateString() === date.toDateString()
+    })
+  }
+
+  // Check if date is today
+  const isDateToday = (date: Date) => {
+    const today = new Date()
+    return date.toDateString() === today.toDateString()
+  }
+
+  // Format week range for header
+  const weekRangeText = useMemo(() => {
+    const start = getWeekDates[0]
+    const end = getWeekDates[6]
+    if (start.getMonth() === end.getMonth()) {
+      return `${start.getDate()} - ${end.getDate()} de ${MONTHS[start.getMonth()]} ${start.getFullYear()}`
+    }
+    return `${start.getDate()} ${MONTHS[start.getMonth()].slice(0, 3)} - ${end.getDate()} ${MONTHS[end.getMonth()].slice(0, 3)} ${end.getFullYear()}`
+  }, [getWeekDates])
+
   const handleDayClick = (day: number) => {
     const clickedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
     setSelectedDate(clickedDate)
@@ -195,11 +346,11 @@ export default function CalendarPage() {
 
   const handleCreateStudySession = async () => {
     if (!newEventTitle.trim()) {
-      toast.error('Ingresa un título para la sesión')
+      toast.error('Ingresa un titulo para la sesion')
       return
     }
 
-    const token = localStorage.getItem('google_calendar_token')
+    const token = await getValidToken()
     if (!token || !selectedDate) return
 
     try {
@@ -211,11 +362,11 @@ export default function CalendarPage() {
       endDate.setMinutes(endDate.getMinutes() + parseInt(newEventDuration))
 
       const event = {
-        summary: `📚 Estudio: ${newEventTitle}`,
-        description: 'Sesión de estudio creada desde BrainFlow',
+        summary: `Estudio: ${newEventTitle}`,
+        description: 'Sesion de estudio creada desde BrainFlow',
         start: { dateTime: startDate.toISOString() },
         end: { dateTime: endDate.toISOString() },
-        colorId: '2' // Green for study sessions
+        colorId: '2'
       }
 
       const response = await fetch(
@@ -231,7 +382,7 @@ export default function CalendarPage() {
       )
 
       if (response.ok) {
-        toast.success('Sesión de estudio creada!')
+        toast.success('Sesion de estudio creada!')
         setShowEventModal(false)
         setNewEventTitle('')
         fetchEvents()
@@ -240,7 +391,7 @@ export default function CalendarPage() {
       }
     } catch (error) {
       console.error('Error creating event:', error)
-      toast.error('Error al crear la sesión')
+      toast.error('Error al crear la sesion')
     }
   }
 
@@ -254,7 +405,10 @@ export default function CalendarPage() {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-500" />
+        <div
+          className="animate-spin rounded-full h-12 w-12 border-4"
+          style={{ borderColor: '#E6DAFF', borderTopColor: '#C9B7F3' }}
+        />
       </div>
     )
   }
@@ -282,10 +436,10 @@ export default function CalendarPage() {
           {/* Features */}
           <div className="grid gap-4 mb-8">
             {[
-              { icon: '📅', title: 'Sincronización automática', desc: 'Tus eventos se sincronizan en tiempo real' },
-              { icon: '📚', title: 'Sesiones de estudio', desc: 'Crea sesiones de estudio directamente desde aquí' },
+              { icon: '📅', title: 'Sincronizacion permanente', desc: 'Una vez conectado, nunca expira' },
+              { icon: '📚', title: 'Sesiones de estudio', desc: 'Crea sesiones de estudio directamente' },
               { icon: '🔔', title: 'Recordatorios', desc: 'Recibe notificaciones para tus sesiones' },
-              { icon: '📊', title: 'Seguimiento', desc: 'Visualiza tu progreso de estudio semanal' },
+              { icon: '🔄', title: 'Cambio de cuenta', desc: 'Puedes cambiar de cuenta cuando quieras' },
             ].map((feature, i) => (
               <div
                 key={i}
@@ -321,7 +475,6 @@ export default function CalendarPage() {
 
           <p className="text-center text-sm mt-4" style={{ color: 'var(--muted-foreground)' }}>
             Solo accedemos a tu calendario para mostrar y crear eventos.
-            Puedes desconectarlo en cualquier momento.
           </p>
         </div>
       </div>
@@ -343,8 +496,36 @@ export default function CalendarPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* View Mode Toggle */}
+            <div
+              className="flex items-center p-1 rounded-xl"
+              style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}
+            >
+              <button
+                onClick={() => setViewMode('month')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${viewMode === 'month' ? 'shadow-sm' : ''}`}
+                style={{
+                  backgroundColor: viewMode === 'month' ? 'var(--card)' : 'transparent',
+                  color: viewMode === 'month' ? '#C9B7F3' : 'var(--muted-foreground)'
+                }}
+              >
+                <LayoutGrid className="size-4" />
+                Mes
+              </button>
+              <button
+                onClick={() => setViewMode('week')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${viewMode === 'week' ? 'shadow-sm' : ''}`}
+                style={{
+                  backgroundColor: viewMode === 'week' ? 'var(--card)' : 'transparent',
+                  color: viewMode === 'week' ? '#C9B7F3' : 'var(--muted-foreground)'
+                }}
+              >
+                <CalendarDays className="size-4" />
+                Semana
+              </button>
+            </div>
             <button
-              onClick={fetchEvents}
+              onClick={() => fetchEvents()}
               disabled={isSyncing}
               className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-[1.02]"
               style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
@@ -353,30 +534,71 @@ export default function CalendarPage() {
               Sincronizar
             </button>
             <button
+              onClick={handleChangeAccount}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-[1.02]"
+              style={{ backgroundColor: '#CFE4FF', color: '#5A8FCC' }}
+              title={connectedEmail ? `Conectado como: ${connectedEmail}` : 'Cambiar cuenta'}
+            >
+              <UserCog className="size-4" />
+              Cambiar cuenta
+            </button>
+            <button
               onClick={handleDisconnect}
               className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-[1.02]"
-              style={{ backgroundColor: 'rgba(255, 177, 177, 0.2)', color: '#E57373' }}
+              style={{ backgroundColor: '#FFD9D9', color: '#D46A6A' }}
             >
-              <Settings className="size-4" />
+              <LogOut className="size-4" />
               Desconectar
             </button>
           </div>
         </div>
 
+        {/* Connected account info */}
+        {connectedEmail && (
+          <div
+            className="mb-6 px-4 py-3 rounded-xl flex items-center gap-3"
+            style={{ backgroundColor: '#D4F5E9', border: '1px solid #A3E4B6' }}
+          >
+            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#10B981' }}>
+              <span className="text-white text-sm">✓</span>
+            </div>
+            <div>
+              <p className="text-sm font-medium" style={{ color: '#10B981' }}>
+                Calendario conectado permanentemente
+              </p>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>
+                {connectedEmail}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Calendar Navigation */}
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => navigateMonth('prev')}
+            onClick={() => viewMode === 'month' ? navigateMonth('prev') : navigateWeek('prev')}
             className="p-2 rounded-xl transition-all hover:scale-[1.05]"
             style={{ backgroundColor: 'var(--card)' }}
           >
             <ChevronLeft className="size-5" />
           </button>
-          <h2 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
-            {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </h2>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>
+              {viewMode === 'month'
+                ? `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+                : weekRangeText
+              }
+            </h2>
+            <button
+              onClick={() => setCurrentDate(new Date())}
+              className="text-sm mt-1 px-3 py-1 rounded-full transition-all hover:scale-[1.05]"
+              style={{ backgroundColor: 'rgba(201, 183, 243, 0.2)', color: '#C9B7F3' }}
+            >
+              Ir a hoy
+            </button>
+          </div>
           <button
-            onClick={() => navigateMonth('next')}
+            onClick={() => viewMode === 'month' ? navigateMonth('next') : navigateWeek('next')}
             className="p-2 rounded-xl transition-all hover:scale-[1.05]"
             style={{ backgroundColor: 'var(--card)' }}
           >
@@ -384,77 +606,172 @@ export default function CalendarPage() {
           </button>
         </div>
 
-        {/* Calendar Grid */}
-        <div
-          className="rounded-3xl p-6 mb-6"
-          style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
-        >
-          {/* Days Header */}
-          <div className="grid grid-cols-7 gap-2 mb-4">
-            {DAYS.map(day => (
-              <div key={day} className="text-center py-2 font-semibold text-sm" style={{ color: 'var(--muted-foreground)' }}>
-                {day}
-              </div>
-            ))}
+        {/* Monthly View */}
+        {viewMode === 'month' && (
+          <div
+            className="rounded-3xl p-6 mb-6"
+            style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+          >
+            {/* Days Header */}
+            <div className="grid grid-cols-7 gap-2 mb-4">
+              {DAYS.map(day => (
+                <div key={day} className="text-center py-2 font-semibold text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Days Grid */}
+            <div className="grid grid-cols-7 gap-2">
+              {getDaysInMonth(currentDate).map((day, index) => {
+                const dayEvents = day ? getEventsForDay(day) : []
+                const hasStudySession = dayEvents.some(e => e.isStudySession)
+
+                return (
+                  <div
+                    key={index}
+                    onClick={() => day && handleDayClick(day)}
+                    className={`min-h-[100px] p-2 rounded-xl transition-all ${day ? 'cursor-pointer hover:scale-[1.02]' : ''}`}
+                    style={{
+                      backgroundColor: day
+                        ? isToday(day)
+                          ? 'rgba(201, 183, 243, 0.2)'
+                          : 'var(--background)'
+                        : 'transparent',
+                      border: day && isToday(day) ? '2px solid #C9B7F3' : '1px solid transparent'
+                    }}
+                  >
+                    {day && (
+                      <>
+                        <div className="flex items-center justify-between mb-1">
+                          <span
+                            className={`text-sm font-medium ${isToday(day) ? 'text-purple-600' : ''}`}
+                            style={{ color: isToday(day) ? '#C9B7F3' : 'var(--foreground)' }}
+                          >
+                            {day}
+                          </span>
+                          {hasStudySession && (
+                            <BookOpen className="size-3" style={{ color: '#33B679' }} />
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          {dayEvents.slice(0, 3).map(event => (
+                            <div
+                              key={event.id}
+                              className="text-xs px-1.5 py-0.5 rounded truncate"
+                              style={{ backgroundColor: event.color, color: 'white' }}
+                              title={event.title}
+                            >
+                              {event.title}
+                            </div>
+                          ))}
+                          {dayEvents.length > 3 && (
+                            <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                              +{dayEvents.length - 3} mas
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
+        )}
 
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-2">
-            {getDaysInMonth(currentDate).map((day, index) => {
-              const dayEvents = day ? getEventsForDay(day) : []
-              const hasStudySession = dayEvents.some(e => e.isStudySession)
-
-              return (
+        {/* Weekly View */}
+        {viewMode === 'week' && (
+          <div
+            className="rounded-3xl p-6 mb-6 overflow-x-auto"
+            style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+          >
+            {/* Week Days Header */}
+            <div className="grid grid-cols-8 gap-2 mb-4 min-w-[800px]">
+              <div className="w-16" /> {/* Space for time column */}
+              {getWeekDates.map((date, index) => (
                 <div
                   key={index}
-                  onClick={() => day && handleDayClick(day)}
-                  className={`min-h-[100px] p-2 rounded-xl transition-all ${day ? 'cursor-pointer hover:scale-[1.02]' : ''}`}
+                  onClick={() => {
+                    setSelectedDate(date)
+                    setShowEventModal(true)
+                  }}
+                  className={`text-center p-3 rounded-xl cursor-pointer transition-all hover:scale-[1.02] ${isDateToday(date) ? 'ring-2 ring-purple-400' : ''}`}
                   style={{
-                    backgroundColor: day
-                      ? isToday(day)
-                        ? 'rgba(201, 183, 243, 0.2)'
-                        : 'var(--background)'
-                      : 'transparent',
-                    border: day && isToday(day) ? '2px solid #C9B7F3' : '1px solid transparent'
+                    backgroundColor: isDateToday(date) ? 'rgba(201, 183, 243, 0.2)' : 'var(--background)'
                   }}
                 >
-                  {day && (
-                    <>
-                      <div className="flex items-center justify-between mb-1">
-                        <span
-                          className={`text-sm font-medium ${isToday(day) ? 'text-purple-600' : ''}`}
-                          style={{ color: isToday(day) ? '#C9B7F3' : 'var(--foreground)' }}
-                        >
-                          {day}
-                        </span>
-                        {hasStudySession && (
-                          <BookOpen className="size-3" style={{ color: '#33B679' }} />
-                        )}
-                      </div>
-                      <div className="space-y-1">
-                        {dayEvents.slice(0, 3).map(event => (
-                          <div
-                            key={event.id}
-                            className="text-xs px-1.5 py-0.5 rounded truncate"
-                            style={{ backgroundColor: event.color, color: 'white' }}
-                            title={event.title}
-                          >
-                            {event.title}
-                          </div>
-                        ))}
-                        {dayEvents.length > 3 && (
-                          <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                            +{dayEvents.length - 3} más
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
+                  <div className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>
+                    {DAYS_FULL[index]}
+                  </div>
+                  <div
+                    className="text-2xl font-bold mt-1"
+                    style={{ color: isDateToday(date) ? '#C9B7F3' : 'var(--foreground)' }}
+                  >
+                    {date.getDate()}
+                  </div>
                 </div>
-              )
-            })}
+              ))}
+            </div>
+
+            {/* Time Grid */}
+            <div className="min-w-[800px]" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+              {HOURS.slice(6, 23).map(hour => (
+                <div key={hour} className="grid grid-cols-8 gap-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                  {/* Time Label */}
+                  <div className="w-16 py-2 text-xs text-right pr-2" style={{ color: 'var(--muted-foreground)' }}>
+                    {hour.toString().padStart(2, '0')}:00
+                  </div>
+                  {/* Day columns */}
+                  {getWeekDates.map((date, dayIndex) => {
+                    const dayEvents = getEventsForWeekDay(date).filter(event => {
+                      const eventHour = event.start.getHours()
+                      return eventHour === hour
+                    })
+
+                    return (
+                      <div
+                        key={dayIndex}
+                        onClick={() => {
+                          const clickedDate = new Date(date)
+                          clickedDate.setHours(hour, 0, 0, 0)
+                          setSelectedDate(clickedDate)
+                          setNewEventTime(`${hour.toString().padStart(2, '0')}:00`)
+                          setShowEventModal(true)
+                        }}
+                        className="min-h-[50px] p-1 rounded-lg cursor-pointer transition-all hover:bg-purple-50 dark:hover:bg-purple-900/10"
+                        style={{ backgroundColor: 'transparent' }}
+                      >
+                        {dayEvents.map(event => {
+                          const duration = (event.end.getTime() - event.start.getTime()) / (1000 * 60)
+                          const height = Math.max(duration / 60 * 50, 24)
+
+                          return (
+                            <div
+                              key={event.id}
+                              className="text-xs px-2 py-1 rounded-lg mb-1 overflow-hidden"
+                              style={{
+                                backgroundColor: event.color,
+                                color: 'white',
+                                minHeight: `${height}px`
+                              }}
+                              title={`${event.title}\n${event.start.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })} - ${event.end.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}`}
+                            >
+                              <div className="font-medium truncate">{event.title}</div>
+                              <div className="text-xs opacity-80">
+                                {event.start.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Today's Events */}
         <div
@@ -512,7 +829,7 @@ export default function CalendarPage() {
             <div className="text-center py-8" style={{ color: 'var(--muted-foreground)' }}>
               <CalendarIcon className="size-12 mx-auto mb-3 opacity-50" />
               <p>No tienes eventos para hoy</p>
-              <p className="text-sm">Haz clic en un día para crear una sesión de estudio</p>
+              <p className="text-sm">Haz clic en un dia para crear una sesion de estudio</p>
             </div>
           )}
         </div>
@@ -527,7 +844,7 @@ export default function CalendarPage() {
           >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
-                Nueva Sesión de Estudio
+                Nueva Sesion de Estudio
               </h3>
               <button
                 onClick={() => setShowEventModal(false)}
@@ -552,13 +869,13 @@ export default function CalendarPage() {
 
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
-                  ¿Qué vas a estudiar?
+                  Que vas a estudiar?
                 </label>
                 <input
                   type="text"
                   value={newEventTitle}
                   onChange={(e) => setNewEventTitle(e.target.value)}
-                  placeholder="Ej: JavaScript, Matemáticas, etc."
+                  placeholder="Ej: JavaScript, Matematicas, etc."
                   className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300"
                   style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
                 />
@@ -579,7 +896,7 @@ export default function CalendarPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--foreground)' }}>
-                    Duración
+                    Duracion
                   </label>
                   <select
                     value={newEventDuration}
@@ -605,7 +922,7 @@ export default function CalendarPage() {
                 }}
               >
                 <Plus className="size-5" />
-                Crear Sesión de Estudio
+                Crear Sesion de Estudio
               </button>
             </div>
           </div>
