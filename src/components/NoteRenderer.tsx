@@ -39,7 +39,7 @@ function parseContent(content: string) {
   if (!content) return []
 
   const parts: Array<{
-    type: 'text' | 'link' | 'md-link' | 'callout' | 'code' | 'heading' | 'h3' | 'h4' | 'hr' | 'list-item' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact',
+    type: 'text' | 'link' | 'md-link' | 'callout' | 'code' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'hr' | 'list-item' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact',
     value: string,
     calloutType?: string,
     parts?: any[]
@@ -94,13 +94,29 @@ function parseContent(content: string) {
       continue
     }
 
-    // Handle headings
+    // Handle headings - check longest first to avoid partial matches
+    if (line.startsWith('###### ')) {
+      parts.push({ type: 'h6', value: line.slice(7) })
+      continue
+    }
+    if (line.startsWith('##### ')) {
+      parts.push({ type: 'h5', value: line.slice(6) })
+      continue
+    }
+    if (line.startsWith('#### ')) {
+      parts.push({ type: 'h4', value: line.slice(5) })
+      continue
+    }
+    if (line.startsWith('### ')) {
+      parts.push({ type: 'h3', value: line.slice(4) })
+      continue
+    }
     if (line.startsWith('## ')) {
-      parts.push({ type: 'heading', value: line.slice(3) })
+      parts.push({ type: 'h2', value: line.slice(3) })
       continue
     }
     if (line.startsWith('# ')) {
-      parts.push({ type: 'heading', value: line.slice(2) })
+      parts.push({ type: 'h1', value: line.slice(2) })
       continue
     }
 
@@ -133,7 +149,7 @@ function parseContent(content: string) {
 // Parse a line for [[links]], inline $math$, **bold**, *italic*, and :::artifact:::
 function parseLineWithMathAndLinks(
   line: string,
-  parts: Array<{ type: 'text' | 'link' | 'md-link' | 'callout' | 'code' | 'heading' | 'h3' | 'h4' | 'hr' | 'list-item' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact', value: string, calloutType?: string, parts?: any[] }>
+  parts: Array<{ type: 'text' | 'link' | 'md-link' | 'callout' | 'code' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'hr' | 'list-item' | 'math-block' | 'math-inline' | 'bold' | 'italic' | 'artifact', value: string, calloutType?: string, parts?: any[] }>
 ) {
   // Combined regex for links, inline math, bold, italic, artifact, AND standard markdown links [text](url)
   // Matches: [[link]] OR [text](url) OR $math$ OR **bold** OR *italic* OR :::artifact{...}:::
@@ -359,7 +375,14 @@ export function NoteRenderer({ content, onLinkClick, isStreaming, existingNotes 
               </Callout>
             )
 
-          case 'heading':
+          case 'h1':
+            return (
+              <h1 key={index} className="text-3xl font-bold mt-8 mb-6 text-zinc-900 dark:text-zinc-50 border-b border-zinc-200 dark:border-zinc-800 pb-3">
+                {part.value}
+              </h1>
+            )
+
+          case 'h2':
             return (
               <h2 key={index} className="text-2xl font-bold mt-8 mb-4 text-zinc-900 dark:text-zinc-100 border-b border-zinc-200 dark:border-zinc-800 pb-2">
                 {part.value}
@@ -378,6 +401,20 @@ export function NoteRenderer({ content, onLinkClick, isStreaming, existingNotes 
               <h4 key={index} className="text-lg font-medium mt-4 mb-2 text-zinc-700 dark:text-zinc-300">
                 {part.value}
               </h4>
+            )
+
+          case 'h5':
+            return (
+              <h5 key={index} className="text-base font-medium mt-4 mb-2 text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+                {part.value}
+              </h5>
+            )
+
+          case 'h6':
+            return (
+              <h6 key={index} className="text-sm font-medium mt-4 mb-2 text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                {part.value}
+              </h6>
             )
 
           case 'hr':
