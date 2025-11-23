@@ -18,8 +18,13 @@ import {
   LogOut,
   Moon,
   Sun,
-  Bell
+  Bell,
+  MessageCircle,
+  Link2,
+  Check,
+  X
 } from "lucide-react"
+import { WhatsAppConnect } from "@/components/settings/WhatsAppConnect"
 import { toast } from "sonner"
 import Link from 'next/link'
 
@@ -56,6 +61,13 @@ export default function ProfilePage() {
   const [notifications, setNotifications] = useState(true)
   const [loading, setLoading] = useState(true)
   const [memberSince, setMemberSince] = useState('Noviembre 2024')
+  const [calendarConnected, setCalendarConnected] = useState(false)
+
+  // Check Google Calendar connection
+  useEffect(() => {
+    const token = localStorage.getItem('google_calendar_token')
+    setCalendarConnected(!!token)
+  }, [])
 
   // Calculate stats from notes
   const stats: ProfileStats = useMemo(() => {
@@ -477,6 +489,64 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        {/* Integraciones */}
+        <div className="rounded-2xl p-5" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#E6DAFF' }}>
+              <Link2 className="size-5" style={{ color: '#9575CD' }} />
+            </div>
+            <div>
+              <h3 className="font-semibold" style={{ color: '#222222' }}>Integraciones</h3>
+              <p className="text-xs" style={{ color: '#6D6D6D' }}>Conecta tus servicios para una mejor experiencia</p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {/* WhatsApp */}
+            <WhatsAppConnect />
+
+            {/* Google Calendar */}
+            <div className={`p-4 rounded-2xl border-2 ${calendarConnected ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${calendarConnected ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                    <Calendar className={`size-6 ${calendarConnected ? 'text-blue-600' : 'text-gray-400'}`} />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold" style={{ color: '#222222' }}>Google Calendar</h4>
+                    <p className="text-sm" style={{ color: '#6D6D6D' }}>
+                      {calendarConnected ? 'Conectado' : 'Sincroniza tus eventos y bloques de estudio'}
+                    </p>
+                  </div>
+                </div>
+                {calendarConnected ? (
+                  <div className="flex items-center gap-2">
+                    <Check className="size-5 text-blue-600" />
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem('google_calendar_token')
+                        localStorage.removeItem('google_calendar_refresh_token')
+                        localStorage.removeItem('google_calendar_token_expiry')
+                        setCalendarConnected(false)
+                        toast.success('Google Calendar desconectado')
+                      }}
+                      className="text-sm text-red-500 hover:underline"
+                    >
+                      Desconectar
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    href="/calendar"
+                    className="px-4 py-2 rounded-xl text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-all"
+                  >
+                    Conectar
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Settings */}
         <div className="rounded-2xl p-5" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>

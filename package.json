@@ -79,6 +79,7 @@
     "sonner": "^2.0.7",
     "streamdown": "^1.6.1",
     "tailwind-merge": "^3.4.0",
+    "twilio": "^5.10.6",
     "use-stick-to-bottom": "^1.1.1",
     "vaul": "^1.1.2",
     "zod": "^3.25.76"

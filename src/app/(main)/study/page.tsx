@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, Suspense } from "react"
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { ArrowLeft, CheckCircle, BookOpen, Loader2 } from "lucide-react"
 import Link from "next/link"
@@ -8,7 +8,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { useRouter, useSearchParams } from "next/navigation"
 
-export default function StudyPage() {
+function StudyPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { currentNote, notes, isLoading, generateNote, markAsUnderstood, selectNote } = useKnowledge()
@@ -268,5 +268,17 @@ export default function StudyPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function StudyPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex-1 flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Cargando estudio...</div>
+      </div>
+    }>
+      <StudyPageContent />
+    </Suspense>
   )
 }
