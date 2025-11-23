@@ -4,8 +4,7 @@ import { useEffect, Suspense } from "react"
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { ArrowLeft, CheckCircle, BookOpen, Loader2 } from "lucide-react"
 import Link from "next/link"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import { NoteRenderer } from "@/components/NoteRenderer"
 import { useRouter, useSearchParams } from "next/navigation"
 
 function StudyPageContent() {
@@ -27,15 +26,19 @@ function StudyPageContent() {
     }
   }, [searchParams, notes, selectNote])
 
-  // Transform [[term]] links to clickable elements
-  const transformContent = (content: string) => {
-    return content.replace(/\[\[([^\]]+)\]\]/g, '[$1](#$1)')
-  }
+  const handleLinkClick = async (term: string) => {
+    // Check if note exists
+    const existingNote = notes.find(n => 
+      n.title.toLowerCase() === term.toLowerCase() || 
+      n.slug === term.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    )
 
-  const handleLinkClick = async (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    if (href.startsWith('#')) {
-      e.preventDefault()
-      const term = href.slice(1)
+    if (existingNote) {
+      selectNote(existingNote.id || existingNote.slug)
+      // Update URL to reflect current note
+      const newUrl = `/study?topic=${encodeURIComponent(existingNote.title)}`
+      window.history.pushState({ ...window.history.state, as: newUrl, url: newUrl }, '', newUrl)
+    } else {
       await generateNote(term, currentNote?.title)
     }
   }
@@ -112,102 +115,11 @@ function StudyPageContent() {
             </div>
           ) : currentNote?.content ? (
             <div className="prose prose-lg max-w-none dark:prose-invert">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  a: ({ href, children }) => (
-                    <a
-                      href={href}
-                      onClick={(e) => handleLinkClick(e, href || '')}
-                      className="underline cursor-pointer font-medium hover:opacity-80 transition-opacity text-primary"
-                    >
-                      {children}
-                    </a>
-                  ),
-                  h1: ({ children }) => (
-                    <h1 className="text-3xl font-bold mb-6 mt-8 first:mt-0 text-foreground">{children}</h1>
-                  ),
-                  h2: ({ children }) => (
-                    <h2 className="text-2xl font-semibold mb-4 mt-6 text-foreground">{children}</h2>
-                  ),
-                  h3: ({ children }) => (
-                    <h3 className="text-xl font-semibold mb-3 mt-5 text-foreground">{children}</h3>
-                  ),
-                  p: ({ children }) => (
-                    <p className="leading-relaxed mb-4 text-foreground">{children}</p>
-                  ),
-                  ul: ({ children }) => (
-                    <ul className="space-y-2 mb-4 list-none">{children}</ul>
-                  ),
-                  li: ({ children }) => {
-                    const text = String(children)
-                    // Handle special callouts
-                    if (text.startsWith('& ')) {
-                      return (
-                        <li className="flex items-start gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                          <span className="text-xl text-blue-500">Key</span>
-                          <span className="text-foreground">{text.slice(2)}</span>
-                        </li>
-                      )
-                    }
-                    if (text.startsWith('! ')) {
-                      return (
-                        <li className="flex items-start gap-3 p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
-                          <span className="text-xl text-orange-500">!</span>
-                          <span className="text-foreground">{text.slice(2)}</span>
-                        </li>
-                      )
-                    }
-                    if (text.startsWith('Ex: ')) {
-                      return (
-                        <li className="flex items-start gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                          <span className="text-xl text-emerald-500">Example</span>
-                          <span className="text-foreground">{text.slice(4)}</span>
-                        </li>
-                      )
-                    }
-                    if (text.startsWith('? ')) {
-                      return (
-                        <li className="flex items-start gap-3 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                          <span className="text-xl text-purple-500">?</span>
-                          <span className="text-foreground">{text.slice(2)}</span>
-                        </li>
-                      )
-                    }
-                    return (
-                      <li className="flex items-start gap-2 text-foreground">
-                        <span className="mt-1 text-primary">-</span>
-                        <span>{children}</span>
-                      </li>
-                    )
-                  },
-                  code: ({ children, className }) => {
-                    const isInline = !className
-                    if (isInline) {
-                      return (
-                        <code className="px-2 py-0.5 rounded text-sm font-mono bg-muted text-primary">
-                          {children}
-                        </code>
-                      )
-                    }
-                    return (
-                      <code className="block p-4 rounded-xl overflow-x-auto font-mono text-sm bg-muted/50 text-foreground">
-                        {children}
-                      </code>
-                    )
-                  },
-                  pre: ({ children }) => (
-                    <pre className="rounded-xl overflow-hidden mb-4 bg-muted/50">{children}</pre>
-                  ),
-                  blockquote: ({ children }) => (
-                    <blockquote className="pl-4 italic my-4 border-l-4 border-primary text-muted-foreground">
-                      {children}
-                    </blockquote>
-                  ),
-                }}
-              >
-                {transformContent(currentNote.content)}
-              </ReactMarkdown>
+              <NoteRenderer 
+                content={currentNote.content} 
+                onLinkClick={handleLinkClick}
+                existingNotes={notes}
+              />
             </div>
           ) : (
             <p className="text-muted-foreground">Sin contenido disponible</p>
