@@ -115,6 +115,8 @@ async function generateReminderMessage(
       return await generateNightMessage(userId)
     case 'weekly_review':
       return await generateWeeklyMessage(userId)
+    case 'area_neglect':
+      return await generateAreaNeglectMessage(userId)
     default:
       return null
   }
@@ -124,7 +126,7 @@ async function generateMorningMessage(userId: string): Promise<string> {
   // Get streak
   const streak = await getStreak(userId)
 
-  // Check if yesterday's intention was set
+  // Check if yesterday's intention was set - use 'date' (correct column name)
   const yesterday = new Date()
   yesterday.setDate(yesterday.getDate() - 1)
   const yesterdayStr = yesterday.toISOString().split('T')[0]
@@ -133,7 +135,8 @@ async function generateMorningMessage(userId: string): Promise<string> {
     .from('journal_entries')
     .select('daily_intention')
     .eq('user_id', userId)
-    .eq('entry_date', yesterdayStr)
+    .eq('date', yesterdayStr)
+    .eq('type', 'daily')
     .single()
 
   let message = '🌅 *Buenos días!*\n\n'
@@ -155,15 +158,16 @@ async function generateMorningMessage(userId: string): Promise<string> {
 async function generateNightMessage(userId: string): Promise<string> {
   const today = new Date().toISOString().split('T')[0]
 
-  // Check if today's journal is complete
+  // Check if today's journal is complete - use 'date' and 'lesson' (correct column names)
   const { data: todayEntry } = await getSupabase()
     .from('journal_entries')
-    .select('best_moments, lesson_learned, mood')
+    .select('best_moments, lesson, mood')
     .eq('user_id', userId)
-    .eq('entry_date', today)
+    .eq('date', today)
+    .eq('type', 'daily')
     .single()
 
-  const hasNightJournal = todayEntry?.best_moments?.some((m: string) => m) && todayEntry?.lesson_learned
+  const hasNightJournal = todayEntry?.best_moments?.some((m: string) => m) && todayEntry?.lesson
 
   if (hasNightJournal) {
     return '🌙 *Tu journal de hoy está completo!*\n\n' +
@@ -181,12 +185,13 @@ async function generateWeeklyMessage(userId: string): Promise<string> {
   weekAgo.setDate(weekAgo.getDate() - 7)
   const weekAgoStr = weekAgo.toISOString().split('T')[0]
 
-  // Get this week's stats
+  // Get this week's stats - use 'date' (correct column name)
   const { data: entries } = await getSupabase()
     .from('journal_entries')
-    .select('mood, entry_date')
+    .select('mood, date')
     .eq('user_id', userId)
-    .gte('entry_date', weekAgoStr)
+    .eq('type', 'daily')
+    .gte('date', weekAgoStr)
 
   const journalDays = entries?.length || 0
   const avgMood = entries?.length
@@ -211,11 +216,13 @@ async function getStreak(userId: string): Promise<number> {
 
   while (true) {
     const dateStr = checkDate.toISOString().split('T')[0]
+    // Use 'date' and 'type' (correct column names)
     const { data } = await getSupabase()
       .from('journal_entries')
       .select('id')
       .eq('user_id', userId)
-      .eq('entry_date', dateStr)
+      .eq('date', dateStr)
+      .eq('type', 'daily')
       .not('mood', 'is', null)
       .single()
 
@@ -227,6 +234,39 @@ async function getStreak(userId: string): Promise<number> {
   }
 
   return streak
+}
+
+// Generate area neglect alert message
+async function generateAreaNeglectMessage(userId: string): Promise<string | null> {
+  // Get the oldest unreviewed note
+  const { data: notes } = await getSupabase()
+    .from('notes')
+    .select('title, updated_at, status')
+    .eq('user_id', userId)
+    .neq('status', 'understood')
+    .order('updated_at', { ascending: true })
+    .limit(1)
+
+  if (!notes || notes.length === 0) {
+    return null
+  }
+
+  const oldestNote = notes[0]
+  const lastUpdate = new Date(oldestNote.updated_at)
+  const now = new Date()
+  const daysSince = Math.floor((now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24))
+
+  // Only alert if note hasn't been touched in 7+ days
+  if (daysSince < 7) {
+    return null
+  }
+
+  return `⚠️ *Nota sin revisar*\n\n` +
+    `Hace ${daysSince} días que no revisas:\n\n` +
+    `📚 *${oldestNote.title}*\n\n` +
+    `¿Te gustaría repasarla?\n\n` +
+    `Escribe "estudiar" o ve a BrainFlow:\n` +
+    `https://brain-flow-hack-platanus.vercel.app/study`
 }
 
 // Calculate next scheduled time for a reminder
