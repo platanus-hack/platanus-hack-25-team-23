@@ -72,7 +72,7 @@ export function ChatView() {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
   const [webSearch, setWebSearch] = useState(false);
-  const [level, setLevel] = useState<'beginner' | 'intermediate' | 'expert'>('beginner');
+
   
   // Use context to get recent notes for the welcome screen
   const { notes } = useKnowledge();
@@ -261,7 +261,7 @@ export function ChatView() {
         body: {
           model: model,
           webSearch: webSearch,
-          level: level, // Pass level to backend (needs backend support to use it)
+
           googleCalendarToken: googleCalendarToken, // Pass token explicitly
         },
       },
@@ -274,8 +274,7 @@ export function ChatView() {
     return (
       <ChatWelcomeScreen 
         onQuery={handleSubmit}
-        level={level}
-        setLevel={setLevel}
+
         recentTopics={recentTopics}
         isLoading={status === 'submitted' || status === 'streaming'}
       />
@@ -283,9 +282,9 @@ export function ChatView() {
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto p-6 relative size-full h-full flex gap-6 bg-[#F6F5F2]">
+    <div className="max-w-[1600px] mx-auto p-2 md:p-6 relative size-full h-full flex gap-6 bg-[#F6F5F2] dark:bg-zinc-950">
       {/* Left Panel: Chat (Flexible width) */}
-      <div className={`flex flex-col h-full transition-all duration-300 ${activeNote ? 'w-1/2' : 'w-full max-w-4xl mx-auto'}`}>
+      <div className={`flex flex-col h-full transition-all duration-300 ${activeNote ? 'w-full md:w-1/2' : 'w-full max-w-4xl mx-auto'}`}>
         <Conversation className="h-full">
           <ConversationContent>
             {messages.map((message) => (
@@ -311,56 +310,49 @@ export function ChatView() {
                   </Sources>
                 )}
                 
-                {/* Handle standard content if parts are missing or empty (backward compatibility) */}
                 {(!message.parts || message.parts.length === 0) && message.content && (
                     <Message from={message.role}>
-                        <MessageContent className={message.role === 'user' ? "bg-white text-[#222222] border border-[#EEEBE6] shadow-sm" : "text-[#222222]"}>
+                        <MessageContent className={message.role === 'user' ? "bg-white text-[#222222] border border-[#EEEBE6] shadow-sm dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-800" : "text-[#222222] dark:text-zinc-100"}>
                             {message.role === 'user' ? (
                                 <div className="whitespace-pre-wrap">
                                     {message.content}
-                                    {message.parts && message.parts.length > 0 && (
-                                        <MessageAttachments className="mt-2">
-                                            {message.parts.filter(p => p.type === 'image' || p.type === 'file').map((part, idx) => (
-                                                <MessageAttachment 
-                                                    key={idx} 
-                                                    data={{
-                                                        type: part.type,
-                                                        url: part.data,
-                                                        mediaType: part.mimeType,
-                                                        filename: part.name
-                                                    }} 
-                                                />
+                                    {message.files && message.files.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {message.files.map((file, idx) => (
+                                                <div key={idx} className="text-xs bg-muted p-1 rounded border">
+                                                    {file.name}
+                                                </div>
                                             ))}
-                                        </MessageAttachments>
+                                        </div>
                                     )}
                                 </div>
                             ) : message.role === 'assistant' ? (
-                        <>
-                            <NoteRenderer 
-                                content={message.content} 
-                                onLinkClick={handleLinkClick}
-                                isStreaming={status === 'streaming' && message.id === messages[messages.length - 1].id}
-                                existingNotes={notes}
-                            />
-                            {/* Show pending artifact if this is the last message and we are writing a file */}
-                            {(() => {
-                                const isStreaming = status === 'streaming';
-                                const isLast = message.id === messages[messages.length - 1].id;
-                                const hasPath = !!pendingArtifactPath;
-                                
-                                if (isStreaming && isLast && hasPath) {
-                                    return (
-                                        <div className="mt-2">
-                                            <FileArtifact path={pendingArtifactPath!} isLoading={true} />
-                                        </div>
-                                    );
-                                }
-                                return null;
-                            })()}
-                        </>
-                    ) : (
-                        message.content
-                    )}
+                                <>
+                                    <NoteRenderer 
+                                        content={message.content} 
+                                        onLinkClick={handleLinkClick}
+                                        isStreaming={status === 'streaming' && message.id === messages[messages.length - 1].id}
+                                        existingNotes={notes}
+                                    />
+                                    {/* Show pending artifact if this is the last message and we are writing a file */}
+                                    {(() => {
+                                        const isStreaming = status === 'streaming';
+                                        const isLast = message.id === messages[messages.length - 1].id;
+                                        const hasPath = !!pendingArtifactPath;
+
+                                        if (isStreaming && isLast && hasPath) {
+                                            return (
+                                                <div className="mt-2">
+                                                    <FileArtifact path={pendingArtifactPath!} isLoading={true} />
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+                                </>
+                            ) : (
+                                message.content
+                            )}
                         </MessageContent>
                     </Message>
                 )}
@@ -435,7 +427,7 @@ export function ChatView() {
               onChange={(e) => setInput(e.target.value)}
               value={input}
               placeholder="Ask your Knowledge Graph..."
-              className="text-[#222222] placeholder:text-[#9A9A9A]"
+              className="text-[#222222] placeholder:text-[#9A9A9A] dark:text-zinc-100 dark:placeholder:text-zinc-500"
             />
           </PromptInputBody>
           <PromptInputFooter>
@@ -449,7 +441,7 @@ export function ChatView() {
               <PromptInputButton
                 variant={webSearch ? 'default' : 'ghost'}
                 onClick={() => setWebSearch(!webSearch)}
-                className={webSearch ? "bg-[#E6DAFF] text-[#9575CD] hover:bg-[#D6C9F5]" : "text-[#6D6D6D] hover:bg-[#F6F5F2]"}
+                className={webSearch ? "bg-[#E6DAFF] text-[#9575CD] hover:bg-[#D6C9F5] dark:bg-primary/20 dark:text-primary dark:hover:bg-primary/30" : "text-[#6D6D6D] hover:bg-[#F6F5F2] dark:text-zinc-400 dark:hover:bg-zinc-800"}
               >
                 <GlobeIcon size={16} />
                 <span>Search</span>
@@ -460,7 +452,7 @@ export function ChatView() {
                 }}
                 value={model}
               >
-                <PromptInputSelectTrigger className="text-[#6D6D6D] hover:bg-[#F6F5F2]">
+                <PromptInputSelectTrigger className="text-[#6D6D6D] hover:bg-[#F6F5F2] dark:text-zinc-400 dark:hover:bg-zinc-800">
                   <PromptInputSelectValue />
                 </PromptInputSelectTrigger>
                 <PromptInputSelectContent>
@@ -492,17 +484,17 @@ export function ChatView() {
 
       {/* Right Panel: Note Viewer */}
       {activeNote && (
-        <div className="w-1/2 h-full bg-white border border-[#EEEBE6] rounded-3xl shadow-[0px_8px_30px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col animate-in slide-in-from-right-10 duration-300">
-          <div className="p-4 border-b border-[#EEEBE6] flex items-center justify-between bg-[#F6F5F2]">
-            <h2 className="font-bold text-lg truncate text-[#222222]">{activeNote.title}</h2>
+        <div className="fixed inset-0 z-50 md:static md:z-auto md:w-1/2 h-full bg-white border border-[#EEEBE6] md:rounded-3xl shadow-[0px_8px_30px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col animate-in slide-in-from-right-10 duration-300 dark:bg-zinc-900 dark:border-zinc-800">
+          <div className="p-4 border-b border-[#EEEBE6] flex items-center justify-between bg-[#F6F5F2] dark:bg-zinc-950 dark:border-zinc-800">
+            <h2 className="font-bold text-lg truncate text-[#222222] dark:text-zinc-100">{activeNote.title}</h2>
             <button 
               onClick={() => setActiveNote(null)}
-              className="p-2 hover:bg-[#EEEBE6] rounded-xl transition-colors text-[#6D6D6D]"
+              className="p-2 hover:bg-[#EEEBE6] rounded-xl transition-colors text-[#6D6D6D] dark:text-zinc-400 dark:hover:bg-zinc-800"
             >
               ✕
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-8">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8">
              <NoteRenderer content={activeNote.content} onLinkClick={handleLinkClick} existingNotes={notes} />
           </div>
         </div>

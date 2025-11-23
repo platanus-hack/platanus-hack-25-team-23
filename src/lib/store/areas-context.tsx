@@ -149,7 +149,7 @@ export function AreasProvider({ children }: { children: React.ReactNode }) {
     setYouNodeColorState(DEFAULT_YOU_NODE_COLOR)
   }, [])
 
-  const value = {
+  const value = React.useMemo(() => ({
     areas,
     youNodeColor,
     setYouNodeColor,
@@ -158,7 +158,7 @@ export function AreasProvider({ children }: { children: React.ReactNode }) {
     addArea,
     resetAreas,
     getColorForDepth,
-  }
+  }), [areas, youNodeColor, setYouNodeColor, updateArea, deleteArea, addArea, resetAreas])
 
   return (
     <AreasContext.Provider value={value}>

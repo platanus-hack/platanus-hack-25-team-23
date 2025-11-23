@@ -72,9 +72,17 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
         prerequisites: [],
         nextSteps: [],
       }))
-      setNotes(loadedNotes)
+      setNotes(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(loadedNotes)) return prev
+        return loadedNotes
+      })
       if (loadedNotes.length > 0) {
-        setCurrentNote(loadedNotes[0])
+        setCurrentNote(prev => {
+          if (!prev) return loadedNotes[0]
+          // Don't auto-switch note if we already have one, unless it was deleted
+          const exists = loadedNotes.find(n => n.id === prev.id || n.slug === prev.slug)
+          return exists ? prev : loadedNotes[0]
+        })
       }
     }
 
@@ -94,7 +102,10 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
         source: e.source_id,
         target: e.target_id,
       }))
-      setEdges(loadedEdges)
+      setEdges(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(loadedEdges)) return prev
+        return loadedEdges
+      })
     }
   }, [])
 
@@ -112,14 +123,21 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      if (session?.user) {
-        loadUserNotes(session.user.id)
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession((prev: any) => {
+        if (prev?.access_token === newSession?.access_token) return prev
+        return newSession
+      })
+      
+      if (newSession?.user) {
+        // Only load notes if user changed or we didn't have notes
+        if (newSession.user.id !== session?.user?.id) {
+          loadUserNotes(newSession.user.id)
+        }
       } else {
-        // Clear data when logged out
-        setNotes([])
-        setEdges([])
+        // Clear data when logged out - only if not already empty
+        setNotes(prev => prev.length === 0 ? prev : [])
+        setEdges(prev => prev.length === 0 ? prev : [])
         setCurrentNote(null)
       }
     })
@@ -267,8 +285,21 @@ export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
     // API call would go here
   }, [currentNote])
 
+  const value = React.useMemo(() => ({
+    currentNote,
+    streamingNote,
+    isLoading,
+    generateNote,
+    notes,
+    edges,
+    selectNote,
+    markAsUnderstood,
+    clearStreaming,
+    session
+  }), [currentNote, streamingNote, isLoading, generateNote, notes, edges, selectNote, markAsUnderstood, clearStreaming, session])
+
   return (
-    <KnowledgeContext.Provider value={{ currentNote, streamingNote, isLoading, generateNote, notes, edges, selectNote, markAsUnderstood, clearStreaming, session }}>
+    <KnowledgeContext.Provider value={value}>
       {children}
     </KnowledgeContext.Provider>
   )

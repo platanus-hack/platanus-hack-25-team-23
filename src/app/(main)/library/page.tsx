@@ -478,16 +478,12 @@ function LibraryPageContent() {
       <div key={folder.id} className="mb-3">
         {/* Folder Header - Clean Style */}
         <div
-          className="p-4 rounded-2xl cursor-pointer transition-all hover:shadow-md"
-          style={{
-            backgroundColor: 'white',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-          }}
+          className="p-4 rounded-2xl cursor-pointer transition-all hover:shadow-md bg-card border border-border shadow-sm"
           onClick={() => toggleFolder(folder.id)}
         >
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
             <div className="flex items-center gap-3 flex-1">
-              <button style={{ color: '#9A9A9A' }}>
+              <button className="text-muted-foreground">
                 {isExpanded ? (
                   <ChevronDown className="size-5" />
                 ) : (
@@ -504,17 +500,16 @@ function LibraryPageContent() {
 
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold" style={{ color: '#222222' }}>
+                  <h3 className="font-semibold text-foreground">
                     {folder.name}
                   </h3>
                   <span
-                    className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: '#F6F5F2', color: '#6D6D6D' }}
+                    className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground"
                   >
                     {totalNotes}
                   </span>
                 </div>
-                <p className="text-xs" style={{ color: '#9A9A9A' }}>
+                <p className="text-xs text-muted-foreground">
                   {folder.description}
                 </p>
               </div>
@@ -525,8 +520,7 @@ function LibraryPageContent() {
                 e.stopPropagation()
                 exportFolderToMarkdown(folder)
               }}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
-              style={{ backgroundColor: '#F6F5F2', color: '#6D6D6D' }}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 bg-muted text-muted-foreground hover:text-foreground w-full md:w-auto flex justify-center items-center"
             >
               <Download className="size-3.5 inline mr-1" />
               Exportar
@@ -541,22 +535,17 @@ function LibraryPageContent() {
               <Link
                 key={note.id}
                 href={`/study?topic=${encodeURIComponent(note.title)}`}
-                className="block p-3 rounded-xl hover:shadow-md transition-all"
-                style={{
-                  backgroundColor: 'white',
-                  boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-                }}
+                className="block p-3 rounded-xl hover:shadow-md transition-all bg-card border border-border shadow-sm"
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: '#E6DAFF' }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10"
                   >
-                    <FileText className="size-4" style={{ color: '#9575CD' }} />
+                    <FileText className="size-4 text-primary" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-medium text-sm" style={{ color: '#222222' }}>
+                      <h4 className="font-medium text-sm text-foreground">
                         {note.title}
                       </h4>
                       <span
@@ -569,7 +558,7 @@ function LibraryPageContent() {
                         {note.status === 'understood' ? '✓ Entendido' : note.status === 'read' ? '○ En progreso' : '○ Pendiente'}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 text-xs mt-1" style={{ color: '#9A9A9A' }}>
+                    <div className="flex items-center gap-3 text-xs mt-1 text-muted-foreground">
                       <span>{note.wordCount} palabras</span>
                       <span>•</span>
                       <span>{getTimeSince(note.lastModified, currentTime)}</span>
@@ -586,40 +575,39 @@ function LibraryPageContent() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center transition-colors duration-300" style={{ backgroundColor: 'var(--background)' }}>
+      <div className="flex-1 flex items-center justify-center transition-colors duration-300 bg-background">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-purple-300 rounded-full animate-spin mx-auto mb-4" style={{ borderTopColor: '#C9B7F3' }} />
-          <p style={{ color: 'var(--muted-foreground)' }}>Cargando biblioteca...</p>
+          <div className="w-12 h-12 border-4 border-primary/30 rounded-full animate-spin mx-auto mb-4 border-t-primary" />
+          <p className="text-muted-foreground">Cargando biblioteca...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 overflow-y-auto transition-colors duration-300" style={{ backgroundColor: 'var(--background)' }}>
-      <div className="max-w-6xl mx-auto px-8 py-8">
+    <div className="flex-1 overflow-y-auto transition-colors duration-300 bg-background">
+      <div className="max-w-6xl mx-auto px-4 py-4 md:px-8 md:py-8">
         {/* Header - Clean Style */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
             <div>
-              <h1 className="text-3xl font-bold mb-1 flex items-center gap-3" style={{ color: '#222222' }}>
-                <FolderOpen className="size-8" style={{ color: '#9575CD' }} />
+              <h1 className="text-3xl font-bold mb-1 flex items-center gap-3 text-foreground">
+                <FolderOpen className="size-8 text-primary" />
                 Biblioteca
               </h1>
-              <p className="text-sm" style={{ color: '#6D6D6D' }}>
+              <p className="text-sm text-muted-foreground">
                 Tus notas organizadas automáticamente por la IA
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
               <button
                 onClick={() => setShowAreaManager(!showAreaManager)}
-                className="px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 hover:opacity-90 font-medium"
-                style={{
-                  backgroundColor: showAreaManager ? '#CFE4FF' : 'white',
-                  color: showAreaManager ? '#5A8FCC' : '#6D6D6D',
-                  boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-                }}
+                className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 hover:opacity-90 font-medium shadow-sm ${
+                  showAreaManager 
+                    ? 'bg-primary/20 text-primary' 
+                    : 'bg-card text-muted-foreground hover:text-foreground border border-border'
+                }`}
               >
                 <Settings className="size-4" />
                 Gestionar Áreas
@@ -627,17 +615,12 @@ function LibraryPageContent() {
               <button
                 onClick={handleReorganize}
                 disabled={isOrganizing}
-                className="px-4 py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:opacity-90 font-medium"
-                style={{
-                  backgroundColor: '#FFD9D9',
-                  color: '#222222'
-                }}
+                className="px-4 py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:opacity-90 font-medium bg-primary/10 text-foreground hover:bg-primary/20"
               >
                 {isOrganizing ? (
                   <>
                     <div
-                      className="w-4 h-4 border-2 border-current rounded-full animate-spin"
-                      style={{ borderTopColor: 'transparent' }}
+                      className="w-4 h-4 border-2 border-current rounded-full animate-spin border-t-transparent"
                     />
                     Reorganizando...
                   </>
@@ -653,35 +636,28 @@ function LibraryPageContent() {
 
           {/* Search Bar */}
           <div className="mb-6">
-            <div className="relative max-w-md">
+            <div className="relative w-full md:max-w-md">
               <Search
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 size-5"
-                style={{ color: '#9A9A9A' }}
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 size-5 text-muted-foreground"
               />
               <input
                 type="text"
                 placeholder="Buscar en biblioteca..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-10 py-3 rounded-xl text-sm transition-all focus:outline-none focus:ring-2"
-                style={{
-                  backgroundColor: 'white',
-                  border: '1px solid #EEEBE6',
-                  color: '#222222',
-                  boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-                }}
+                className="w-full pl-12 pr-10 py-3 rounded-xl text-sm transition-all focus:outline-none focus:ring-2 bg-card border border-border text-foreground shadow-sm"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 hover:opacity-70"
                 >
-                  <X className="size-4" style={{ color: '#9A9A9A' }} />
+                  <X className="size-4 text-muted-foreground" />
                 </button>
               )}
             </div>
             {searchQuery && (
-              <p className="mt-2 text-sm" style={{ color: '#6D6D6D' }}>
+              <p className="mt-2 text-sm text-muted-foreground">
                 {filteredNotes.length + filteredJournalEntries.length} resultado{(filteredNotes.length + filteredJournalEntries.length) !== 1 ? 's' : ''} para "{searchQuery}"
                 {filteredNotes.length > 0 && ` (${filteredNotes.length} notas`}
                 {filteredNotes.length > 0 && filteredJournalEntries.length > 0 && ', '}
@@ -692,83 +668,62 @@ function LibraryPageContent() {
           </div>
 
           {/* Stats - Clean Style */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div
-              className="p-4 rounded-2xl hover:shadow-md transition-all"
-              style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}
-            >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="p-4 rounded-2xl hover:shadow-md transition-all bg-card border border-border shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#E6DAFF' }}>
-                  <FileText className="size-5" style={{ color: '#9575CD' }} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
+                  <FileText className="size-5 text-primary" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold" style={{ color: '#222222' }}>{stats.total}</div>
-                  <div className="text-xs" style={{ color: '#6D6D6D' }}>Notas totales</div>
+                  <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+                  <div className="text-xs text-muted-foreground">Notas totales</div>
                 </div>
               </div>
             </div>
-            <div
-              className="p-4 rounded-2xl hover:shadow-md transition-all"
-              style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}
-            >
+            <div className="p-4 rounded-2xl hover:shadow-md transition-all bg-card border border-border shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#D4F5E9' }}>
-                  <Brain className="size-5" style={{ color: '#10B981' }} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-500/10">
+                  <Brain className="size-5 text-emerald-500" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold" style={{ color: '#222222' }}>{stats.understood}</div>
-                  <div className="text-xs" style={{ color: '#6D6D6D' }}>Entendidas</div>
+                  <div className="text-2xl font-bold text-foreground">{stats.understood}</div>
+                  <div className="text-xs text-muted-foreground">Entendidas</div>
                 </div>
               </div>
             </div>
-            <div
-              className="p-4 rounded-2xl hover:shadow-md transition-all"
-              style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}
-            >
+            <div className="p-4 rounded-2xl hover:shadow-md transition-all bg-card border border-border shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#FFF0E6' }}>
-                  <Clock className="size-5" style={{ color: '#F5A962' }} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-500/10">
+                  <Clock className="size-5 text-amber-500" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold" style={{ color: '#222222' }}>{stats.inProgress}</div>
-                  <div className="text-xs" style={{ color: '#6D6D6D' }}>En progreso</div>
+                  <div className="text-2xl font-bold text-foreground">{stats.inProgress}</div>
+                  <div className="text-xs text-muted-foreground">En progreso</div>
                 </div>
               </div>
             </div>
-            <div
-              className="p-4 rounded-2xl hover:shadow-md transition-all"
-              style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}
-            >
+            <div className="p-4 rounded-2xl hover:shadow-md transition-all bg-card border border-border shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#FFD9D9' }}>
-                  <FileText className="size-5" style={{ color: '#E57373' }} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10">
+                  <FileText className="size-5 text-red-500" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold" style={{ color: '#222222' }}>{stats.pending}</div>
-                  <div className="text-xs" style={{ color: '#6D6D6D' }}>Pendientes</div>
+                  <div className="text-2xl font-bold text-foreground">{stats.pending}</div>
+                  <div className="text-xs text-muted-foreground">Pendientes</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Info Banner - Clean Style */}
-          <div
-            className="p-4 rounded-2xl flex items-center gap-4"
-            style={{
-              backgroundColor: '#FFF0E6',
-              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-            }}
-          >
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: 'white' }}
-            >
-              <Sparkles className="size-5" style={{ color: '#F5A962' }} />
+          <div className="p-4 rounded-2xl flex items-center gap-4 bg-amber-500/10 border border-amber-500/20 shadow-sm">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-card">
+              <Sparkles className="size-5 text-amber-500" />
             </div>
             <div className="flex-1">
-              <p className="text-sm" style={{ color: '#222222' }}>
+              <p className="text-sm text-foreground">
                 <span className="font-medium">Organización Automática:</span>{' '}
-                <span style={{ color: '#6D6D6D' }}>
+                <span className="text-muted-foreground">
                   Última reorganización hace {getHoursSince(lastOrganized, currentTime)} horas
                 </span>
               </p>
@@ -779,17 +734,12 @@ function LibraryPageContent() {
         {/* Folders */}
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium" style={{ color: 'var(--foreground)' }}>
+            <h2 className="text-lg font-medium text-foreground">
               Carpetas organizadas por la IA
             </h2>
             <button
               onClick={() => setShowAreaManager(!showAreaManager)}
-              className="px-4 py-2 rounded-2xl transition-all flex items-center gap-2 hover:scale-105 duration-300 font-medium"
-              style={{
-                backgroundColor: 'var(--card)',
-                color: 'var(--muted-foreground)',
-                boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)'
-              }}
+              className="px-4 py-2 rounded-2xl transition-all flex items-center gap-2 hover:scale-105 duration-300 font-medium bg-card text-muted-foreground shadow-sm border border-border"
             >
               <Settings className="size-4" />
               {showAreaManager ? 'Ocultar' : 'Gestionar Áreas y Colores'}
@@ -798,34 +748,22 @@ function LibraryPageContent() {
 
           {/* Area Management Panel */}
           {showAreaManager && (
-            <div
-              className="p-6 rounded-3xl mb-6"
-              style={{
-                backgroundColor: 'var(--card)',
-                border: '2px solid #E6E6E6',
-                boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
-              }}
-            >
-              <div className="flex items-center justify-between mb-6">
+            <div className="p-6 rounded-3xl mb-6 bg-card border border-border shadow-md">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">🧠</span>
                   <div>
-                    <h3 className="font-bold text-lg" style={{ color: 'var(--foreground)' }}>
+                    <h3 className="font-bold text-lg text-foreground">
                       Gestión de Áreas y Colores
                     </h3>
-                    <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                    <p className="text-sm text-muted-foreground">
                       Personaliza los colores de cada área temática para el grafo
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowNewAreaForm(true)}
-                  className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
-                  style={{
-                    background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
-                    color: 'white',
-                    boxShadow: '0px 2px 8px rgba(201, 183, 243, 0.3)'
-                  }}
+                  className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
                 >
                   <Plus className="size-4 inline mr-2" />
                   Nueva Área
@@ -834,16 +772,10 @@ function LibraryPageContent() {
 
               {/* Central Node "Yo" */}
               <div className="mb-6">
-                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-foreground">
                   🧠 Nodo Central &quot;Yo&quot;
                 </h4>
-                <div
-                  className="p-5 rounded-2xl"
-                  style={{
-                    backgroundColor: '#FAFBFC',
-                    border: '2px solid #E6E6E6'
-                  }}
-                >
+                <div className="p-5 rounded-2xl bg-muted/30 border border-border">
                   <div className="flex items-start gap-4">
                     <div
                       className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
@@ -852,12 +784,12 @@ function LibraryPageContent() {
                       🧠
                     </div>
                     <div className="flex-1">
-                      <h5 className="font-semibold mb-1" style={{ color: 'var(--foreground)' }}>Nodo Central</h5>
-                      <p className="text-sm mb-4" style={{ color: 'var(--muted-foreground)' }}>
+                      <h5 className="font-semibold mb-1 text-foreground">Nodo Central</h5>
+                      <p className="text-sm mb-4 text-muted-foreground">
                         Este es el nodo central de tu grafo. Todas las áreas se conectan a este nodo.
                       </p>
 
-                      <p className="text-xs font-medium mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                      <p className="text-xs font-medium mb-2 text-muted-foreground">
                         Color del Nodo &quot;Yo&quot;
                       </p>
                       <div className="flex items-center gap-2 flex-wrap mb-3">
@@ -880,7 +812,7 @@ function LibraryPageContent() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                        <span className="text-xs text-muted-foreground">
                           O elige un color personalizado:
                         </span>
                         <input
@@ -890,9 +822,9 @@ function LibraryPageContent() {
                             setCustomColor(e.target.value)
                             setYouNodeColor(e.target.value)
                           }}
-                          className="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200"
+                          className="w-10 h-10 rounded-lg cursor-pointer border-2 border-border"
                         />
-                        <span className="text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>
+                        <span className="text-xs font-mono text-muted-foreground">
                           {customColor}
                         </span>
                       </div>
@@ -902,10 +834,10 @@ function LibraryPageContent() {
               </div>
 
               {/* Divider */}
-              <div className="border-t mb-6" style={{ borderColor: '#E6E6E6' }} />
+              <div className="border-t mb-6 border-border" />
 
               {/* Areas List */}
-              <h4 className="text-sm font-semibold mb-4" style={{ color: 'var(--foreground)' }}>
+              <h4 className="text-sm font-semibold mb-4 text-foreground">
                 Áreas Temáticas
               </h4>
               <div className="space-y-3">
@@ -921,14 +853,14 @@ function LibraryPageContent() {
                     <div className="flex items-center gap-4">
                       <span className="text-2xl">{area.icon}</span>
                       <div>
-                        <h5 className="font-semibold" style={{ color: 'var(--foreground)' }}>
+                        <h5 className="font-semibold text-foreground">
                           {area.name}
                         </h5>
-                        <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                        <p className="text-sm text-muted-foreground">
                           {area.description}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
-                          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                          <span className="text-xs text-muted-foreground">
                             Variantes:
                           </span>
                           {area.colorVariants.map((variant, idx) => (
@@ -945,23 +877,15 @@ function LibraryPageContent() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleStartEdit(area)}
-                        className="p-2.5 rounded-xl hover:scale-110 transition-all"
-                        style={{
-                          backgroundColor: 'var(--card)',
-                          border: '1px solid #E6E6E6'
-                        }}
+                        className="p-2.5 rounded-xl hover:scale-110 transition-all bg-card border border-border hover:bg-muted"
                       >
-                        <Pencil className="size-4" style={{ color: 'var(--muted-foreground)' }} />
+                        <Pencil className="size-4 text-muted-foreground" />
                       </button>
                       <button
                         onClick={() => setDeletingArea(area)}
-                        className="p-2.5 rounded-xl hover:scale-110 transition-all"
-                        style={{
-                          backgroundColor: 'var(--card)',
-                          border: '1px solid #FFB1B1'
-                        }}
+                        className="p-2.5 rounded-xl hover:scale-110 transition-all bg-card border border-red-200 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-900/20"
                       >
-                        <Trash2 className="size-4" style={{ color: '#CC5050' }} />
+                        <Trash2 className="size-4 text-red-500" />
                       </button>
                     </div>
                   </div>
@@ -972,66 +896,60 @@ function LibraryPageContent() {
 
           {/* Edit Area Modal */}
           {editingArea && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div
-                className="w-full max-w-lg p-6 rounded-3xl"
-                style={{ backgroundColor: 'var(--card)' }}
-              >
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+              <div className="w-full max-w-lg p-6 rounded-3xl bg-card border border-border shadow-xl">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
+                  <h3 className="text-xl font-bold text-foreground">
                     Editar Área
                   </h3>
                   <button
                     onClick={handleCancelEdit}
-                    className="p-2 rounded-xl hover:bg-gray-100 transition-all"
+                    className="p-2 rounded-xl hover:bg-muted transition-all"
                   >
-                    <X className="size-5" style={{ color: 'var(--muted-foreground)' }} />
+                    <X className="size-5 text-muted-foreground" />
                   </button>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                    <label className="text-sm font-medium mb-2 block text-foreground">
                       Icono
                     </label>
                     <input
                       type="text"
                       value={editIcon}
                       onChange={(e) => setEditIcon(e.target.value)}
-                      className="w-20 p-3 rounded-xl text-2xl text-center"
-                      style={{ backgroundColor: '#F6F6F6', border: '2px solid #E6E6E6' }}
+                      className="w-20 p-3 rounded-xl text-2xl text-center bg-muted border border-border text-foreground"
                       maxLength={2}
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                    <label className="text-sm font-medium mb-2 block text-foreground">
                       Nombre
                     </label>
                     <input
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="w-full p-3 rounded-xl"
-                      style={{ backgroundColor: '#F6F6F6', border: '2px solid #E6E6E6', color: 'var(--foreground)' }}
+                      className="w-full p-3 rounded-xl bg-muted border border-border text-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                    <label className="text-sm font-medium mb-2 block text-foreground">
                       Descripción
                     </label>
                     <input
                       type="text"
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
-                      className="w-full p-3 rounded-xl"
-                      style={{ backgroundColor: '#F6F6F6', border: '2px solid #E6E6E6', color: 'var(--foreground)' }}
+                      className="w-full p-3 rounded-xl bg-muted border border-border text-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                    <label className="text-sm font-medium mb-2 block text-foreground">
                       Color
                     </label>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -1055,7 +973,7 @@ function LibraryPageContent() {
                         type="color"
                         value={editColor}
                         onChange={(e) => setEditColor(e.target.value)}
-                        className="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200"
+                        className="w-10 h-10 rounded-lg cursor-pointer border-2 border-border"
                       />
                     </div>
                   </div>
@@ -1064,18 +982,13 @@ function LibraryPageContent() {
                 <div className="flex justify-end gap-3 mt-6">
                   <button
                     onClick={handleCancelEdit}
-                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
-                    style={{ backgroundColor: '#F6F6F6', color: 'var(--muted-foreground)' }}
+                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105 bg-muted text-muted-foreground hover:text-foreground"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleSaveEdit}
-                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
-                    style={{
-                      background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
-                      color: 'white'
-                    }}
+                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105 bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     Guardar Cambios
                   </button>
@@ -1086,22 +999,16 @@ function LibraryPageContent() {
 
           {/* Delete Confirmation Modal */}
           {deletingArea && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div
-                className="w-full max-w-md p-6 rounded-3xl"
-                style={{ backgroundColor: 'var(--card)' }}
-              >
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+              <div className="w-full max-w-md p-6 rounded-3xl bg-card border border-border shadow-xl">
                 <div className="text-center mb-6">
-                  <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                    style={{ backgroundColor: '#FFE5E5' }}
-                  >
-                    <Trash2 className="size-8" style={{ color: '#CC5050' }} />
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 dark:bg-red-900/20">
+                    <Trash2 className="size-8 text-red-500" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+                  <h3 className="text-xl font-bold mb-2 text-foreground">
                     Eliminar Área
                   </h3>
-                  <p style={{ color: 'var(--muted-foreground)' }}>
+                  <p className="text-muted-foreground">
                     ¿Estás seguro de que quieres eliminar el área <strong>{deletingArea.name}</strong>?
                     Esta acción no se puede deshacer.
                   </p>
@@ -1110,15 +1017,13 @@ function LibraryPageContent() {
                 <div className="flex justify-center gap-3">
                   <button
                     onClick={() => setDeletingArea(null)}
-                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
-                    style={{ backgroundColor: '#F6F6F6', color: 'var(--muted-foreground)' }}
+                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105 bg-muted text-muted-foreground hover:text-foreground"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleConfirmDelete}
-                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
-                    style={{ backgroundColor: '#CC5050', color: 'white' }}
+                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105 bg-red-500 text-white hover:bg-red-600"
                   >
                     Eliminar
                   </button>
@@ -1129,68 +1034,62 @@ function LibraryPageContent() {
 
           {/* New Area Modal */}
           {showNewAreaForm && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div
-                className="w-full max-w-lg p-6 rounded-3xl"
-                style={{ backgroundColor: 'var(--card)' }}
-              >
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+              <div className="w-full max-w-lg p-6 rounded-3xl bg-card border border-border shadow-xl">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>
+                  <h3 className="text-xl font-bold text-foreground">
                     Nueva Área
                   </h3>
                   <button
                     onClick={() => setShowNewAreaForm(false)}
-                    className="p-2 rounded-xl hover:bg-gray-100 transition-all"
+                    className="p-2 rounded-xl hover:bg-muted transition-all"
                   >
-                    <X className="size-5" style={{ color: 'var(--muted-foreground)' }} />
+                    <X className="size-5 text-muted-foreground" />
                   </button>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                    <label className="text-sm font-medium mb-2 block text-foreground">
                       Icono
                     </label>
                     <input
                       type="text"
                       value={newAreaIcon}
                       onChange={(e) => setNewAreaIcon(e.target.value)}
-                      className="w-20 p-3 rounded-xl text-2xl text-center"
-                      style={{ backgroundColor: '#F6F6F6', border: '2px solid #E6E6E6' }}
+                      className="w-20 p-3 rounded-xl text-2xl text-center bg-muted border border-border text-foreground"
                       maxLength={2}
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                    <label className="text-sm font-medium mb-2 block text-foreground">
                       Nombre
                     </label>
                     <input
                       type="text"
                       value={newAreaName}
                       onChange={(e) => setNewAreaName(e.target.value)}
-                      className="w-full p-3 rounded-xl"
-                      style={{ backgroundColor: '#F6F6F6', border: '2px solid #E6E6E6', color: 'var(--foreground)' }}
+                      className="w-full p-3 rounded-xl bg-muted border border-border text-foreground"
                       placeholder="Ej: Proyectos Personales"
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                    <label className="text-sm font-medium mb-2 block text-foreground">
                       Descripción
                     </label>
                     <input
                       type="text"
                       value={newAreaDescription}
                       onChange={(e) => setNewAreaDescription(e.target.value)}
-                      className="w-full p-3 rounded-xl"
-                      style={{ backgroundColor: '#F6F6F6', border: '2px solid #E6E6E6', color: 'var(--foreground)' }}
+                      className="w-full p-3 rounded-xl bg-muted border border-border text-foreground"
                       placeholder="Ej: Mis proyectos y side projects"
                     />
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--foreground)' }}>
+                    <label className="text-sm font-medium mb-2 block text-foreground">
                       Color
                     </label>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -1214,7 +1113,7 @@ function LibraryPageContent() {
                         type="color"
                         value={newAreaColor}
                         onChange={(e) => setNewAreaColor(e.target.value)}
-                        className="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200"
+                        className="w-10 h-10 rounded-lg cursor-pointer border-2 border-border"
                       />
                     </div>
                   </div>
@@ -1223,18 +1122,13 @@ function LibraryPageContent() {
                 <div className="flex justify-end gap-3 mt-6">
                   <button
                     onClick={() => setShowNewAreaForm(false)}
-                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
-                    style={{ backgroundColor: '#F6F6F6', color: 'var(--muted-foreground)' }}
+                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105 bg-muted text-muted-foreground hover:text-foreground"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleAddNewArea}
-                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105"
-                    style={{
-                      background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
-                      color: 'white'
-                    }}
+                    className="px-5 py-2.5 rounded-2xl font-medium transition-all hover:scale-105 bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     Crear Área
                   </button>
@@ -1247,64 +1141,38 @@ function LibraryPageContent() {
             displayFolders.map(folder => renderFolder(folder))
           ) : searchQuery.trim() ? (
             /* No results state */
-            <div
-              className="text-center py-12 rounded-3xl"
-              style={{
-                backgroundColor: 'var(--card)',
-                boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
-              }}
-            >
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: '#F6F5F2' }}
-              >
-                <Search className="size-10" style={{ color: '#9A9A9A' }} />
+            <div className="text-center py-12 rounded-3xl bg-card border border-border shadow-sm">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 bg-muted">
+                <Search className="size-10 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+              <h3 className="text-xl font-semibold mb-2 text-foreground">
                 Sin resultados
               </h3>
-              <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>
+              <p className="mb-6 text-muted-foreground">
                 No se encontraron notas para "{searchQuery}"
               </p>
               <button
                 onClick={() => setSearchQuery('')}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl transition-all hover:scale-105"
-                style={{
-                  backgroundColor: '#FFD9D9',
-                  color: '#222222'
-                }}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl transition-all hover:scale-105 bg-primary/10 text-foreground hover:bg-primary/20"
               >
                 Limpiar busqueda
               </button>
             </div>
           ) : (
             /* Empty State */
-            <div
-              className="text-center py-12 rounded-3xl"
-              style={{
-                backgroundColor: 'var(--card)',
-                boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
-              }}
-            >
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: '#E6DEF9' }}
-              >
-                <FolderOpen className="size-10" style={{ color: '#C9B7F3' }} />
+            <div className="text-center py-12 rounded-3xl bg-card border border-border shadow-sm">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 bg-primary/10">
+                <FolderOpen className="size-10 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+              <h3 className="text-xl font-semibold mb-2 text-foreground">
                 Aun no tienes notas
               </h3>
-              <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>
+              <p className="mb-6 text-muted-foreground">
                 Crea tu primera nota y sera organizada automaticamente
               </p>
               <Link
                 href="/new-query"
-                className="inline-flex items-center gap-2 px-6 py-3 text-white rounded-2xl transition-all hover:scale-105"
-                style={{
-                  background: 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)',
-                  boxShadow: '0px 4px 14px rgba(201, 183, 243, 0.3)'
-                }}
+                className="inline-flex items-center gap-2 px-6 py-3 text-white rounded-2xl transition-all hover:scale-105 bg-primary hover:bg-primary/90 shadow-sm"
               >
                 <Plus className="size-5" />
                 Crear primera nota
@@ -1315,33 +1183,27 @@ function LibraryPageContent() {
           {/* Journal Section - Hierarchical structure: Journal > Year > Month > Date */}
           {(
             <div className="mt-8">
-              <h2 className="text-lg font-medium mb-4 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
-                <BookHeart className="size-5" style={{ color: '#C9B7F3' }} />
+              <h2 className="text-lg font-medium mb-4 flex items-center gap-2 text-foreground">
+                <BookHeart className="size-5 text-primary" />
                 Journal Personal
               </h2>
 
               {/* Journal Root Folder */}
               <div className="mb-4">
                 <div
-                  className="p-6 rounded-3xl cursor-pointer transition-all hover:scale-[1.01] duration-300 relative overflow-hidden"
-                  style={{
-                    backgroundColor: 'rgba(201, 183, 243, 0.15)',
-                    border: '3px solid rgba(201, 183, 243, 0.5)',
-                    boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.08)'
-                  }}
+                  className="p-6 rounded-3xl cursor-pointer transition-all hover:scale-[1.01] duration-300 relative overflow-hidden bg-primary/5 border border-primary/20 shadow-sm"
                   onClick={() => toggleFolder('journal')}
                 >
                   <div
-                    className="absolute top-0 right-0 w-24 h-24"
+                    className="absolute top-0 right-0 w-24 h-24 bg-primary/10"
                     style={{
-                      backgroundColor: 'rgba(201, 183, 243, 0.3)',
                       clipPath: 'polygon(100% 0, 100% 100%, 0 0)'
                     }}
                   />
 
                   <div className="flex items-start justify-between relative z-10">
                     <div className="flex items-start gap-4 flex-1">
-                      <button className="mt-1" style={{ color: '#C9B7F3' }}>
+                      <button className="mt-1 text-primary">
                         {expandedFolders.has('journal') ? (
                           <ChevronDown className="size-6" />
                         ) : (
@@ -1352,18 +1214,15 @@ function LibraryPageContent() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <span className="text-3xl">📓</span>
-                          <h3 className="font-bold text-lg" style={{ color: 'var(--foreground)' }}>
+                          <h3 className="font-bold text-lg text-foreground">
                             Journal
                           </h3>
-                          <span
-                            className="text-xs px-3 py-1.5 rounded-full font-medium"
-                            style={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', color: '#646464' }}
-                          >
+                          <span className="text-xs px-3 py-1.5 rounded-full font-medium bg-background/80 text-muted-foreground">
                             {journalEntries.length} {journalEntries.length === 1 ? 'entrada' : 'entradas'}
                           </span>
                         </div>
 
-                        <p className="text-sm mb-3" style={{ color: 'rgba(30, 30, 30, 0.7)' }}>
+                        <p className="text-sm mb-3 text-muted-foreground/80">
                           Tu diario personal de reflexiones, gratitud y crecimiento
                         </p>
                       </div>
@@ -1372,8 +1231,7 @@ function LibraryPageContent() {
                     <Link
                       href="/journal"
                       onClick={(e) => e.stopPropagation()}
-                      className="px-4 py-2 bg-white rounded-2xl hover:scale-105 transition-all duration-300 flex items-center gap-2 font-medium"
-                      style={{ boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)', color: '#C9B7F3' }}
+                      className="px-4 py-2 bg-background rounded-2xl hover:scale-105 transition-all duration-300 flex items-center gap-2 font-medium text-primary shadow-sm"
                     >
                       <BookHeart className="size-4" />
                       Abrir Journal
@@ -1390,18 +1248,18 @@ function LibraryPageContent() {
                         <div key={year} className="mt-2">
                           {/* Year Folder */}
                           <div
-                            className="flex items-center gap-2 p-3 rounded-xl cursor-pointer hover:bg-purple-50 transition-all"
+                            className="flex items-center gap-2 p-3 rounded-xl cursor-pointer hover:bg-muted/50 transition-all"
                             onClick={() => toggleFolder(`journal-${year}`)}
                           >
-                            <button style={{ color: '#C9B7F3' }}>
+                            <button className="text-primary">
                               {expandedFolders.has(`journal-${year}`) ? (
                                 <ChevronDown className="size-5" />
                               ) : (
                                 <ChevronRight className="size-5" />
                               )}
                             </button>
-                            <Calendar className="size-4" style={{ color: '#9575CD' }} />
-                            <span className="font-medium" style={{ color: 'var(--foreground)' }}>{year}</span>
+                            <Calendar className="size-4 text-primary" />
+                            <span className="font-medium text-foreground">{year}</span>
                           </div>
 
                           {/* Months within Year */}
@@ -1413,19 +1271,19 @@ function LibraryPageContent() {
                                   <div key={`${year}-${month}`} className="mt-1">
                                     {/* Month Folder */}
                                     <div
-                                      className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-purple-50 transition-all"
+                                      className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-muted/50 transition-all"
                                       onClick={() => toggleFolder(`journal-${year}-${month}`)}
                                     >
-                                      <button style={{ color: '#C9B7F3' }}>
+                                      <button className="text-primary">
                                         {expandedFolders.has(`journal-${year}-${month}`) ? (
                                           <ChevronDown className="size-4" />
                                         ) : (
                                           <ChevronRight className="size-4" />
                                         )}
                                       </button>
-                                      <FolderOpen className="size-4" style={{ color: '#C9B7F3' }} />
-                                      <span className="text-sm" style={{ color: 'var(--foreground)' }}>{month}</span>
-                                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(201, 183, 243, 0.2)', color: '#9575CD' }}>
+                                      <FolderOpen className="size-4 text-primary" />
+                                      <span className="text-sm text-foreground">{month}</span>
+                                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                                         {entries.length}
                                       </span>
                                     </div>
@@ -1437,10 +1295,10 @@ function LibraryPageContent() {
                                           <Link
                                             key={entry.id}
                                             href={`/journal?date=${entry.date}`}
-                                            className="flex items-center gap-2 p-2 rounded-lg hover:bg-purple-50 transition-all group"
+                                            className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-all group"
                                           >
-                                            <FileText className="size-4" style={{ color: '#C9B7F3' }} />
-                                            <span className="text-sm group-hover:text-purple-600" style={{ color: 'var(--foreground)' }}>
+                                            <FileText className="size-4 text-primary" />
+                                            <span className="text-sm group-hover:text-primary text-foreground">
                                               {entry.date}
                                             </span>
                                             {entry.is_complete && (

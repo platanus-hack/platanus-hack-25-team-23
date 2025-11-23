@@ -56,7 +56,7 @@ interface ActivityItem {
 
 export default function ProfilePage() {
   const { session, notes } = useKnowledge()
-  const { isDark, toggleTheme } = useTheme()
+  const { isDark, setTheme, theme } = useTheme()
   const router = useRouter()
   const [notifications, setNotifications] = useState(true)
   const [loading, setLoading] = useState(true)
@@ -205,42 +205,40 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center transition-colors duration-300" style={{ backgroundColor: 'var(--background)' }}>
+      <div className="flex-1 flex items-center justify-center transition-colors duration-300 bg-background">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-purple-300 rounded-full animate-spin mx-auto mb-4" style={{ borderTopColor: '#C9B7F3' }} />
-          <p style={{ color: 'var(--muted-foreground)' }}>Cargando perfil...</p>
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Cargando perfil...</p>
         </div>
       </div>
     )
   }
 
-  return (
-    <div className="flex-1 overflow-y-auto transition-colors duration-300" style={{ backgroundColor: '#F6F5F2' }}>
-      <div className="max-w-6xl mx-auto p-8 space-y-6">
+    return (
+    <div className="flex-1 overflow-y-auto transition-colors duration-300 bg-background">
+      <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex flex-col md:flex-row items-start justify-between mb-6 gap-4">
           <div>
-            <h2 className="text-3xl font-bold flex items-center gap-3" style={{ color: '#222222' }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#E6DAFF' }}>
-                <User className="size-5" style={{ color: '#9575CD' }} />
+            <h2 className="text-3xl font-bold flex items-center gap-3 text-foreground">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
+                <User className="size-5 text-primary" />
               </div>
               Tu Perfil de Aprendizaje
             </h2>
-            <p className="text-sm mt-2" style={{ color: '#6D6D6D' }}>Miembro desde: {memberSince}</p>
+            <p className="text-sm mt-2 text-muted-foreground">Miembro desde: {memberSince}</p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={handleExportGraph}
-              className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105 flex items-center gap-2"
-              style={{ backgroundColor: 'white', color: '#6D6D6D', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}
+              className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105 flex items-center gap-2 bg-card text-muted-foreground hover:text-foreground border border-border shadow-sm"
             >
               <Download className="size-4" />
               Exportar Grafo
             </button>
             <button
               onClick={handleExportPDF}
-              className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105 flex items-center gap-2"
-              style={{ backgroundColor: '#FFD9D9', color: '#222222' }}
+              className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105 flex items-center gap-2 bg-primary/10 text-primary hover:bg-primary/20"
             >
               <Download className="size-4" />
               Resumen PDF
@@ -249,37 +247,37 @@ export default function ProfilePage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="p-4 rounded-2xl" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#E6DAFF' }}>
-                <Target className="size-5" style={{ color: '#9575CD' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
+                <Target className="size-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: '#222222' }}>{stats.understoodNotes}</p>
-                <p className="text-xs" style={{ color: '#6D6D6D' }}>Completados</p>
+                <p className="text-2xl font-bold text-foreground">{stats.understoodNotes}</p>
+                <p className="text-xs text-muted-foreground">Completados</p>
               </div>
             </div>
           </div>
-          <div className="p-4 rounded-2xl" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#CFE4FF' }}>
-                <Clock className="size-5" style={{ color: '#3B82F6' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10">
+                <Clock className="size-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: '#222222' }}>{Math.floor(stats.totalStudyTime / 60)}h {stats.totalStudyTime % 60}m</p>
-                <p className="text-xs" style={{ color: '#6D6D6D' }}>Tiempo Total</p>
+                <p className="text-2xl font-bold text-foreground">{Math.floor(stats.totalStudyTime / 60)}h {stats.totalStudyTime % 60}m</p>
+                <p className="text-xs text-muted-foreground">Tiempo Total</p>
               </div>
             </div>
           </div>
-          <div className="p-4 rounded-2xl" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#FFF0E6' }}>
-                <TrendingUp className="size-5" style={{ color: '#F59E0B' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-500/10">
+                <TrendingUp className="size-5 text-amber-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: '#222222' }}>{stats.studyStreak} dias</p>
-                <p className="text-xs" style={{ color: '#6D6D6D' }}>Racha Actual</p>
+                <p className="text-2xl font-bold text-foreground">{stats.studyStreak} dias</p>
+                <p className="text-xs text-muted-foreground">Racha Actual</p>
               </div>
             </div>
           </div>
@@ -288,70 +286,70 @@ export default function ProfilePage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Progress by Area */}
-          <div className="rounded-2xl p-5" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#E6DAFF' }}>
-                <Target className="size-5" style={{ color: '#9575CD' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
+                <Target className="size-5 text-primary" />
               </div>
-              <h3 className="font-semibold" style={{ color: '#222222' }}>Progreso por Area</h3>
+              <h3 className="font-semibold text-foreground">Progreso por Area</h3>
             </div>
             <div className="space-y-4">
               {areasProgress.length > 0 ? areasProgress.map((area) => (
                 <div key={area.name}>
                   <div className="flex justify-between mb-1.5">
-                    <span className="text-sm font-medium" style={{ color: '#222222' }}>{area.name}</span>
-                    <span className="text-sm font-semibold" style={{ color: '#9575CD' }}>{area.progress}%</span>
+                    <span className="text-sm font-medium text-foreground">{area.name}</span>
+                    <span className="text-sm font-semibold text-primary">{area.progress}%</span>
                   </div>
-                  <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#F6F5F2' }}>
+                  <div className="h-2 rounded-full overflow-hidden bg-muted">
                     <div
-                      className="h-full rounded-full transition-all duration-1000"
-                      style={{ width: `${area.progress}%`, backgroundColor: '#9575CD' }}
+                      className="h-full rounded-full transition-all duration-1000 bg-primary"
+                      style={{ width: `${area.progress}%` }}
                     />
                   </div>
                 </div>
               )) : (
-                <p className="text-center py-4 text-sm" style={{ color: '#6D6D6D' }}>Crea notas para ver tu progreso</p>
+                <p className="text-center py-4 text-sm text-muted-foreground">Crea notas para ver tu progreso</p>
               )}
             </div>
           </div>
 
           {/* Learning Paths Progress */}
-          <div className="rounded-2xl p-5" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#CFE4FF' }}>
-                <TrendingUp className="size-5" style={{ color: '#3B82F6' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10">
+                <TrendingUp className="size-5 text-blue-500" />
               </div>
-              <h3 className="font-semibold" style={{ color: '#222222' }}>Rutas de Aprendizaje</h3>
+              <h3 className="font-semibold text-foreground">Rutas de Aprendizaje</h3>
             </div>
             <div className="space-y-4">
               {learningPaths.map(path => (
                 <div key={path.id}>
                   <div className="flex justify-between mb-1.5">
-                    <span className="text-sm font-medium" style={{ color: '#222222' }}>{path.name}</span>
-                    <span className="text-sm font-semibold" style={{ color: '#3B82F6' }}>{path.progress}%</span>
+                    <span className="text-sm font-medium text-foreground">{path.name}</span>
+                    <span className="text-sm font-semibold text-blue-500">{path.progress}%</span>
                   </div>
-                  <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#F6F5F2' }}>
+                  <div className="h-2 rounded-full overflow-hidden bg-muted">
                     <div
-                      className="h-full rounded-full transition-all duration-1000"
-                      style={{ width: `${path.progress}%`, backgroundColor: '#3B82F6' }}
+                      className="h-full rounded-full transition-all duration-1000 bg-blue-500"
+                      style={{ width: `${path.progress}%` }}
                     />
                   </div>
                 </div>
               ))}
             </div>
-            <Link href="/tree" className="mt-4 text-sm font-medium hover:underline transition-colors block" style={{ color: '#3B82F6' }}>
+            <Link href="/tree" className="mt-4 text-sm font-medium hover:underline transition-colors block text-blue-500">
               Ver todas las rutas →
             </Link>
           </div>
         </div>
 
         {/* Weekly Activity */}
-        <div className="rounded-2xl p-5" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+        <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#FFF0E6' }}>
-              <Calendar className="size-5" style={{ color: '#F59E0B' }} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-500/10">
+              <Calendar className="size-5 text-amber-500" />
             </div>
-            <h3 className="font-semibold" style={{ color: '#222222' }}>Actividad Esta Semana</h3>
+            <h3 className="font-semibold text-foreground">Actividad Esta Semana</h3>
           </div>
           <div className="flex items-end justify-between gap-3 h-32">
             {weekDays.map((day, index) => {
@@ -360,27 +358,25 @@ export default function ProfilePage() {
                 <div key={day} className="flex-1 flex flex-col items-center gap-2">
                   <div className="flex-1 flex items-end w-full">
                     <div
-                      className="w-full rounded-t-lg relative group transition-all duration-300 hover:opacity-80"
+                      className="w-full rounded-t-lg relative group transition-all duration-300 hover:opacity-80 bg-primary/20"
                       style={{
                         height: `${height}%`,
-                        minHeight: weekActivity[index] > 0 ? '16px' : '0',
-                        backgroundColor: '#FFD9D9'
+                        minHeight: weekActivity[index] > 0 ? '16px' : '0'
                       }}
                     >
                       <div
-                        className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
-                        style={{ backgroundColor: '#222222', color: 'white' }}
+                        className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-foreground text-background"
                       >
                         {weekActivity[index]} min
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs font-medium" style={{ color: '#6D6D6D' }}>{day}</span>
+                  <span className="text-xs font-medium text-muted-foreground">{day}</span>
                 </div>
               )
             })}
           </div>
-          <div className="mt-4 flex items-center justify-center gap-2 text-sm" style={{ color: '#6D6D6D' }}>
+          <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Clock className="size-4" />
             <span>Total: {weekActivity.reduce((a, b) => a + b, 0)} min</span>
           </div>
@@ -388,62 +384,60 @@ export default function ProfilePage() {
 
         {/* Central Topics Mastered */}
         {centralTopicsMastered.length > 0 && (
-          <div className="rounded-2xl p-5" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#D4F5E9' }}>
-                <Award className="size-5" style={{ color: '#10B981' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-500/10">
+                <Award className="size-5 text-emerald-500" />
               </div>
               <div>
-                <h3 className="font-semibold" style={{ color: '#222222' }}>Temas Dominados</h3>
-                <p className="text-xs" style={{ color: '#6D6D6D' }}>{centralTopicsMastered.length} completados</p>
+                <h3 className="font-semibold text-foreground">Temas Dominados</h3>
+                <p className="text-xs text-muted-foreground">{centralTopicsMastered.length} completados</p>
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {centralTopicsMastered.map((topic) => (
                 <div
                   key={topic.id}
-                  className="flex items-center gap-2 p-3 rounded-xl transition-all hover:scale-105 cursor-pointer"
-                  style={{ backgroundColor: '#D4F5E9' }}
+                  className="flex items-center gap-2 p-3 rounded-xl transition-all hover:scale-105 cursor-pointer bg-emerald-500/10"
                 >
                   <span className="text-lg">⭐</span>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate" style={{ color: '#222222' }}>{topic.name}</p>
-                    <p className="text-xs" style={{ color: '#10B981' }}>{topic.area}</p>
+                    <p className="font-medium text-sm truncate text-foreground">{topic.name}</p>
+                    <p className="text-xs text-emerald-500">{topic.area}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <Link href="/graph" className="mt-4 text-sm font-medium hover:underline transition-colors block" style={{ color: '#9575CD' }}>
+            <Link href="/graph" className="mt-4 text-sm font-medium hover:underline transition-colors block text-primary">
               Ver en el grafo →
             </Link>
           </div>
         )}
 
         {/* Badges */}
-        <div className="rounded-2xl p-5" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+        <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#E6DAFF' }}>
-              <Award className="size-5" style={{ color: '#9575CD' }} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
+              <Award className="size-5 text-primary" />
             </div>
-            <h3 className="font-semibold" style={{ color: '#222222' }}>Logros y Badges</h3>
+            <h3 className="font-semibold text-foreground">Logros y Badges</h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {badges.map((badge) => (
               <div
                 key={badge.name}
-                className={`p-4 rounded-xl transition-all ${badge.earned ? 'hover:scale-105 cursor-pointer' : 'opacity-50'}`}
-                style={{ backgroundColor: badge.earned ? '#FFF0E6' : '#F6F5F2' }}
+                className={`p-4 rounded-xl transition-all ${badge.earned ? 'hover:scale-105 cursor-pointer bg-primary/5' : 'opacity-50 bg-muted'}`}
               >
                 <div className="text-3xl mb-2 text-center">{badge.icon}</div>
-                <h4 className="text-center mb-1 font-semibold text-sm" style={{ color: badge.earned ? '#222222' : '#9A9A9A' }}>
+                <h4 className={`text-center mb-1 font-semibold text-sm ${badge.earned ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {badge.name}
                 </h4>
-                <p className="text-xs text-center mb-2" style={{ color: badge.earned ? '#6D6D6D' : '#9A9A9A' }}>
+                <p className="text-xs text-center mb-2 text-muted-foreground">
                   {badge.description}
                 </p>
                 {badge.earned && (
                   <div className="flex justify-center">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium" style={{ backgroundColor: '#FFD9D9', color: '#222222' }}>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary">
                       <Award className="size-3" />
                       Desbloqueado
                     </span>
@@ -456,32 +450,31 @@ export default function ProfilePage() {
 
         {/* Recent Activity */}
         {recentActivity.length > 0 && (
-          <div className="rounded-2xl p-5" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#CFE4FF' }}>
-                <Clock className="size-5" style={{ color: '#3B82F6' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10">
+                <Clock className="size-5 text-blue-500" />
               </div>
-              <h3 className="font-semibold" style={{ color: '#222222' }}>Actividad Reciente</h3>
+              <h3 className="font-semibold text-foreground">Actividad Reciente</h3>
             </div>
             <div className="space-y-2">
               {recentActivity.map((activity, index) => {
                 const colors = {
-                  completed: { bg: '#D4F5E9', accent: '#10B981' },
-                  started: { bg: '#FFF0E6', accent: '#F59E0B' },
-                  badge: { bg: '#E6DAFF', accent: '#9575CD' }
+                  completed: { bg: 'bg-emerald-500/10', accent: 'text-emerald-500', dot: 'bg-emerald-500' },
+                  started: { bg: 'bg-amber-500/10', accent: 'text-amber-500', dot: 'bg-amber-500' },
+                  badge: { bg: 'bg-primary/10', accent: 'text-primary', dot: 'bg-primary' }
                 }
                 const style = colors[activity.type]
 
                 return (
                   <div
                     key={index}
-                    className="flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.01]"
-                    style={{ backgroundColor: style.bg }}
+                    className={`flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.01] ${style.bg}`}
                   >
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: style.accent }} />
+                    <div className={`w-2 h-2 rounded-full ${style.dot}`} />
                     <div className="flex-1">
-                      <p className="font-medium text-sm" style={{ color: '#222222' }}>{activity.title}</p>
-                      <p className="text-xs" style={{ color: style.accent }}>{activity.time}</p>
+                      <p className="font-medium text-sm text-foreground">{activity.title}</p>
+                      <p className={`text-xs ${style.accent}`}>{activity.time}</p>
                     </div>
                   </div>
                 )
@@ -491,14 +484,14 @@ export default function ProfilePage() {
         )}
 
         {/* Integraciones */}
-        <div className="rounded-2xl p-5" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+        <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#E6DAFF' }}>
-              <Link2 className="size-5" style={{ color: '#9575CD' }} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
+              <Link2 className="size-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold" style={{ color: '#222222' }}>Integraciones</h3>
-              <p className="text-xs" style={{ color: '#6D6D6D' }}>Conecta tus servicios para una mejor experiencia</p>
+              <h3 className="font-semibold text-foreground">Integraciones</h3>
+              <p className="text-xs text-muted-foreground">Conecta tus servicios para una mejor experiencia</p>
             </div>
           </div>
           <div className="space-y-4">
@@ -506,22 +499,22 @@ export default function ProfilePage() {
             <WhatsAppConnect />
 
             {/* Google Calendar */}
-            <div className={`p-4 rounded-2xl border-2 ${calendarConnected ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200'}`}>
-              <div className="flex items-center justify-between">
+            <div className={`p-4 rounded-2xl border-2 ${calendarConnected ? 'border-blue-500/20 bg-blue-500/5' : 'border-border'}`}>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${calendarConnected ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                    <Calendar className={`size-6 ${calendarConnected ? 'text-blue-600' : 'text-gray-400'}`} />
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${calendarConnected ? 'bg-blue-500/10' : 'bg-muted'}`}>
+                    <Calendar className={`size-6 ${calendarConnected ? 'text-blue-500' : 'text-muted-foreground'}`} />
                   </div>
                   <div>
-                    <h4 className="font-semibold" style={{ color: '#222222' }}>Google Calendar</h4>
-                    <p className="text-sm" style={{ color: '#6D6D6D' }}>
+                    <h4 className="font-semibold text-foreground">Google Calendar</h4>
+                    <p className="text-sm text-muted-foreground">
                       {calendarConnected ? 'Conectado' : 'Sincroniza tus eventos y bloques de estudio'}
                     </p>
                   </div>
                 </div>
                 {calendarConnected ? (
                   <div className="flex items-center gap-2">
-                    <Check className="size-5 text-blue-600" />
+                    <Check className="size-5 text-blue-500" />
                     <button
                       onClick={() => {
                         localStorage.removeItem('google_calendar_token')
@@ -549,56 +542,64 @@ export default function ProfilePage() {
         </div>
 
         {/* Settings */}
-        <div className="rounded-2xl p-5" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+        <div className="rounded-2xl p-5 bg-card border border-border shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#F6F5F2' }}>
-              <Settings className="size-5" style={{ color: '#6D6D6D' }} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-muted">
+              <Settings className="size-5 text-muted-foreground" />
             </div>
-            <h3 className="font-semibold" style={{ color: '#222222' }}>Configuracion</h3>
+            <h3 className="font-semibold text-foreground">Configuracion</h3>
           </div>
           <div className="space-y-3">
-            {/* Dark Mode */}
-            <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: '#F6F5F2' }}>
+            {/* Theme Selector */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-3 rounded-xl bg-muted/50 gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'white' }}>
-                  {isDark ? <Moon className="size-4" style={{ color: '#6D6D6D' }} /> : <Sun className="size-4" style={{ color: '#6D6D6D' }} />}
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-card">
+                  {isDark ? <Moon className="size-4 text-muted-foreground" /> : <Sun className="size-4 text-muted-foreground" />}
                 </div>
                 <div>
-                  <p className="font-medium text-sm" style={{ color: '#222222' }}>Modo Oscuro</p>
-                  <p className="text-xs" style={{ color: '#6D6D6D' }}>Cambiar apariencia</p>
+                  <p className="font-medium text-sm text-foreground">Tema</p>
+                  <p className="text-xs text-muted-foreground">Apariencia de la aplicación</p>
                 </div>
               </div>
-              <button
-                onClick={toggleTheme}
-                className="w-12 h-6 rounded-full transition-all p-0.5"
-                style={{ backgroundColor: isDark ? '#9575CD' : '#E6E6E6' }}
-              >
-                <div
-                  className="w-5 h-5 bg-white rounded-full transition-transform"
-                  style={{ transform: isDark ? 'translateX(24px)' : 'translateX(0)' }}
-                />
-              </button>
+              <div className="flex bg-muted rounded-lg p-1 gap-1">
+                <button
+                  onClick={() => setTheme('light')}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${theme === 'light' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Claro
+                </button>
+                <button
+                  onClick={() => setTheme('dark')}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${theme === 'dark' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Oscuro
+                </button>
+                <button
+                  onClick={() => setTheme('system')}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${theme === 'system' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Sistema
+                </button>
+              </div>
             </div>
 
             {/* Notifications */}
-            <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: '#F6F5F2' }}>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-3 rounded-xl bg-muted/50 gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'white' }}>
-                  <Bell className="size-4" style={{ color: '#6D6D6D' }} />
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-card">
+                  <Bell className="size-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm" style={{ color: '#222222' }}>Notificaciones</p>
-                  <p className="text-xs" style={{ color: '#6D6D6D' }}>Recordatorios de estudio</p>
+                  <p className="font-medium text-sm text-foreground">Notificaciones</p>
+                  <p className="text-xs text-muted-foreground">Recordatorios de estudio</p>
                 </div>
               </div>
               <button
                 onClick={() => setNotifications(!notifications)}
-                className="w-12 h-6 rounded-full transition-all p-0.5"
-                style={{ backgroundColor: notifications ? '#9575CD' : '#E6E6E6' }}
+                className={`w-12 h-6 rounded-full transition-all p-0.5 ${notifications ? 'bg-primary' : 'bg-muted-foreground/20'}`}
               >
                 <div
-                  className="w-5 h-5 bg-white rounded-full transition-transform"
-                  style={{ transform: notifications ? 'translateX(24px)' : 'translateX(0)' }}
+                  className={`w-5 h-5 bg-white rounded-full transition-transform ${notifications ? 'translate-x-6' : 'translate-x-0'}`}
                 />
               </button>
             </div>
@@ -606,8 +607,7 @@ export default function ProfilePage() {
             {/* Logout */}
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 p-3 rounded-xl font-medium text-sm transition-all hover:scale-[1.02]"
-              style={{ backgroundColor: '#FFD9D9', color: '#222222' }}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-xl font-medium text-sm transition-all hover:scale-[1.02] bg-destructive/10 text-destructive hover:bg-destructive/20"
             >
               <LogOut className="size-4" />
               Cerrar Sesion

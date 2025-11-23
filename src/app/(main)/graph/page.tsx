@@ -141,6 +141,7 @@ export default function GraphPage() {
   // Track if graph has been initialized to prevent flickering
   const graphInitializedRef = useRef(false)
   const [graphReady, setGraphReady] = useState(false)
+  const [showBanner, setShowBanner] = useState(true)
 
   // Reset initialization state when component remounts
   useEffect(() => {
@@ -717,14 +718,16 @@ export default function GraphPage() {
     // Clear previous content
     d3.select(svgRef.current).selectAll('*').remove()
 
-    // Hide graph during setup to prevent flicker
-    if (!graphInitializedRef.current) {
-      d3.select(svgRef.current).style('opacity', 0)
-    }
-
+    // Setup SVG
     const svg = d3.select(svgRef.current)
       .attr('width', width)
       .attr('height', height)
+
+    // Ensure graph is visible
+    if (!graphInitializedRef.current) {
+      graphInitializedRef.current = true
+      setGraphReady(true)
+    }
 
     // Add arrow markers for different link types
     const defs = svg.append('defs')
@@ -931,11 +934,7 @@ export default function GraphPage() {
       .text(d => d.isYouNode ? 'Yo' : (d.name.length > 15 ? d.name.slice(0, 12) + '...' : d.name))
       .attr('text-anchor', 'middle')
       .attr('dy', d => getNodeRadius(d) + 16)
-      .attr('fill', '#374151')
-      .attr('font-size', '11px')
-      .attr('font-weight', '500')
-      .attr('pointer-events', 'none')
-      .style('user-select', 'none')
+      .attr('class', 'fill-foreground text-[11px] font-medium pointer-events-none select-none')
 
     simulation.on('tick', () => {
       link
@@ -949,15 +948,6 @@ export default function GraphPage() {
 
     // Center the view initially
     svg.call(zoom.transform, d3.zoomIdentity.translate(width * 0.1, height * 0.1).scale(0.8))
-
-    // Fade in the graph smoothly after setup
-    if (!graphInitializedRef.current) {
-      svg.transition()
-        .duration(400)
-        .style('opacity', 1)
-      graphInitializedRef.current = true
-      setGraphReady(true)
-    }
 
     return () => {
       simulation.stop()
@@ -1008,11 +998,10 @@ export default function GraphPage() {
 
   return (
     <SplitLayout
-      leftPanel={<SidePanel />}
-      rightPanel={
+      leftPanel={
         <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-background">
           {/* Controls */}
-          <div className="absolute top-6 right-6 flex flex-col gap-3 z-10">
+          <div className="absolute top-4 right-4 md:top-6 md:right-6 flex flex-col gap-3 z-10">
             {/* View Mode Toggle */}
             <div className="bg-card/90 backdrop-blur-sm border border-border rounded-xl p-1 shadow-sm flex">
               <button
@@ -1093,7 +1082,7 @@ export default function GraphPage() {
           {showControls && (
             <div
               ref={controlsRef}
-              className="absolute top-6 right-20 w-72 bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-xl p-5 z-20 animate-in fade-in slide-in-from-right-4 duration-200"
+              className="absolute top-4 right-16 md:top-6 md:right-20 w-64 md:w-72 bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-xl p-5 z-20 animate-in fade-in slide-in-from-right-4 duration-200"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-foreground">Configuración</h3>
@@ -1141,7 +1130,7 @@ export default function GraphPage() {
           {showFilters && (
             <div
               ref={filtersRef}
-              className="absolute top-20 right-20 w-72 bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-xl p-5 z-20 animate-in fade-in slide-in-from-right-4 duration-200"
+              className="absolute top-20 right-16 md:top-20 md:right-20 w-64 md:w-72 bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-xl p-5 z-20 animate-in fade-in slide-in-from-right-4 duration-200"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-foreground">Filtros</h3>
@@ -1183,7 +1172,7 @@ export default function GraphPage() {
           )}
 
           {/* Legend - Collapsible */}
-          <div className={`absolute bottom-6 right-6 bg-card/90 backdrop-blur-sm border border-border rounded-2xl shadow-sm transition-all duration-300 z-10 overflow-hidden ${legendCollapsed ? 'w-12 h-12 p-0 flex items-center justify-center cursor-pointer hover:bg-muted/50' : 'p-5 min-w-[200px]'}`}>
+          <div className={`absolute bottom-20 right-4 md:bottom-6 md:right-6 bg-card/90 backdrop-blur-sm border border-border rounded-2xl shadow-sm transition-all duration-300 z-10 overflow-hidden ${legendCollapsed ? 'w-12 h-12 p-0 flex items-center justify-center cursor-pointer hover:bg-muted/50' : 'p-5 min-w-[200px]'}`}>
             {legendCollapsed ? (
               <button onClick={() => setLegendCollapsed(false)} className="w-full h-full flex items-center justify-center text-muted-foreground">
                 <ChevronUp className="w-5 h-5" />
@@ -1238,67 +1227,59 @@ export default function GraphPage() {
             </div>
           )}
 
-          {/* How to navigate */}
-          <div
-            className="absolute bottom-6 left-6 z-10 p-4 rounded-2xl"
-            style={{
-              backgroundColor: '#FFF0E6',
-              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-            }}
-          >
-            <div className="flex items-start gap-3">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: '#FFD9D9' }}
-              >
-                <span className="text-sm">💡</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium mb-1" style={{ color: '#222222' }}>
-                  Como navegar?
-                </p>
-                <p className="text-xs" style={{ color: '#6D6D6D' }}>
-                  <strong>Arrastra</strong> los nodos • <strong>Rueda</strong> para zoom • <strong>Click</strong> para ver contenido
-                </p>
+          {/* How to navigate - Hidden on mobile */}
+          {showBanner && (
+            <div className="hidden md:block absolute bottom-6 left-6 z-10 p-4 rounded-2xl bg-card/95 backdrop-blur-sm border border-border shadow-lg transition-all duration-300 animate-in fade-in slide-in-from-bottom-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary">
+                  <span className="text-sm">💡</span>
+                </div>
+                <div className="pr-6">
+                  <p className="text-sm font-medium mb-1 text-foreground">
+                    Como navegar?
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    <strong>Arrastra</strong> los nodos • <strong>Rueda</strong> para zoom • <strong>Click</strong> para ver contenido
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowBanner(false)}
+                  className="absolute top-2 right-2 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-full hover:bg-muted"
+                >
+                  <X className="w-3 h-3" />
+                </button>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Selected Node Panel - Right side */}
           {selectedNode && !selectedNode.isYouNode && !selectedNode.isAreaNode && (
-            <div
-              className="absolute bottom-6 right-6 z-10 p-5 rounded-2xl w-72"
-              style={{
-                backgroundColor: 'white',
-                boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-              }}
-            >
+            <div className="absolute bottom-0 left-0 right-0 w-full rounded-t-2xl rounded-b-none md:bottom-6 md:right-6 md:left-auto md:w-72 md:rounded-2xl bg-card/95 backdrop-blur-sm border border-border shadow-lg animate-in fade-in slide-in-from-bottom-4 md:slide-in-from-right-4 z-30 p-5">
               <div className="flex items-start justify-between mb-4">
-                <h4 className="font-semibold" style={{ color: '#222222' }}>{selectedNode.name}</h4>
+                <h4 className="font-semibold text-foreground">{selectedNode.name}</h4>
                 <button
                   onClick={() => setSelectedNode(null)}
-                  className="w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:scale-105"
-                  style={{ backgroundColor: '#F6F5F2', color: '#6D6D6D' }}
+                  className="w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:scale-105 bg-muted text-muted-foreground hover:text-foreground"
                 >
                   ×
                 </button>
               </div>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span style={{ color: '#6D6D6D' }}>Area:</span>
-                  <span style={{ color: '#222222' }}>{selectedNode.area}</span>
+                  <span className="text-muted-foreground">Area:</span>
+                  <span className="text-foreground">{selectedNode.area}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span style={{ color: '#6D6D6D' }}>Nivel:</span>
-                  <span className="capitalize" style={{ color: '#222222' }}>{selectedNode.level}</span>
+                  <span className="text-muted-foreground">Nivel:</span>
+                  <span className="capitalize text-foreground">{selectedNode.level}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span style={{ color: '#6D6D6D' }}>Estado:</span>
-                  <span className="capitalize" style={{
-                    color: selectedNode.status === 'understood' ? '#10B981' :
-                           selectedNode.status === 'in-progress' ? '#F59E0B' :
-                           '#6D6D6D'
-                  }}>
+                  <span className="text-muted-foreground">Estado:</span>
+                  <span className={`capitalize ${
+                    selectedNode.status === 'understood' ? 'text-emerald-500' :
+                    selectedNode.status === 'in-progress' ? 'text-amber-500' :
+                    'text-muted-foreground'
+                  }`}>
                     {selectedNode.status === 'understood' ? 'Dominado' :
                      selectedNode.status === 'in-progress' ? 'En progreso' : 'Pendiente'}
                   </span>
@@ -1306,11 +1287,7 @@ export default function GraphPage() {
               </div>
               <Link
                 href={`/study?topic=${encodeURIComponent(selectedNode.name)}`}
-                className="mt-4 w-full block text-center py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
-                style={{
-                  backgroundColor: '#FFD9D9',
-                  color: '#222222'
-                }}
+                className="mt-4 w-full block text-center py-3 rounded-xl font-medium transition-all hover:scale-[1.02] bg-primary/10 text-primary hover:bg-primary/20"
               >
                 Estudiar
               </Link>
@@ -1325,6 +1302,9 @@ export default function GraphPage() {
           />
         </div>
       }
+      rightPanel={<SidePanel />}
+      defaultLeftSize={70}
+      defaultRightSize={30}
     />
   )
 }

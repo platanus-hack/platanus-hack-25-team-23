@@ -459,7 +459,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session, loadEntries])
 
-  const value: JournalContextType = {
+  const value: JournalContextType = React.useMemo(() => ({
     entries,
     currentEntry,
     isLoading,
@@ -473,7 +473,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
     getStreak,
     getCompletionRate,
     fetchDailyQuote,
-  }
+  }), [entries, currentEntry, isLoading, isSaving, getEntry, createOrUpdateEntry, deleteEntry, loadEntry, loadEntries, getAdjacentDates, getStreak, getCompletionRate, fetchDailyQuote])
 
   return (
     <JournalContext.Provider value={value}>

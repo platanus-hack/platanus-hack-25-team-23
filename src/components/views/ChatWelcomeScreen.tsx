@@ -4,63 +4,18 @@ import { useState } from 'react';
 import { Search, Sparkles, Clock, TrendingUp } from 'lucide-react';
 import { SUGGESTED_TOPICS } from '@/lib/data/types';
 
-interface LevelSelectorProps {
-  currentLevel: 'beginner' | 'intermediate' | 'expert';
-  onLevelChange: (level: 'beginner' | 'intermediate' | 'expert') => void;
-}
 
-function LevelSelector({ currentLevel, onLevelChange }: LevelSelectorProps) {
-  const levels = [
-    { id: 'beginner', label: 'Principiante', description: 'Explicaciones simples y basicas', icon: '🌱' },
-    { id: 'intermediate', label: 'Intermedio', description: 'Balance entre teoria y practica', icon: '📚' },
-    { id: 'expert', label: 'Avanzado', description: 'Contenido tecnico y detallado', icon: '🎓' },
-  ] as const;
-
-  return (
-    <div
-      className="flex gap-2 rounded-3xl p-2"
-      style={{
-        backgroundColor: 'var(--card)',
-        boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)',
-        border: '1px solid #E6E6E6'
-      }}
-    >
-      {levels.map((level) => (
-        <button
-          key={level.id}
-          onClick={() => onLevelChange(level.id)}
-          className="px-5 py-2.5 rounded-2xl text-sm font-medium transition-all duration-200 flex items-center gap-2"
-          style={{
-            background: currentLevel === level.id
-              ? 'linear-gradient(135deg, #C9B7F3 0%, #D6C9F5 100%)'
-              : 'transparent',
-            color: currentLevel === level.id ? 'white' : '#646464',
-            boxShadow: currentLevel === level.id
-              ? '0px 2px 8px rgba(201, 183, 243, 0.3)'
-              : 'none'
-          }}
-          title={level.description}
-        >
-          <span>{level.icon}</span>
-          {level.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 interface ChatWelcomeScreenProps {
   onQuery: (query: string) => void;
-  level: 'beginner' | 'intermediate' | 'expert';
-  setLevel: (level: 'beginner' | 'intermediate' | 'expert') => void;
+
   recentTopics?: string[];
   isLoading?: boolean;
 }
 
 export function ChatWelcomeScreen({ 
   onQuery, 
-  level, 
-  setLevel, 
+ 
   recentTopics = [],
   isLoading = false
 }: ChatWelcomeScreenProps) {
@@ -103,10 +58,7 @@ export function ChatWelcomeScreen({
           Escribe cualquier tema y la IA generara una nota pedagogica con mapa de conocimiento
         </p>
 
-        {/* Level Selector */}
-        <div className="flex justify-center mb-8">
-          <LevelSelector currentLevel={level} onLevelChange={setLevel} />
-        </div>
+
       </div>
 
       {/* Search Input */}

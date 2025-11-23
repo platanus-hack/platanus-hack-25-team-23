@@ -277,31 +277,30 @@ export default function TreePage() {
         return (
           <div
             key={area.id}
-            className="rounded-2xl overflow-hidden"
-            style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}
+            className="rounded-2xl overflow-hidden bg-card border border-border shadow-sm"
           >
             {/* Area Header */}
             <div
-              className="p-4 cursor-pointer hover:bg-gray-50 transition-all"
+              className="p-4 cursor-pointer hover:bg-muted/50 transition-all"
               onClick={() => togglePath(area.id)}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <button style={{ color: '#6D6D6D' }}>
+                  <button className="text-muted-foreground">
                     {isExpanded ? <ChevronDown className="size-5" /> : <ChevronRight className="size-5" />}
                   </button>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${area.color}20` }}>
                     <span className="text-lg">{area.icon}</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold" style={{ color: '#222222' }}>{area.name}</h3>
-                    <p className="text-xs" style={{ color: '#6D6D6D' }}>
+                    <h3 className="font-semibold text-foreground">{area.name}</h3>
+                    <p className="text-xs text-muted-foreground">
                       {areaCompleted} de {pathNodes.length} completados
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-24 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#F6F5F2' }}>
+                  <div className="w-24 h-2 rounded-full overflow-hidden bg-muted">
                     <div
                       className="h-full transition-all duration-500 rounded-full"
                       style={{ width: `${areaProgress}%`, backgroundColor: area.color }}
@@ -316,37 +315,35 @@ export default function TreePage() {
             {isExpanded && (
               <div className="px-4 pb-4">
                 <div className="relative">
-                  <div className="absolute left-6 top-0 bottom-0 w-0.5 rounded-full" style={{ backgroundColor: '#E6E6E6' }} />
+                  <div className="absolute left-6 top-0 bottom-0 w-0.5 rounded-full bg-border" />
                   <div className="space-y-3">
                     {pathNodes.map((node) => (
                       <div key={node.id} className="relative">
                         <div
-                          className="absolute left-6 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-white z-10"
+                          className="absolute left-6 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-background z-10"
                           style={{
                             backgroundColor: node.status === 'understood' ? '#10B981' : node.status === 'read' ? '#F59E0B' : '#D1D5DB'
                           }}
                         />
                         <div className="ml-12">
                           <div
-                            className="p-4 rounded-xl transition-all hover:shadow-md cursor-pointer"
-                            style={{
-                              backgroundColor: node.status === 'understood' ? '#D4F5E9'
-                                : node.status === 'read' ? '#FFF0E6' : '#F6F5F2'
-                            }}
+                            className={`p-4 rounded-xl transition-all hover:shadow-md cursor-pointer ${
+                              node.status === 'understood' ? 'bg-emerald-500/10' 
+                              : node.status === 'read' ? 'bg-amber-500/10' 
+                              : 'bg-muted/50'
+                            }`}
                           >
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
                                   {getStatusIcon(node.status)}
-                                  <h4 className="font-medium text-sm" style={{ color: '#222222' }}>{node.name}</h4>
+                                  <h4 className="font-medium text-sm text-foreground">{node.name}</h4>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                  <span className="px-2 py-1 text-xs rounded-lg capitalize"
-                                    style={{ backgroundColor: 'white', color: '#6D6D6D' }}>
+                                  <span className="px-2 py-1 text-xs rounded-lg capitalize bg-background text-muted-foreground border border-border">
                                     {node.level}
                                   </span>
-                                  <span className="px-2 py-1 text-xs rounded-lg flex items-center gap-1"
-                                    style={{ backgroundColor: 'white', color: '#6D6D6D' }}>
+                                  <span className="px-2 py-1 text-xs rounded-lg flex items-center gap-1 bg-background text-muted-foreground border border-border">
                                     <Clock className="size-3" />{node.estimatedHours}h
                                   </span>
                                 </div>
@@ -354,16 +351,14 @@ export default function TreePage() {
                               <div className="flex gap-2">
                                 <Link
                                   href={node.isJournalEntry ? `/journal?date=${node.journalDate}` : `/study?topic=${encodeURIComponent(node.name)}`}
-                                  className="p-2 rounded-lg transition-all hover:scale-105"
-                                  style={{ backgroundColor: '#FFD9D9', color: '#222222' }}
+                                  className="p-2 rounded-lg transition-all hover:scale-105 bg-primary/10 text-foreground hover:bg-primary/20"
                                 >
                                   {node.isJournalEntry ? <BookHeart className="size-4" /> : <BookOpen className="size-4" />}
                                 </Link>
                                 {node.status !== 'understood' && !node.isJournalEntry && (
                                   <button
                                     onClick={() => handleMarkUnderstood(node.id)}
-                                    className="p-2 rounded-lg transition-all hover:scale-105"
-                                    style={{ backgroundColor: '#D4F5E9', color: '#10B981' }}
+                                    className="p-2 rounded-lg transition-all hover:scale-105 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
                                   >
                                     <Check className="size-4" />
                                   </button>
@@ -396,19 +391,19 @@ export default function TreePage() {
         const areaProgress = pathNodes.length > 0 ? Math.round((areaCompleted / pathNodes.length) * 100) : 0
 
         return (
-          <div key={area.id} className="rounded-2xl overflow-hidden flex flex-col" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
-            <div className="p-4" style={{ backgroundColor: '#F6F5F2' }}>
+          <div key={area.id} className="rounded-2xl overflow-hidden flex flex-col bg-card border border-border shadow-sm">
+            <div className="p-4 bg-muted/30 border-b border-border">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${area.color}20` }}>
                   <span className="text-lg">{area.icon}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate" style={{ color: '#222222' }}>{area.name}</h3>
-                  <p className="text-xs" style={{ color: '#6D6D6D' }}>{pathNodes.length} temas</p>
+                  <h3 className="font-semibold truncate text-foreground">{area.name}</h3>
+                  <p className="text-xs text-muted-foreground">{pathNodes.length} temas</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#E6E6E6' }}>
+                <div className="flex-1 h-2 rounded-full overflow-hidden bg-muted">
                   <div className="h-full transition-all rounded-full" style={{ width: `${areaProgress}%`, backgroundColor: area.color }} />
                 </div>
                 <span className="text-sm font-semibold" style={{ color: area.color }}>{areaProgress}%</span>
@@ -419,22 +414,22 @@ export default function TreePage() {
                 <Link
                   key={node.id}
                   href={node.isJournalEntry ? `/journal?date=${node.journalDate}` : `/study?topic=${encodeURIComponent(node.name)}`}
-                  className="p-3 rounded-xl transition-all hover:shadow-sm cursor-pointer block"
-                  style={{
-                    backgroundColor: node.status === 'understood' ? '#D4F5E9'
-                      : node.status === 'read' ? '#FFF0E6' : '#F6F5F2'
-                  }}
+                  className={`p-3 rounded-xl transition-all hover:shadow-sm cursor-pointer block ${
+                    node.status === 'understood' ? 'bg-emerald-500/10' 
+                    : node.status === 'read' ? 'bg-amber-500/10' 
+                    : 'bg-muted/50'
+                  }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium" style={{ color: '#9A9A9A' }}>#{index + 1}</span>
+                    <span className="text-xs font-medium text-muted-foreground">#{index + 1}</span>
                     {getStatusIcon(node.status)}
-                    <span className="flex-1 text-sm font-medium truncate" style={{ color: '#222222' }}>{node.name}</span>
-                    <span className="text-xs" style={{ color: '#6D6D6D' }}>{node.estimatedHours}h</span>
+                    <span className="flex-1 text-sm font-medium truncate text-foreground">{node.name}</span>
+                    <span className="text-xs text-muted-foreground">{node.estimatedHours}h</span>
                   </div>
                 </Link>
               ))}
               {pathNodes.length > 8 && (
-                <button className="w-full py-2 text-sm rounded-lg hover:bg-gray-50 transition-all" style={{ color: '#6D6D6D' }} onClick={() => setSelectedArea(area.name)}>
+                <button className="w-full py-2 text-sm rounded-lg hover:bg-muted transition-all text-muted-foreground" onClick={() => setSelectedArea(area.name)}>
                   Ver todos ({pathNodes.length - 8} mas)
                 </button>
               )}
@@ -447,43 +442,42 @@ export default function TreePage() {
 
   // Compact View
   const renderCompactView = () => (
-    <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+    <div className="rounded-2xl overflow-x-auto bg-card border border-border shadow-sm">
       <table className="w-full">
-        <thead style={{ backgroundColor: '#F6F5F2' }}>
+        <thead className="bg-muted/50">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: '#6D6D6D' }}>Estado</th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: '#6D6D6D' }}>Tema</th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: '#6D6D6D' }}>Area</th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: '#6D6D6D' }}>Nivel</th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: '#6D6D6D' }}>Tiempo</th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase" style={{ color: '#6D6D6D' }}>Acciones</th>
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Estado</th>
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Tema</th>
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Area</th>
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Nivel</th>
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Tiempo</th>
+            <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Acciones</th>
           </tr>
         </thead>
         <tbody>
           {filteredNodes.map((node, idx) => {
             const area = areas.find(a => a.name === node.area)
             return (
-              <tr key={node.id} className="transition-colors hover:bg-gray-50" style={{ borderTop: idx > 0 ? '1px solid #E6E6E6' : 'none' }}>
+              <tr key={node.id} className={`transition-colors hover:bg-muted/30 ${idx > 0 ? 'border-t border-border' : ''}`}>
                 <td className="px-4 py-3">{getStatusIcon(node.status)}</td>
-                <td className="px-4 py-3"><span className="font-medium text-sm" style={{ color: '#222222' }}>{node.name}</span></td>
+                <td className="px-4 py-3"><span className="font-medium text-sm text-foreground">{node.name}</span></td>
                 <td className="px-4 py-3">
                   <span className="px-2 py-1 text-xs rounded-lg" style={{ backgroundColor: `${area?.color}20`, color: area?.color }}>
                     {area?.icon} {node.area}
                   </span>
                 </td>
-                <td className="px-4 py-3"><span className="px-2 py-1 text-xs rounded-lg capitalize" style={{ backgroundColor: '#F6F5F2', color: '#6D6D6D' }}>{node.level}</span></td>
-                <td className="px-4 py-3"><span className="text-sm" style={{ color: '#6D6D6D' }}>{node.estimatedHours}h</span></td>
+                <td className="px-4 py-3"><span className="px-2 py-1 text-xs rounded-lg capitalize bg-muted text-muted-foreground">{node.level}</span></td>
+                <td className="px-4 py-3"><span className="text-sm text-muted-foreground">{node.estimatedHours}h</span></td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <Link
                       href={node.isJournalEntry ? `/journal?date=${node.journalDate}` : `/study?topic=${encodeURIComponent(node.name)}`}
-                      className="p-2 rounded-lg transition-all hover:scale-105"
-                      style={{ backgroundColor: '#FFD9D9', color: '#222222' }}
+                      className="p-2 rounded-lg transition-all hover:scale-105 bg-primary/10 text-foreground hover:bg-primary/20"
                     >
                       {node.isJournalEntry ? <BookHeart className="size-4" /> : <BookOpen className="size-4" />}
                     </Link>
                     {node.status !== 'understood' && !node.isJournalEntry && (
-                      <button onClick={() => handleMarkUnderstood(node.id)} className="p-2 rounded-lg transition-all hover:scale-105" style={{ backgroundColor: '#D4F5E9', color: '#10B981' }}>
+                      <button onClick={() => handleMarkUnderstood(node.id)} className="p-2 rounded-lg transition-all hover:scale-105 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20">
                         <Check className="size-4" />
                       </button>
                     )}
@@ -499,40 +493,39 @@ export default function TreePage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center transition-colors duration-300" style={{ backgroundColor: 'var(--background)' }}>
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-purple-300 rounded-full animate-spin mx-auto mb-4" style={{ borderTopColor: '#C9B7F3' }} />
-          <p style={{ color: 'var(--muted-foreground)' }}>Cargando ruta...</p>
-        </div>
+    <div className="flex-1 flex items-center justify-center transition-colors duration-300 bg-background">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-primary/30 rounded-full animate-spin mx-auto mb-4 border-t-primary" />
+        <p className="text-muted-foreground">Cargando ruta...</p>
       </div>
+    </div>
     )
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden transition-colors duration-300" style={{ backgroundColor: '#F6F5F2' }}>
+    <div className="flex-1 flex flex-col overflow-hidden transition-colors duration-300 bg-background">
       {/* Header */}
-      <div className="px-8 py-6" style={{ backgroundColor: '#F6F5F2' }}>
+      <div className="px-4 py-4 md:px-8 md:py-6 bg-background border-b border-border">
         <div className="mb-6">
-          <h2 className="text-3xl font-bold flex items-center gap-3" style={{ color: '#222222' }}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#E6DAFF' }}>
-              <MapPin className="size-5" style={{ color: '#9575CD' }} />
+          <h2 className="text-3xl font-bold flex items-center gap-3 text-foreground">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
+              <MapPin className="size-5 text-primary" />
             </div>
             Ruta de Aprendizaje
           </h2>
-          <p className="text-sm mt-2" style={{ color: '#6D6D6D' }}>Tu roadmap educativo personalizado</p>
+          <p className="text-sm mt-2 text-muted-foreground">Tu roadmap educativo personalizado</p>
         </div>
 
         {/* Area filter + View mode toggle */}
-        <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#E6DAFF' }}>
-              <Filter className="size-4" style={{ color: '#9575CD' }} />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
+              <Filter className="size-4 text-primary" />
             </div>
             <select
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
-              className="px-4 py-2 rounded-xl text-sm transition-all focus:outline-none"
-              style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)', color: '#222222' }}
+              className="px-4 py-2 rounded-xl text-sm transition-all focus:outline-none bg-card border border-border text-foreground shadow-sm"
             >
               <option value="all">Todas las areas</option>
               {areas.map(area => (
@@ -541,17 +534,14 @@ export default function TreePage() {
             </select>
           </div>
 
-          <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
-            <button onClick={() => setViewMode('timeline')} className="px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm"
-              style={{ backgroundColor: viewMode === 'timeline' ? '#E6DAFF' : 'transparent', color: viewMode === 'timeline' ? '#9575CD' : '#6D6D6D' }}>
+          <div className="flex flex-wrap gap-1 p-1 rounded-xl bg-muted border border-border">
+            <button onClick={() => setViewMode('timeline')} className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm ${viewMode === 'timeline' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
               <GitBranch className="size-4" />Timeline
             </button>
-            <button onClick={() => setViewMode('parallel')} className="px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm"
-              style={{ backgroundColor: viewMode === 'parallel' ? '#E6DAFF' : 'transparent', color: viewMode === 'parallel' ? '#9575CD' : '#6D6D6D' }}>
+            <button onClick={() => setViewMode('parallel')} className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm ${viewMode === 'parallel' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
               <LayoutGrid className="size-4" />Paralelo
             </button>
-            <button onClick={() => setViewMode('compact')} className="px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm"
-              style={{ backgroundColor: viewMode === 'compact' ? '#E6DAFF' : 'transparent', color: viewMode === 'compact' ? '#9575CD' : '#6D6D6D' }}>
+            <button onClick={() => setViewMode('compact')} className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm ${viewMode === 'compact' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
               <LayoutList className="size-4" />Compacto
             </button>
           </div>
@@ -559,63 +549,58 @@ export default function TreePage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="p-4 rounded-2xl transition-all hover:shadow-md"
-            style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="p-4 rounded-2xl transition-all hover:shadow-md bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#E6DAFF' }}>
-                <Target className="size-5" style={{ color: '#9575CD' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
+                <Target className="size-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: '#222222' }}>{stats.total}</p>
-                <p className="text-xs" style={{ color: '#6D6D6D' }}>Total Temas</p>
+                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+                <p className="text-xs text-muted-foreground">Total Temas</p>
               </div>
             </div>
           </div>
-          <div className="p-4 rounded-2xl transition-all hover:shadow-md"
-            style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="p-4 rounded-2xl transition-all hover:shadow-md bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#D4F5E9' }}>
-                <Award className="size-5" style={{ color: '#10B981' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-500/10">
+                <Award className="size-5 text-emerald-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: '#222222' }}>{stats.completed}</p>
-                <p className="text-xs" style={{ color: '#6D6D6D' }}>Completados</p>
+                <p className="text-2xl font-bold text-foreground">{stats.completed}</p>
+                <p className="text-xs text-muted-foreground">Completados</p>
               </div>
             </div>
           </div>
-          <div className="p-4 rounded-2xl transition-all hover:shadow-md"
-            style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="p-4 rounded-2xl transition-all hover:shadow-md bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#FFF0E6' }}>
-                <TrendingUp className="size-5" style={{ color: '#F59E0B' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-500/10">
+                <TrendingUp className="size-5 text-amber-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: '#222222' }}>{stats.inProgress}</p>
-                <p className="text-xs" style={{ color: '#6D6D6D' }}>En Progreso</p>
+                <p className="text-2xl font-bold text-foreground">{stats.inProgress}</p>
+                <p className="text-xs text-muted-foreground">En Progreso</p>
               </div>
             </div>
           </div>
-          <div className="p-4 rounded-2xl transition-all hover:shadow-md"
-            style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="p-4 rounded-2xl transition-all hover:shadow-md bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#CFE4FF' }}>
-                <Clock className="size-5" style={{ color: '#3B82F6' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10">
+                <Clock className="size-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: '#222222' }}>{stats.remainingHours}h</p>
-                <p className="text-xs" style={{ color: '#6D6D6D' }}>Restante</p>
+                <p className="text-2xl font-bold text-foreground">{stats.remainingHours}h</p>
+                <p className="text-xs text-muted-foreground">Restante</p>
               </div>
             </div>
           </div>
-          <div className="p-4 rounded-2xl transition-all hover:shadow-md"
-            style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <div className="p-4 rounded-2xl transition-all hover:shadow-md bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#FFD9D9' }}>
-                <Sparkles className="size-5" style={{ color: '#EF4444' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
+                <Sparkles className="size-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: '#222222' }}>{stats.progress}%</p>
-                <p className="text-xs" style={{ color: '#6D6D6D' }}>Progreso</p>
+                <p className="text-2xl font-bold text-foreground">{stats.progress}%</p>
+                <p className="text-xs text-muted-foreground">Progreso</p>
               </div>
             </div>
           </div>
@@ -624,13 +609,13 @@ export default function TreePage() {
 
       {/* Next recommended */}
       {nextRecommended.length > 0 && (
-        <div className="mx-8 my-4 p-4 rounded-2xl" style={{ backgroundColor: '#FFF0E6', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+        <div className="mx-4 md:mx-8 my-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#FFD9D9' }}>
-              <Sparkles className="size-5" style={{ color: '#EF4444' }} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-500/20">
+              <Sparkles className="size-5 text-amber-500" />
             </div>
             <div className="flex-1">
-              <p className="font-medium text-sm mb-2" style={{ color: '#222222' }}>
+              <p className="font-medium text-sm mb-2 text-foreground">
                 Siguientes Pasos Recomendados
               </p>
               <div className="flex gap-2 flex-wrap">
@@ -638,8 +623,7 @@ export default function TreePage() {
                   <Link
                     key={node.id}
                     href={node.isJournalEntry ? `/journal?date=${node.journalDate}` : `/study?topic=${encodeURIComponent(node.name)}`}
-                    className="px-3 py-1.5 rounded-lg hover:scale-105 transition-all text-sm font-medium flex items-center gap-2"
-                    style={{ backgroundColor: '#FFD9D9', color: '#222222' }}
+                    className="px-3 py-1.5 rounded-lg hover:scale-105 transition-all text-sm font-medium flex items-center gap-2 bg-background text-foreground border border-border hover:bg-muted"
                   >
                     {node.isJournalEntry && <BookHeart className="size-3" />}
                     {node.name}
@@ -652,27 +636,25 @@ export default function TreePage() {
       )}
 
       {/* Filters bar */}
-      <div className="px-8 py-4" style={{ backgroundColor: '#F6F5F2' }}>
+      <div className="px-4 md:px-8 py-4 bg-background border-b border-border">
         <div className="flex items-center gap-4 flex-wrap">
-          <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-xl hover:bg-white transition-all">
+          <label className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-xl hover:bg-muted transition-all text-muted-foreground hover:text-foreground">
             <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)}
-              className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
-            <span className="text-sm" style={{ color: '#6D6D6D' }}>Mostrar completados</span>
+              className="w-4 h-4 text-primary rounded focus:ring-primary" />
+            <span className="text-sm">Mostrar completados</span>
           </label>
           <div className="flex-1" />
-          <Link href="/graph" className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105"
-            style={{ backgroundColor: 'white', color: '#6D6D6D', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+          <Link href="/graph" className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105 bg-card border border-border text-muted-foreground hover:text-foreground shadow-sm">
             Ver en Grafo
           </Link>
-          <Link href="/library" className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105"
-            style={{ backgroundColor: '#FFD9D9', color: '#222222' }}>
+          <Link href="/library" className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105 bg-primary/10 text-foreground hover:bg-primary/20">
             Ir a Biblioteca
           </Link>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-6">
         <div className="max-w-7xl mx-auto">
           {filteredNodes.length > 0 ? (
             <>
@@ -682,13 +664,12 @@ export default function TreePage() {
             </>
           ) : (
             <div className="text-center py-16">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#E6DAFF' }}>
-                <Calendar className="size-8" style={{ color: '#9575CD' }} />
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-primary/10">
+                <Calendar className="size-8 text-primary" />
               </div>
-              <p className="text-lg font-medium mb-2" style={{ color: '#222222' }}>No hay temas en tu ruta</p>
-              <p className="text-sm mb-6" style={{ color: '#6D6D6D' }}>Agrega areas y temas desde la biblioteca para comenzar</p>
-              <Link href="/library" className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-105"
-                style={{ backgroundColor: '#FFD9D9', color: '#222222' }}>
+              <p className="text-lg font-medium mb-2 text-foreground">No hay temas en tu ruta</p>
+              <p className="text-sm mb-6 text-muted-foreground">Agrega areas y temas desde la biblioteca para comenzar</p>
+              <Link href="/library" className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-105 bg-primary/10 text-foreground hover:bg-primary/20">
                 Ir a Biblioteca
               </Link>
             </div>
@@ -697,15 +678,15 @@ export default function TreePage() {
       </div>
 
       {/* Footer with global progress */}
-      <div className="px-8 py-4" style={{ backgroundColor: 'white', boxShadow: '0px -2px 8px rgba(0, 0, 0, 0.04)' }}>
+      <div className="px-4 md:px-8 py-4 bg-card border-t border-border shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium" style={{ color: '#6D6D6D' }}>Progreso Global:</span>
-            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#F6F5F2' }}>
-              <div className="h-full transition-all duration-500 rounded-full" style={{ width: `${stats.progress}%`, backgroundColor: '#9575CD' }} />
+            <span className="text-sm font-medium text-muted-foreground">Progreso Global:</span>
+            <div className="flex-1 h-2 rounded-full overflow-hidden bg-muted">
+              <div className="h-full transition-all duration-500 rounded-full bg-primary" style={{ width: `${stats.progress}%` }} />
             </div>
-            <span className="text-sm font-bold" style={{ color: '#9575CD' }}>{stats.progress}%</span>
-            <span className="text-xs" style={{ color: '#9A9A9A' }}>({stats.completed}/{stats.total} temas)</span>
+            <span className="text-sm font-bold text-primary">{stats.progress}%</span>
+            <span className="text-xs text-muted-foreground">({stats.completed}/{stats.total} temas)</span>
           </div>
         </div>
       </div>

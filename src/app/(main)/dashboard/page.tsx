@@ -41,8 +41,9 @@ function CircularProgress({ percentage, color, size = 100, strokeWidth = 8 }: { 
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="var(--border)"
+          stroke="currentColor"
           strokeWidth={strokeWidth}
+          className="text-muted/20"
         />
         <circle
           cx={size / 2}
@@ -155,29 +156,24 @@ export default function DashboardPage() {
 
   return (
     <div
-      className="flex-1 overflow-y-auto transition-colors duration-300"
-      style={{ backgroundColor: 'var(--background)' }}
+      className="flex-1 overflow-y-auto transition-colors duration-300 bg-background"
     >
-      <div className="max-w-7xl mx-auto p-8 space-y-8">
+      <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-8">
 
         {/* Header - Clean Style */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-1" style={{ color: '#222222' }}>
+            <h1 className="text-3xl font-bold mb-1 text-foreground">
               Hola! 👋
             </h1>
-            <p className="text-sm" style={{ color: '#6D6D6D' }}>
+            <p className="text-sm text-muted-foreground">
               Continua tu camino de aprendizaje con calma y enfoque
             </p>
           </div>
 
           <Link
             href="/new-query"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all hover:opacity-90"
-            style={{
-              backgroundColor: '#FFD9D9',
-              color: '#222222'
-            }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all hover:opacity-90 bg-primary/10 text-foreground hover:bg-primary/20"
           >
             <Plus className="size-4" />
             Nueva Consulta
@@ -187,40 +183,31 @@ export default function DashboardPage() {
         {/* Hero Stats Cards - Clean Minimal Style */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Progress Card */}
-          <div
-            className="rounded-2xl p-5 hover:shadow-md transition-all duration-300"
-            style={{
-              backgroundColor: 'white',
-              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
-            }}
-          >
+          <div className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: '#E6DAFF' }}
-              >
-                <Target className="size-5" style={{ color: '#9575CD' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
+                <Target className="size-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm" style={{ color: '#6D6D6D' }}>Progreso Global</p>
-                <p className="text-2xl font-bold" style={{ color: '#222222' }}>
+                <p className="text-sm text-muted-foreground">Progreso Global</p>
+                <p className="text-2xl font-bold text-foreground">
                   {loading ? '-' : `${progressPercent}%`}
                 </p>
               </div>
             </div>
-            <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#F6F5F2' }}>
+            <div className="h-2 rounded-full overflow-hidden bg-muted">
               <div
-                className="h-full rounded-full transition-all duration-1000"
-                style={{ width: `${progressPercent}%`, backgroundColor: '#C9B7F3' }}
+                className="h-full rounded-full transition-all duration-1000 bg-primary"
+                style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <p className="text-xs mt-2" style={{ color: '#9A9A9A' }}>
+            <p className="text-xs mt-2 text-muted-foreground">
               {loading ? '-' : (
                 stats.understood_notes > 0 || stats.in_progress_notes > 0 ? (
                   <>
-                    {stats.understood_notes > 0 && <span style={{ color: '#10B981' }}>✓{stats.understood_notes}</span>}
+                    {stats.understood_notes > 0 && <span className="text-emerald-500">✓{stats.understood_notes}</span>}
                     {stats.understood_notes > 0 && stats.in_progress_notes > 0 && ' '}
-                    {stats.in_progress_notes > 0 && <span style={{ color: '#F59E0B' }}>◐{stats.in_progress_notes}</span>}
+                    {stats.in_progress_notes > 0 && <span className="text-amber-500">◐{stats.in_progress_notes}</span>}
                     {' / '}{stats.total_notes} notas
                   </>
                 ) : (
@@ -231,33 +218,23 @@ export default function DashboardPage() {
           </div>
 
           {/* In Progress Card */}
-          <div
-            className="rounded-2xl p-5 hover:shadow-md transition-all duration-300"
-            style={{
-              backgroundColor: 'white',
-              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
-            }}
-          >
+          <div className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: '#FFF0E6' }}
-              >
-                <BookOpen className="size-5" style={{ color: '#F5A962' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-500/10">
+                <BookOpen className="size-5 text-amber-500" />
               </div>
               <div>
-                <p className="text-sm" style={{ color: '#6D6D6D' }}>En Progreso</p>
-                <p className="text-2xl font-bold" style={{ color: '#222222' }}>
+                <p className="text-sm text-muted-foreground">En Progreso</p>
+                <p className="text-2xl font-bold text-foreground">
                   {loading ? '-' : stats.in_progress_notes}
                 </p>
               </div>
             </div>
-            <p className="text-xs" style={{ color: '#9A9A9A' }}>Temas activos ahora</p>
+            <p className="text-xs text-muted-foreground">Temas activos ahora</p>
             {stats.in_progress_notes > 0 && (
               <Link
                 href="/tree"
-                className="text-sm font-medium mt-3 inline-block hover:underline"
-                style={{ color: '#F5A962' }}
+                className="text-sm font-medium mt-3 inline-block hover:underline text-amber-500"
               >
                 Ver detalles →
               </Link>
@@ -265,66 +242,46 @@ export default function DashboardPage() {
           </div>
 
           {/* Time Card */}
-          <div
-            className="rounded-2xl p-5 hover:shadow-md transition-all duration-300"
-            style={{
-              backgroundColor: 'white',
-              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
-            }}
-          >
+          <div className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: '#CFE4FF' }}
-              >
-                <Clock className="size-5" style={{ color: '#5A8FCC' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10">
+                <Clock className="size-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-sm" style={{ color: '#6D6D6D' }}>Tiempo Restante</p>
-                <p className="text-2xl font-bold" style={{ color: '#222222' }}>
+                <p className="text-sm text-muted-foreground">Tiempo Restante</p>
+                <p className="text-2xl font-bold text-foreground">
                   {loading ? '-' : `${remainingHours}h`}
                 </p>
               </div>
             </div>
-            <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#F6F5F2' }}>
+            <div className="h-2 rounded-full overflow-hidden bg-muted">
               <div
-                className="h-full rounded-full transition-all duration-1000"
+                className="h-full rounded-full transition-all duration-1000 bg-blue-400"
                 style={{
-                  width: `${stats.total_study_time > 0 ? (completedHours / stats.total_study_time) * 100 : 0}%`,
-                  backgroundColor: '#7FBFFF'
+                  width: `${stats.total_study_time > 0 ? (completedHours / stats.total_study_time) * 100 : 0}%`
                 }}
               />
             </div>
-            <p className="text-xs mt-2" style={{ color: '#9A9A9A' }}>{completedHours}h completadas</p>
+            <p className="text-xs mt-2 text-muted-foreground">{completedHours}h completadas</p>
           </div>
 
           {/* Streak Card */}
-          <div
-            className="rounded-2xl p-5 hover:shadow-md transition-all duration-300"
-            style={{
-              backgroundColor: 'white',
-              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
-            }}
-          >
+          <div className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 bg-card border border-border shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: '#FFD9D9' }}
-              >
-                <Flame className="size-5" style={{ color: '#E57373' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10">
+                <Flame className="size-5 text-red-500" />
               </div>
               <div>
-                <p className="text-sm" style={{ color: '#6D6D6D' }}>Racha Actual</p>
-                <p className="text-2xl font-bold" style={{ color: '#222222' }}>
+                <p className="text-sm text-muted-foreground">Racha Actual</p>
+                <p className="text-2xl font-bold text-foreground">
                   {loading ? '-' : streak} <span className="text-base font-normal">dias</span>
                 </p>
               </div>
             </div>
-            <p className="text-xs" style={{ color: '#9A9A9A' }}>dias consecutivos</p>
+            <p className="text-xs text-muted-foreground">dias consecutivos</p>
             <Link
               href="/profile"
-              className="text-sm font-medium mt-3 inline-block hover:underline"
-              style={{ color: '#E57373' }}
+              className="text-sm font-medium mt-3 inline-block hover:underline text-red-500"
             >
               Ver perfil →
             </Link>
@@ -332,62 +289,46 @@ export default function DashboardPage() {
         </div>
 
         {/* Journal Quick Access - Clean Style */}
-        <div
-          className="rounded-2xl p-5 hover:shadow-md transition-all duration-300"
-          style={{
-            backgroundColor: 'white',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
-          }}
-        >
-          <div className="flex items-center justify-between">
+        <div className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 bg-card border border-border shadow-sm">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: '#E6DAFF' }}
-              >
-                <BookHeart className="size-6" style={{ color: '#9575CD' }} />
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary/10">
+                <BookHeart className="size-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold" style={{ color: '#222222' }}>
+                <h3 className="font-semibold text-foreground">
                   Journal de Hoy
                 </h3>
-                <p className="text-sm" style={{ color: '#6D6D6D' }}>
+                <p className="text-sm text-muted-foreground">
                   {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4 w-full md:w-auto justify-between md:justify-end">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <Sun className="size-4" style={{ color: hasMorningComplete ? '#10B981' : '#9A9A9A' }} />
-                  <span className="text-sm" style={{ color: hasMorningComplete ? '#10B981' : '#6D6D6D' }}>
+                  <Sun className={`size-4 ${hasMorningComplete ? 'text-emerald-500' : 'text-muted-foreground'}`} />
+                  <span className={`text-sm ${hasMorningComplete ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                     Morning {hasMorningComplete && <CheckCircle2 className="inline size-3 ml-1" />}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Moon className="size-4" style={{ color: hasNightComplete ? '#10B981' : '#9A9A9A' }} />
-                  <span className="text-sm" style={{ color: hasNightComplete ? '#10B981' : '#6D6D6D' }}>
+                  <Moon className={`size-4 ${hasNightComplete ? 'text-emerald-500' : 'text-muted-foreground'}`} />
+                  <span className={`text-sm ${hasNightComplete ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                     Night {hasNightComplete && <CheckCircle2 className="inline size-3 ml-1" />}
                   </span>
                 </div>
               </div>
 
-              <div
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                style={{ backgroundColor: '#FFF0E6' }}
-              >
-                <Flame className="size-4" style={{ color: '#F5A962' }} />
-                <span className="text-sm font-medium" style={{ color: '#F5A962' }}>{journalStreak} dias</span>
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10">
+                <Flame className="size-4 text-amber-500" />
+                <span className="text-sm font-medium text-amber-500">{journalStreak} dias</span>
               </div>
 
               <Link
                 href="/journal"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all hover:opacity-90"
-                style={{
-                  backgroundColor: '#FFD9D9',
-                  color: '#222222'
-                }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all hover:opacity-90 bg-primary/10 text-foreground hover:bg-primary/20 w-full md:w-auto justify-center"
               >
                 Abrir Journal
                 <ArrowRight className="size-4" />
@@ -398,36 +339,23 @@ export default function DashboardPage() {
 
         {/* Continue Studying - Clean Style */}
         {lastStudiedNote && (
-          <div
-            className="rounded-2xl p-6 hover:shadow-md transition-all duration-300"
-            style={{
-              backgroundColor: '#FFF0E6',
-              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-            }}
-          >
-            <div className="flex items-center justify-between">
+          <div className="rounded-2xl p-6 hover:shadow-md transition-all duration-300 bg-amber-500/10 border border-amber-500/20">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div
-                  className="w-14 h-14 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: 'white' }}
-                >
-                  <Lightbulb className="size-7" style={{ color: '#F5A962' }} />
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-card">
+                  <Lightbulb className="size-7 text-amber-500" />
                 </div>
                 <div>
-                  <p className="text-sm mb-1" style={{ color: '#6D6D6D' }}>Continuar donde dejaste</p>
-                  <h3 className="text-xl font-bold" style={{ color: '#222222' }}>{lastStudiedNote.title}</h3>
-                  <p className="text-sm" style={{ color: '#9A9A9A' }}>
+                  <p className="text-sm mb-1 text-muted-foreground">Continuar donde dejaste</p>
+                  <h3 className="text-xl font-bold text-foreground">{lastStudiedNote.title}</h3>
+                  <p className="text-sm text-muted-foreground">
                     {lastStudiedArea ? `${lastStudiedArea.icon} ${lastStudiedArea.name}` : 'General'} • {lastStudiedNote.status === 'understood' ? 'Completado' : lastStudiedNote.status === 'read' ? 'En progreso' : 'Nuevo'}
                   </p>
                 </div>
               </div>
               <Link
                 href={`/study?topic=${encodeURIComponent(lastStudiedNote.title)}`}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all hover:opacity-90"
-                style={{
-                  backgroundColor: '#FFD9D9',
-                  color: '#222222'
-                }}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all hover:opacity-90 bg-primary/10 text-foreground hover:bg-primary/20 w-full md:w-auto justify-center"
               >
                 Continuar Estudiando
                 <ArrowRight className="size-4" />
@@ -441,17 +369,16 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-xl font-bold" style={{ color: '#222222' }}>
+                <h2 className="text-xl font-bold text-foreground">
                   Progreso por Area
                 </h2>
-                <p className="text-sm" style={{ color: '#6D6D6D' }}>
+                <p className="text-sm text-muted-foreground">
                   Visualiza tu avance en cada area
                 </p>
               </div>
               <Link
                 href="/tree"
-                className="text-sm font-medium flex items-center gap-1 hover:underline"
-                style={{ color: '#9575CD' }}
+                className="text-sm font-medium flex items-center gap-1 hover:underline text-primary"
               >
                 Ver todo
                 <ArrowRight className="size-4" />
@@ -463,11 +390,7 @@ export default function DashboardPage() {
                 <Link
                   key={area.id}
                   href="/tree"
-                  className="rounded-2xl p-4 cursor-pointer transition-all duration-300 hover:shadow-md"
-                  style={{
-                    backgroundColor: 'white',
-                    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
-                  }}
+                  className="rounded-2xl p-4 cursor-pointer transition-all duration-300 hover:shadow-md bg-card border border-border shadow-sm"
                 >
                   <div className="flex justify-center mb-3">
                     <CircularProgress
@@ -480,15 +403,15 @@ export default function DashboardPage() {
 
                   <div className="text-center">
                     <div className="text-2xl mb-1">{area.icon || '📚'}</div>
-                    <h3 className="font-medium text-xs leading-tight mb-1" style={{ color: '#222222' }}>
+                    <h3 className="font-medium text-xs leading-tight mb-1 text-foreground">
                       {area.name}
                     </h3>
-                    <p className="text-xs" style={{ color: '#9A9A9A' }}>
+                    <p className="text-xs text-muted-foreground">
                       {area.understood > 0 || area.inProgress > 0 ? (
                         <>
-                          {area.understood > 0 && <span style={{ color: '#10B981' }}>✓{area.understood}</span>}
+                          {area.understood > 0 && <span className="text-emerald-500">✓{area.understood}</span>}
                           {area.understood > 0 && area.inProgress > 0 && ' '}
-                          {area.inProgress > 0 && <span style={{ color: '#F59E0B' }}>◐{area.inProgress}</span>}
+                          {area.inProgress > 0 && <span className="text-amber-500">◐{area.inProgress}</span>}
                           <span> / {area.total}</span>
                         </>
                       ) : (
@@ -505,38 +428,28 @@ export default function DashboardPage() {
         {/* Recommendations - Clean Style */}
         {(stats.in_progress_notes > 0 || recentNotes.length > 0) && (
           <div>
-            <h2 className="text-xl font-bold mb-4" style={{ color: '#222222' }}>
+            <h2 className="text-xl font-bold mb-4 text-foreground">
               Recomendaciones
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
               {/* In Progress Reminder */}
               {stats.in_progress_notes > 0 && (
-                <div
-                  className="rounded-2xl p-5 hover:shadow-md transition-all duration-300"
-                  style={{
-                    backgroundColor: 'white',
-                    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-                  }}
-                >
+                <div className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 bg-card border border-border shadow-sm">
                   <div className="flex items-start gap-4">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ backgroundColor: '#FFF0E6' }}
-                    >
-                      <TrendingUp className="size-5" style={{ color: '#F5A962' }} />
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-500/10">
+                      <TrendingUp className="size-5 text-amber-500" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold mb-1" style={{ color: '#222222' }}>
+                      <h3 className="font-semibold mb-1 text-foreground">
                         Temas en progreso
                       </h3>
-                      <p className="text-sm mb-3" style={{ color: '#6D6D6D' }}>
+                      <p className="text-sm mb-3 text-muted-foreground">
                         Tienes {stats.in_progress_notes} nota(s) en progreso
                       </p>
                       <Link
                         href="/tree"
-                        className="text-sm font-medium hover:underline"
-                        style={{ color: '#F5A962' }}
+                        className="text-sm font-medium hover:underline text-amber-500"
                       >
                         Ver todos →
                       </Link>
@@ -547,25 +460,16 @@ export default function DashboardPage() {
 
               {/* Recommended Topics */}
               {recentNotes.length > 0 && (
-                <div
-                  className="rounded-2xl p-5 hover:shadow-md transition-all duration-300"
-                  style={{
-                    backgroundColor: 'white',
-                    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-                  }}
-                >
+                <div className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 bg-card border border-border shadow-sm">
                   <div className="flex items-start gap-4">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ backgroundColor: '#CFE4FF' }}
-                    >
-                      <Star className="size-5" style={{ color: '#5A8FCC' }} />
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10">
+                      <Star className="size-5 text-blue-500" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold mb-1" style={{ color: '#222222' }}>
+                      <h3 className="font-semibold mb-1 text-foreground">
                         Notas recientes
                       </h3>
-                      <p className="text-sm mb-3" style={{ color: '#6D6D6D' }}>
+                      <p className="text-sm mb-3 text-muted-foreground">
                         Revisa lo que aprendiste
                       </p>
                       <div className="space-y-2">
@@ -575,16 +479,17 @@ export default function DashboardPage() {
                             <Link
                               key={note.slug}
                               href={`/study?topic=${encodeURIComponent(note.title)}`}
-                              className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                              className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted transition-colors"
                             >
                               <span className="text-sm">{noteArea?.icon || '📝'}</span>
-                              <span className="flex-1 text-sm font-medium truncate" style={{ color: '#222222' }}>
+                              <span className="flex-1 text-sm font-medium truncate text-foreground">
                                 {note.title}
                               </span>
-                              <span className="text-xs px-2 py-0.5 rounded-full" style={{
-                                backgroundColor: note.status === 'understood' ? '#D4F5E9' : note.status === 'read' ? '#FFF0E6' : '#F6F5F2',
-                                color: note.status === 'understood' ? '#10B981' : note.status === 'read' ? '#F59E0B' : '#9A9A9A'
-                              }}>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                note.status === 'understood' ? 'bg-emerald-500/10 text-emerald-500' : 
+                                note.status === 'read' ? 'bg-amber-500/10 text-amber-500' : 
+                                'bg-muted text-muted-foreground'
+                              }`}>
                                 {note.status === 'understood' ? '✓' : note.status === 'read' ? '◐' : '○'}
                               </span>
                             </Link>
@@ -603,24 +508,17 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             href="/graph"
-            className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 text-left"
-            style={{
-              backgroundColor: 'white',
-              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-            }}
+            className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 text-left bg-card border border-border shadow-sm"
           >
             <div className="flex items-center gap-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: '#E6DAFF' }}
-              >
-                <MapPin className="size-5" style={{ color: '#9575CD' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
+                <MapPin className="size-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold" style={{ color: '#222222' }}>
+                <h3 className="font-semibold text-foreground">
                   Explorar Grafo
                 </h3>
-                <p className="text-sm" style={{ color: '#6D6D6D' }}>
+                <p className="text-sm text-muted-foreground">
                   Visualiza conexiones
                 </p>
               </div>
@@ -629,24 +527,17 @@ export default function DashboardPage() {
 
           <Link
             href="/library"
-            className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 text-left"
-            style={{
-              backgroundColor: 'white',
-              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-            }}
+            className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 text-left bg-card border border-border shadow-sm"
           >
             <div className="flex items-center gap-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: '#CFE4FF' }}
-              >
-                <BookOpen className="size-5" style={{ color: '#5A8FCC' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10">
+                <BookOpen className="size-5 text-blue-500" />
               </div>
               <div>
-                <h3 className="font-semibold" style={{ color: '#222222' }}>
+                <h3 className="font-semibold text-foreground">
                   Biblioteca
                 </h3>
-                <p className="text-sm" style={{ color: '#6D6D6D' }}>
+                <p className="text-sm text-muted-foreground">
                   Gestiona areas y temas
                 </p>
               </div>
@@ -655,24 +546,17 @@ export default function DashboardPage() {
 
           <Link
             href="/tree"
-            className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 text-left"
-            style={{
-              backgroundColor: 'white',
-              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-            }}
+            className="rounded-2xl p-5 hover:shadow-md transition-all duration-300 text-left bg-card border border-border shadow-sm"
           >
             <div className="flex items-center gap-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: '#D4F5E9' }}
-              >
-                <Target className="size-5" style={{ color: '#10B981' }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-500/10">
+                <Target className="size-5 text-emerald-500" />
               </div>
               <div>
-                <h3 className="font-semibold" style={{ color: '#222222' }}>
+                <h3 className="font-semibold text-foreground">
                   Ver Ruta
                 </h3>
-                <p className="text-sm" style={{ color: '#6D6D6D' }}>
+                <p className="text-sm text-muted-foreground">
                   Planifica tu progreso
                 </p>
               </div>
@@ -682,28 +566,15 @@ export default function DashboardPage() {
 
         {/* Empty State - Clean Style */}
         {recentNotes.length === 0 && !loading && (
-          <div
-            className="rounded-2xl p-8 text-center"
-            style={{
-              backgroundColor: 'white',
-              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-            }}
-          >
-            <div
-              className="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4"
-              style={{ backgroundColor: '#E6DAFF' }}
-            >
-              <BookOpen className="size-8" style={{ color: '#9575CD' }} />
+          <div className="rounded-2xl p-8 text-center bg-card border border-border shadow-sm">
+            <div className="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4 bg-primary/10">
+              <BookOpen className="size-8 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold mb-2" style={{ color: '#222222' }}>Sin notas aun</h3>
-            <p className="text-sm mb-5" style={{ color: '#6D6D6D' }}>Empieza a aprender creando tu primera nota</p>
+            <h3 className="text-lg font-semibold mb-2 text-foreground">Sin notas aun</h3>
+            <p className="text-sm mb-5 text-muted-foreground">Empieza a aprender creando tu primera nota</p>
             <Link
               href="/new-query"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all hover:opacity-90"
-              style={{
-                backgroundColor: '#FFD9D9',
-                color: '#222222'
-              }}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all hover:opacity-90 bg-primary/10 text-foreground hover:bg-primary/20"
             >
               <Plus className="size-4" />
               Nueva Consulta

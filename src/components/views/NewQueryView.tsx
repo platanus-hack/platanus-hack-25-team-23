@@ -7,47 +7,13 @@ import { useKnowledge } from '@/lib/store/knowledge-context';
 import { SUGGESTED_TOPICS } from '@/lib/data/types';
 import { NoteRenderer, StreamingIndicator } from '@/components/NoteRenderer';
 
-interface LevelSelectorProps {
-  currentLevel: 'beginner' | 'intermediate' | 'expert';
-  onLevelChange: (level: 'beginner' | 'intermediate' | 'expert') => void;
-}
 
-function LevelSelector({ currentLevel, onLevelChange }: LevelSelectorProps) {
-  const levels = [
-    { id: 'beginner', label: 'Principiante', description: 'Explicaciones simples y basicas', icon: '🌱' },
-    { id: 'intermediate', label: 'Intermedio', description: 'Balance entre teoria y practica', icon: '📚' },
-    { id: 'expert', label: 'Avanzado', description: 'Contenido tecnico y detallado', icon: '🎓' },
-  ] as const;
-
-  return (
-    <div
-      className="flex gap-1 p-1 rounded-xl"
-      style={{ backgroundColor: 'white', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}
-    >
-      {levels.map((level) => (
-        <button
-          key={level.id}
-          onClick={() => onLevelChange(level.id)}
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2"
-          style={{
-            backgroundColor: currentLevel === level.id ? '#E6DAFF' : 'transparent',
-            color: currentLevel === level.id ? '#9575CD' : '#6D6D6D'
-          }}
-          title={level.description}
-        >
-          <span>{level.icon}</span>
-          {level.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export function NewQueryView() {
   const router = useRouter();
   const { generateNote, isLoading, streamingNote, currentNote, clearStreaming, notes, session } = useKnowledge();
   const [query, setQuery] = useState('');
-  const [level, setLevel] = useState<'beginner' | 'intermediate' | 'expert'>('beginner');
+
   const [showResults, setShowResults] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -138,10 +104,7 @@ export function NewQueryView() {
             Escribe cualquier tema y la IA generara una nota pedagogica
           </p>
 
-          {/* Level Selector */}
-          <div className="flex justify-center mb-6">
-            <LevelSelector currentLevel={level} onLevelChange={setLevel} />
-          </div>
+
         </div>
 
         {/* Search Input */}

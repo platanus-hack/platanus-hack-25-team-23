@@ -49,25 +49,14 @@ export function NotePanel() {
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="flex flex-col h-full bg-background">
       {/* Search Header */}
-      <div
-        className="p-5 space-y-4"
-        style={{
-          backgroundColor: 'var(--card)',
-          borderBottom: '2px solid #EEEBE6'
-        }}
-      >
+      <div className="p-5 space-y-4 bg-card border-b border-border">
         <form onSubmit={handleSearch} className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5" style={{ color: '#9A9A9A' }} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
           <input
             placeholder="Que quieres aprender?"
-            className="w-full pl-12 pr-4 py-3.5 rounded-2xl transition-all focus:outline-none focus:ring-2"
-            style={{
-              backgroundColor: '#F6F5F2',
-              border: '2px solid #EEEBE6',
-              color: '#222222'
-            }}
+            className="w-full pl-12 pr-4 py-3.5 rounded-2xl transition-all focus:outline-none focus:ring-2 bg-muted/50 border border-border text-foreground placeholder:text-muted-foreground focus:ring-primary/20"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
@@ -75,9 +64,9 @@ export function NotePanel() {
         </form>
 
         {/* Breadcrumbs */}
-        <div className="flex items-center text-sm overflow-x-auto whitespace-nowrap" style={{ color: '#6D6D6D' }}>
+        <div className="flex items-center text-sm overflow-x-auto whitespace-nowrap text-muted-foreground">
           <span
-            className="cursor-pointer hover:opacity-80 transition-opacity"
+            className="cursor-pointer hover:text-foreground transition-colors"
             onClick={() => setInput('')}
           >
             Inicio
@@ -85,68 +74,53 @@ export function NotePanel() {
           {currentNote && (
             <>
               <span className="mx-2">/</span>
-              <span className="font-medium" style={{ color: '#222222' }}>{currentNote.title}</span>
+              <span className="font-medium text-foreground">{currentNote.title}</span>
             </>
           )}
         </div>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="max-w-3xl mx-auto">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-64">
-              <div
-                className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-                style={{ backgroundColor: '#E6DAFF' }}
-              >
-                <Loader2 className="size-6 animate-spin" style={{ color: '#9575CD' }} />
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4 bg-primary/10">
+                <Loader2 className="size-6 animate-spin text-primary" />
               </div>
-              <p style={{ color: '#6D6D6D' }}>Generando conocimiento...</p>
+              <p className="text-muted-foreground">Generando conocimiento...</p>
             </div>
           ) : currentNote ? (
             <article>
-              <h1 className="text-4xl font-bold mb-6" style={{ color: '#222222' }}>
+              <h1 className="text-3xl md:text-4xl font-bold mb-6 text-foreground">
                 {currentNote.title}
               </h1>
-              <div
-                className="rounded-3xl p-6 mb-6"
-                style={{
-                  backgroundColor: 'var(--card)',
-                  border: '2px solid #EEEBE6',
-                  boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.04)'
-                }}
-              >
+              <div className="rounded-3xl p-4 md:p-6 mb-6 bg-card border border-border shadow-sm">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeKatex]}
                   components={{
                     h1: ({ node, ...props }) => (
-                      <h1 className="text-3xl font-bold mt-8 mb-4 first:mt-0" style={{ color: '#222222' }} {...props} />
+                      <h1 className="text-2xl md:text-3xl font-bold mt-8 mb-4 first:mt-0 text-foreground" {...props} />
                     ),
                     h2: ({ node, ...props }) => (
-                      <h2 className="text-2xl font-semibold mt-6 mb-3" style={{ color: '#222222' }} {...props} />
+                      <h2 className="text-xl md:text-2xl font-semibold mt-6 mb-3 text-foreground" {...props} />
                     ),
                     h3: ({ node, ...props }) => (
-                      <h3 className="text-xl font-semibold mt-4 mb-2" style={{ color: '#222222' }} {...props} />
+                      <h3 className="text-lg md:text-xl font-semibold mt-4 mb-2 text-foreground" {...props} />
                     ),
                     p: ({ node, ...props }) => (
-                      <p className="leading-7 mb-4" style={{ color: '#222222' }} {...props} />
+                      <p className="leading-7 mb-4 text-sm md:text-base text-foreground" {...props} />
                     ),
                     li: ({ node, ...props }) => (
-                      <li className="mb-1" style={{ color: '#222222' }} {...props} />
+                      <li className="mb-1 text-sm md:text-base text-foreground" {...props} />
                     ),
                     strong: ({ node, ...props }) => (
-                      <strong className="font-bold" style={{ color: '#222222' }} {...props} />
+                      <strong className="font-bold text-foreground" {...props} />
                     ),
                     blockquote: ({ node, ...props }) => (
                       <blockquote
-                        className="pl-4 my-4 italic rounded-r-xl py-3 pr-4"
-                        style={{
-                          borderLeft: '4px solid #E6DAFF',
-                          backgroundColor: '#F6F5F2',
-                          color: '#6D6D6D'
-                        }}
+                        className="pl-4 my-4 italic rounded-r-xl py-3 pr-4 text-sm md:text-base border-l-4 border-primary/20 bg-muted/50 text-muted-foreground"
                         {...props}
                       />
                     ),
@@ -154,8 +128,7 @@ export function NotePanel() {
                       <a
                         href={href}
                         onClick={(e) => handleLinkClick(e, href || '')}
-                        className="font-semibold cursor-pointer hover:opacity-80 transition-opacity"
-                        style={{ color: '#9575CD' }}
+                        className="font-semibold cursor-pointer hover:opacity-80 transition-opacity text-primary"
                         {...props}
                       >
                         {children}
@@ -173,8 +146,7 @@ export function NotePanel() {
                       if (!match) {
                         return (
                           <code
-                            className="px-1.5 py-0.5 rounded text-sm font-mono"
-                            style={{ backgroundColor: '#F6F5F2', color: '#9575CD' }}
+                            className="px-1.5 py-0.5 rounded text-sm font-mono bg-muted text-primary"
                             {...props}
                           >
                             {children}
@@ -190,8 +162,7 @@ export function NotePanel() {
                     },
                     pre: ({ node, ...props }) => (
                       <pre
-                        className="rounded-2xl p-4 overflow-x-auto my-4 text-sm"
-                        style={{ backgroundColor: '#222222', color: '#F6F5F2' }}
+                        className="rounded-2xl p-4 overflow-x-auto my-4 text-sm bg-zinc-900 text-zinc-100 dark:bg-zinc-950"
                         {...props}
                       />
                     )
@@ -202,18 +173,15 @@ export function NotePanel() {
               </div>
 
               {/* Status Footer */}
-              <div
-                className="flex justify-between items-center p-4 rounded-2xl"
-                style={{ backgroundColor: '#F6F5F2', border: '1px solid #EEEBE6' }}
-              >
-                <div className="flex items-center gap-2 text-sm" style={{ color: '#6D6D6D' }}>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-4 rounded-2xl bg-muted/30 border border-border">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   Estado:
                   <span
-                    className="capitalize font-medium px-3 py-1 rounded-full"
-                    style={{
-                      backgroundColor: currentNote.status === 'understood' ? '#D4F5E9' : '#FFF0E6',
-                      color: currentNote.status === 'understood' ? '#10B981' : '#222222'
-                    }}
+                    className={`capitalize font-medium px-3 py-1 rounded-full ${
+                      currentNote.status === 'understood' 
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
+                        : 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
+                    }`}
                   >
                     {currentNote.status === 'understood' ? 'Dominado' :
                       currentNote.status === 'read' ? 'En progreso' : 'Nuevo'}
@@ -222,11 +190,7 @@ export function NotePanel() {
                 {currentNote.status !== 'understood' && (
                   <button
                     onClick={() => markAsUnderstood(currentNote.id || currentNote.slug)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all hover:scale-[1.02]"
-                    style={{
-                      backgroundColor: '#D4F5E9',
-                      color: '#10B981'
-                    }}
+                    className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium transition-all hover:scale-[1.02] bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
                   >
                     <CheckCircle className="size-4" />
                     Marcar como Dominado
@@ -236,19 +200,13 @@ export function NotePanel() {
             </article>
           ) : (
             <div className="text-center mt-20">
-              <div
-                className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6"
-                style={{
-                  background: 'linear-gradient(135deg, #E6DAFF 0%, #D6C9F5 100%)',
-                  boxShadow: '0px 4px 14px rgba(214, 201, 245, 0.4)'
-                }}
-              >
+              <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 bg-primary/10 shadow-lg shadow-primary/5">
                 <span className="text-4xl">🧠</span>
               </div>
-              <h2 className="text-2xl font-semibold mb-2" style={{ color: '#222222' }}>
+              <h2 className="text-2xl font-semibold mb-2 text-foreground">
                 Bienvenido a BrainFlow
               </h2>
-              <p style={{ color: '#6D6D6D' }}>
+              <p className="text-muted-foreground">
                 Escribe un tema arriba para comenzar tu viaje de aprendizaje.
               </p>
             </div>
