@@ -157,6 +157,7 @@ async function processMessage(
 
     // Handle study notes request
     if (agentResponse.action.type === 'show_study_notes' && connection.user_id) {
+      console.log(`[WhatsApp] Showing study notes for connection.user_id: ${connection.user_id}`)
       const studyResponse = await getFormattedStudyNotes(connection.user_id)
       return { text: studyResponse }
     }
@@ -242,13 +243,26 @@ async function getFormattedStats(userId: string): Promise<string> {
 // Get formatted study notes for user
 async function getFormattedStudyNotes(userId: string): Promise<string> {
   try {
+    console.log(`[WhatsApp] Getting study notes for user: ${userId}`)
+
     // Get notes to study (not understood yet)
-    const { data: notes } = await getSupabase()
+    const { data: notes, error } = await getSupabase()
       .from('notes')
       .select('id, title, area, status')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(5)
+
+    console.log(`[WhatsApp] Notes query result:`, {
+      notesCount: notes?.length || 0,
+      error: error?.message,
+      userId
+    })
+
+    if (error) {
+      console.error('[WhatsApp] Error fetching notes:', error)
+      return '❌ Error al obtener tus notas. Por favor intenta de nuevo.'
+    }
 
     if (!notes || notes.length === 0) {
       return '📚 No tienes notas de estudio aún.\n\n' +
