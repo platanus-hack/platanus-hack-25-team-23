@@ -21,42 +21,50 @@ interface ConversationMessage {
 
 // Get conversation history from database
 async function getConversationHistory(
-  phoneNumber: string,
-  limit: number = 10
+  connectionId: string,
+  currentMessage: string,
+  limit: number = 20
 ): Promise<ConversationMessage[]> {
-  const { data } = await getSupabase()
-    .from('whatsapp_messages')
-    .select('role, content')
-    .eq('phone_number', phoneNumber)
-    .order('created_at', { ascending: false })
-    .limit(limit)
+  try {
+    const { data, error } = await getSupabase()
+      .from('whatsapp_messages')
+      .select('direction, content, metadata, created_at')
+      .eq('connection_id', connectionId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
 
-  if (!data) return []
+    if (error) {
+      console.error('[Agent] Error fetching history:', error)
+      return []
+    }
 
-  // Reverse to get chronological order
-  return data.reverse().map(m => ({
-    role: m.role as 'user' | 'assistant',
-    content: m.content
-  }))
+    if (!data || data.length === 0) return []
+
+    // Filter out empty messages and the current message (to avoid duplication)
+    // The webhook logs the message BEFORE calling the agent, so we need to exclude it
+    let messages = data.filter(m => m.content && m.content.trim())
+
+    // Remove the most recent inbound message if it matches currentMessage
+    // (this prevents the AI from seeing the same message twice)
+    if (messages.length > 0 &&
+        messages[0].direction === 'inbound' &&
+        messages[0].content?.trim() === currentMessage.trim()) {
+      messages = messages.slice(1)
+    }
+
+    // Reverse to get chronological order and map direction to role
+    return messages.reverse().map(m => ({
+      role: m.direction === 'inbound' ? 'user' as const : 'assistant' as const,
+      content: m.content || ''
+    }))
+  } catch (err) {
+    console.error('[Agent] Exception fetching history:', err)
+    return []
+  }
 }
 
-// Save message to conversation history
-async function saveMessage(
-  phoneNumber: string,
-  role: 'user' | 'assistant',
-  content: string,
-  userId?: string
-) {
-  await getSupabase()
-    .from('whatsapp_messages')
-    .insert({
-      phone_number: phoneNumber,
-      user_id: userId,
-      role,
-      content,
-      created_at: new Date().toISOString()
-    })
-}
+// NOTE: saveMessage function removed - webhook handles message logging via logMessage()
+// to prevent duplicate messages in history
 
 // Get user context (journal entries, notes, mood history)
 async function getUserContext(userId: string): Promise<string> {
@@ -255,11 +263,18 @@ export async function processWithAgent(
 ): Promise<AgentResponse> {
   const openai = getOpenAI()
 
-  // Save user message to history
-  await saveMessage(connection.phone_number, 'user', userMessage, connection.user_id || undefined)
+  // NOTE: Don't save user message here - webhook already logs it via logMessage()
+  // This prevents duplicate messages in history
 
-  // Get conversation history
-  const history = await getConversationHistory(connection.phone_number, 15)
+  // Get conversation history using connection.id
+  // Pass currentMessage to exclude it from history (webhook logs it before calling agent)
+  const history = await getConversationHistory(connection.id, userMessage, 20)
+
+  console.log(`[Agent] Processing: "${userMessage.substring(0, 50)}..."`)
+  console.log(`[Agent] History loaded: ${history.length} messages`)
+  if (history.length > 0) {
+    console.log(`[Agent] Last 3 messages:`, history.slice(-3).map(m => `${m.role}: ${m.content.substring(0, 40)}...`))
+  }
 
   // Get user context if we have a user_id
   let userContext = ''
@@ -412,8 +427,8 @@ export async function processWithAgent(
       }
     }
 
-    // Save assistant response to history
-    await saveMessage(connection.phone_number, 'assistant', responseMessage, connection.user_id || undefined)
+    // NOTE: Don't save assistant response here - webhook already logs it via logMessage()
+    // This prevents duplicate messages in history
 
     return { message: responseMessage, action, buttons }
   } catch (error) {
