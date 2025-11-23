@@ -1,0 +1,33 @@
+# Task: Verify and Finalize Deep Agent Implementation
+
+- [ ] Verify Build <!-- id: 0 -->
+    - [x] Run `pnpm build` <!-- id: 1 -->
+    - [x] Fix build error in `SupabaseVFS.ts` <!-- id: 2 -->
+    - [x] Fix `handleInputChange` error in ChatView
+- [x] Fix `append` is not a function error (import issue)
+- [x] Fix 500 Internal Server Error (streaming format)
+- [x] Move Deep Agent to `/agent` route
+- [x] Revert `/new-query` to original state
+- [x] Pull upstream changes
+- [x] Create migration for `notes` and `edges` tables
+- [x] Update `sync.ts` to use new schemaion <!-- id: 3 -->
+    - [x] Confirm VFS migration instructions are clear <!-- id: 4 -->
+- [x] Run Database Migration <!-- id: 5 -->
+- [x] Migrate to `deepagents` SDK <!-- id: 6 -->
+    - [x] Create standalone test script (`test-deepagent.ts`) <!-- id: 7 -->
+    - [x] Implement LangChain-compatible VFS tools <!-- id: 8 -->
+    - [x] Verify agent execution in test script <!-- id: 9 -->
+    - [x] Update `src/app/api/chat/route.ts` <!-- id: 10 -->
+- [x] Migrate to AI Elements UI
+    - [x] Install `ai-elements` components
+    - [x] Refactor `ChatView` to use `ai-elements`
+    - [x] Implement `useManualChat` hook for reliable streaming
+    - [x] Implement Web Search (Perplexity)
+- [x] Resolve Merge Conflicts with `main`
+- [x] Apply Kenko Palette to New Query View
+- [ ] Verify End-to-End Functionality
+- [x] Fix PDF Reading and Web Search
+    - [x] Implement PDF Reader tool (pdf2json)
+    - [x] Implement Web Search (Perplexity)
+    - [x] Fix Chat Attachments UI
+```
