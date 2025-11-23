@@ -79,10 +79,7 @@
     "sonner": "^2.0.7",
     "streamdown": "^1.6.1",
     "tailwind-merge": "^3.4.0",
-<<<<<<< HEAD
     "twilio": "^5.10.6",
-=======
->>>>>>> 9b93003 (feat: migrate to ai-elements with deep agent integration)
     "use-stick-to-bottom": "^1.1.1",
     "vaul": "^1.1.2",
     "zod": "^3.25.76"
