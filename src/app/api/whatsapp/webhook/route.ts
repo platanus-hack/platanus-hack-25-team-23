@@ -284,7 +284,7 @@ async function handleAgentAction(
       const journalData = {
         gratitude: action.data.gratitude || [],
         daily_intention: action.data.daily_intention || '',
-        what_would_make_great_day: action.data.what_would_make_great_day || []
+        make_great: action.data.what_would_make_great_day || []  // Field name in DB is make_great
       }
 
       if (existing) {
@@ -314,7 +314,7 @@ async function handleAgentAction(
 
       const journalData = {
         best_moments: action.data.best_moments || [],
-        lesson_learned: action.data.lesson_learned || '',
+        lesson: action.data.lesson_learned || '',  // Field name in DB is lesson
         mood: action.data.mood
       }
 
