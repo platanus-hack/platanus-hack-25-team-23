@@ -69,8 +69,12 @@ export async function POST(req: Request) {
     const readFile = tool(
       async ({ path, file_path }) => {
         const targetPath = path || file_path;
-        if (!targetPath) throw new Error('Path is required');
-        return await vfs.readFile(targetPath);
+        if (!targetPath) return 'Error: Path is required';
+        try {
+          return await vfs.readFile(targetPath);
+        } catch (error: any) {
+          return `Error reading file '${targetPath}': ${error.message || 'Unknown error'}`;
+        }
       },
       {
         name: 'read_file',
@@ -374,6 +378,36 @@ export async function POST(req: Request) {
     ### 5. Math & Code
     - Math: LaTeX with single $ for inline, $$ for block.
     - Code: Fenced code blocks with language identifier.
+
+    ## Advanced Capabilities (Calendar & Coaching)
+
+    ### 1. Daily Planning Assistant
+    - **Trigger**: When user says "Buenos días", "Plan my day", or asks for a summary.
+    - **Action**:
+      1. Call \`list_events\` for today.
+      2. Check for a daily journal file (e.g., \`/journal/daily/YYYY-MM-DD.md\`).
+      3. **Output**: Present a "Morning Brief":
+         - 📅 Events summary & Free time calculation.
+         - 📝 Intentions from Journal (if found).
+         - 💡 **Suggestion**: Propose 1 specific action for a free slot (e.g., "Study 'React' at 11am").
+
+    ### 2. Smart Time Blocking
+    - **Trigger**: When user asks to "Find time", "Organize study", or "Block time".
+    - **Action**:
+      1. Call \`get_free_busy\` or \`list_events\` to find gaps >30min.
+      2. Use \`search_files\` to find notes with status "todo" or "pending".
+      3. **Output**: Propose concrete blocks:
+         - "Found 1h free at 4pm. Shall I book 'Deep Learning Study'?"
+      4. **On Consent**: Use \`create_event\` to book it.
+
+    ### 3. AI Coach Integration
+    - **Trigger**: "Analyze my week", "How am I doing?", "Patterns".
+    - **Action**:
+      1. Use \`list_files\` to find recent journals.
+      2. Use \`read_file\` to analyze their content (look for Mood, Energy, Completed Tasks).
+      3. **Output**: Provide **Pattern Recognition**:
+         - "Observed: Your mood is higher (4.5/5) on days you have 'Gym' events."
+         - "Alert: You haven't touched the 'Finance' area in 2 weeks."
     `;
 
     // Initialize Agent
