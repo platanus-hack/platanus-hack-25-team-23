@@ -9,26 +9,26 @@ export function LandingView() {
     {
       icon: '📝',
       iconBg: '#FFF0E6',
-      title: 'Tracking Screen',
-      description: 'Take control with intuitive knowledge tracking'
+      title: 'Seguimiento',
+      description: 'Toma el control con un seguimiento intuitivo'
     },
     {
       icon: '🎯',
       iconBg: '#FFD9D9',
-      title: 'Score Screen',
-      description: 'Your learning score is every effort matters'
+      title: 'Puntuación',
+      description: 'Tu puntuación de aprendizaje: cada esfuerzo cuenta'
     },
     {
       icon: '📈',
       iconBg: '#E6DAFF',
-      title: 'Progress Screen',
-      description: 'Every step brings you closer to mastery'
+      title: 'Progreso',
+      description: 'Cada paso te acerca más a la maestría'
     },
     {
       icon: '🧠',
       iconBg: '#CFE4FF',
-      title: 'Monitoring Screen',
-      description: 'Track your progress and stay on top'
+      title: 'Monitoreo',
+      description: 'Sigue tu avance y mantente al día'
     }
   ];
 
@@ -84,7 +84,7 @@ export function LandingView() {
               className="px-5 py-2.5 rounded-xl font-medium text-sm transition-all hover:bg-[#FFF0E6]"
               style={{ color: '#6D6D6D' }}
             >
-              Iniciar Sesion
+              Iniciar Sesión
             </Link>
             <Link
               href="/login"
@@ -123,13 +123,13 @@ export function LandingView() {
                 letterSpacing: '-0.03em'
               }}
             >
-              <span style={{ fontStyle: 'italic', fontWeight: 800 }}>BrainFlow's</span> knowledge
+              El sistema de conocimiento de
               <br />
-              system provides leading-
+              <span style={{ fontStyle: 'italic', fontWeight: 800 }}>BrainFlow</span> ofrece
               <br />
-              edge learning that syncs
+              aprendizaje de vanguardia que
               <br />
-              directly to your mind.
+              se sincroniza con tu mente.
             </h1>
 
             <p
