@@ -183,16 +183,20 @@ Usa cuando pide estadísticas, progreso o "cómo voy".
 Usa cuando quiere estudiar o ver notas.
 
 ### save_morning_journal
-Llama cuando tengas los 3 campos completos:
-- gratitude: array de strings (lo que agradeció)
-- daily_intention: string (su intención)
-- what_would_make_great_day: array de strings (qué haría el día genial)
+OBLIGATORIO llamar esta función cuando tengas los 3 campos del historial de conversación:
+- gratitude: array de strings (extraer de cuando preguntaste gratitud)
+- daily_intention: string (extraer de cuando preguntaste intención)
+- what_would_make_great_day: array de strings (extraer de la última respuesta del usuario)
+
+IMPORTANTE: Cuando el usuario responde la pregunta 3 (gran día), DEBES llamar save_morning_journal inmediatamente con los datos de TODA la conversación. NO respondas con texto, solo llama la función.
 
 ### save_night_journal
-Llama cuando tengas los 3 campos completos:
-- best_moments: array de strings (mejores momentos)
-- lesson_learned: string (lección del día)
-- mood: número 1-5
+OBLIGATORIO llamar esta función cuando tengas los 3 campos:
+- best_moments: array de strings (extraer de cuando preguntaste momentos)
+- lesson_learned: string (extraer de cuando preguntaste lección)
+- mood: número 1-5 (extraer de la última respuesta)
+
+IMPORTANTE: Cuando el usuario responde la pregunta 3 (mood), DEBES llamar save_night_journal inmediatamente.
 
 ## FLUJO MORNING JOURNAL - SIGUE EXACTAMENTE ESTOS PASOS:
 
@@ -247,7 +251,21 @@ PASO 4: Después de recibir mood, LLAMA save_night_journal con todos los datos.
 - Parsea respuestas: "café, familia, salud" = ["café", "familia", "salud"]
 - Si dice "estoy agradecido por ganar" = ["ganar la hackathon"] (1 item está bien)
 - NO hagas preguntas adicionales fuera del template
-- Cuando llames save_morning_journal o save_night_journal, el mensaje DEBE confirmar que se guardó en BrainFlow
+- SIEMPRE USA FUNCTION CALLS para guardar datos - NUNCA solo texto
+- En PASO 4 de morning journal: DEBES llamar save_morning_journal (no solo texto)
+- En PASO 4 de night journal: DEBES llamar save_night_journal (no solo texto)
+
+## EJEMPLO DE EXTRACCIÓN DE DATOS DEL HISTORIAL:
+Si el historial muestra:
+- User: "café, mi familia, la salud" (respuesta a gratitud)
+- User: "terminar el proyecto" (respuesta a intención)
+- User: "ganar la hackathon" (respuesta a gran día)
+
+Entonces llama: save_morning_journal({
+  gratitude: ["café", "mi familia", "la salud"],
+  daily_intention: "terminar el proyecto",
+  what_would_make_great_day: ["ganar la hackathon"]
+})
 
 Responde siempre en español.`
 
@@ -387,6 +405,15 @@ export async function processWithAgent(
     let responseMessage = choice.message.content || ''
     let action: AgentResponse['action'] = undefined
     let buttons: AgentResponse['buttons'] = undefined
+
+    // Log what the AI returned
+    console.log(`[Agent] AI response - has function_call: ${!!choice.message.function_call}`)
+    if (choice.message.function_call) {
+      console.log(`[Agent] Function called: ${choice.message.function_call.name}`)
+      console.log(`[Agent] Function args: ${choice.message.function_call.arguments}`)
+    } else {
+      console.log(`[Agent] Text response: ${responseMessage.substring(0, 100)}...`)
+    }
 
     // Handle function calls
     if (choice.message.function_call) {

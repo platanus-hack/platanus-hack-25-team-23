@@ -129,9 +129,14 @@ async function processMessage(
 
   // Handle actions from agent
   if (agentResponse.action) {
+    console.log(`[WhatsApp] Agent action received: ${agentResponse.action.type}`)
+    console.log(`[WhatsApp] Action data:`, JSON.stringify(agentResponse.action.data, null, 2))
+
     // Handle data-saving actions
     if (agentResponse.action.type === 'save_journal_morning' || agentResponse.action.type === 'save_journal_night') {
+      console.log(`[WhatsApp] Saving journal for user: ${connection.user_id}`)
       await handleAgentAction(connection, agentResponse.action)
+      console.log(`[WhatsApp] Journal saved successfully`)
     }
 
     // Handle stats request - fetch and format stats
@@ -267,19 +272,27 @@ async function handleAgentAction(
   connection: WhatsAppConnection,
   action: { type: string; data?: Record<string, unknown> }
 ) {
-  if (!connection.user_id) return
+  if (!connection.user_id) {
+    console.error('[WhatsApp] Cannot save journal - no user_id on connection')
+    return
+  }
 
   const today = new Date().toISOString().split('T')[0]
+  console.log(`[WhatsApp] handleAgentAction: ${action.type} for date ${today}`)
 
   try {
     if (action.type === 'save_journal_morning' && action.data) {
       // Check for existing entry
-      const { data: existing } = await getSupabase()
+      const { data: existing, error: selectError } = await getSupabase()
         .from('journal_entries')
         .select('id')
         .eq('user_id', connection.user_id)
         .eq('entry_date', today)
         .single()
+
+      if (selectError && selectError.code !== 'PGRST116') {
+        console.error('[WhatsApp] Error checking existing entry:', selectError)
+      }
 
       const journalData = {
         gratitude: action.data.gratitude || [],
@@ -287,13 +300,23 @@ async function handleAgentAction(
         make_great: action.data.what_would_make_great_day || []  // Field name in DB is make_great
       }
 
+      console.log('[WhatsApp] Journal data to save:', JSON.stringify(journalData, null, 2))
+
       if (existing) {
-        await getSupabase()
+        console.log(`[WhatsApp] Updating existing entry: ${existing.id}`)
+        const { error: updateError } = await getSupabase()
           .from('journal_entries')
           .update(journalData)
           .eq('id', existing.id)
+
+        if (updateError) {
+          console.error('[WhatsApp] Error updating journal:', updateError)
+        } else {
+          console.log('[WhatsApp] Journal updated successfully')
+        }
       } else {
-        await getSupabase()
+        console.log('[WhatsApp] Creating new journal entry')
+        const { error: insertError } = await getSupabase()
           .from('journal_entries')
           .insert({
             user_id: connection.user_id,
@@ -301,16 +324,26 @@ async function handleAgentAction(
             entry_type: 'daily',
             ...journalData
           })
+
+        if (insertError) {
+          console.error('[WhatsApp] Error inserting journal:', insertError)
+        } else {
+          console.log('[WhatsApp] Journal created successfully')
+        }
       }
     }
 
     if (action.type === 'save_journal_night' && action.data) {
-      const { data: existing } = await getSupabase()
+      const { data: existing, error: selectError } = await getSupabase()
         .from('journal_entries')
         .select('id')
         .eq('user_id', connection.user_id)
         .eq('entry_date', today)
         .single()
+
+      if (selectError && selectError.code !== 'PGRST116') {
+        console.error('[WhatsApp] Error checking existing entry:', selectError)
+      }
 
       const journalData = {
         best_moments: action.data.best_moments || [],
@@ -318,13 +351,23 @@ async function handleAgentAction(
         mood: action.data.mood
       }
 
+      console.log('[WhatsApp] Night journal data to save:', JSON.stringify(journalData, null, 2))
+
       if (existing) {
-        await getSupabase()
+        console.log(`[WhatsApp] Updating existing entry: ${existing.id}`)
+        const { error: updateError } = await getSupabase()
           .from('journal_entries')
           .update(journalData)
           .eq('id', existing.id)
+
+        if (updateError) {
+          console.error('[WhatsApp] Error updating night journal:', updateError)
+        } else {
+          console.log('[WhatsApp] Night journal updated successfully')
+        }
       } else {
-        await getSupabase()
+        console.log('[WhatsApp] Creating new night journal entry')
+        const { error: insertError } = await getSupabase()
           .from('journal_entries')
           .insert({
             user_id: connection.user_id,
@@ -332,6 +375,12 @@ async function handleAgentAction(
             entry_type: 'daily',
             ...journalData
           })
+
+        if (insertError) {
+          console.error('[WhatsApp] Error inserting night journal:', insertError)
+        } else {
+          console.log('[WhatsApp] Night journal created successfully')
+        }
       }
     }
   } catch (error) {
