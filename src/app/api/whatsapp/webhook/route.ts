@@ -324,21 +324,62 @@ async function startJournalFlow(connection: WhatsAppConnection): Promise<Command
     return { text: 'Vincula tu cuenta primero para hacer tu journal.' }
   }
 
+  // Check if today's journal is already completed
+  const today = new Date().toISOString().split('T')[0]
+  const { data: existingEntry } = await getSupabase()
+    .from('journal_entries')
+    .select('gratitude, daily_intention, make_great, best_moments, lesson, mood')
+    .eq('user_id', connection.user_id)
+    .eq('entry_date', today)
+    .single()
+
   const hour = new Date().getHours()
   const isMorning = hour >= 5 && hour < 14
 
+  // Check what's already filled
+  const hasMorning = existingEntry?.gratitude?.length > 0 && existingEntry?.daily_intention
+  const hasNight = existingEntry?.best_moments?.length > 0 && existingEntry?.mood
+
   if (isMorning) {
+    if (hasMorning) {
+      return {
+        text: '☀️ ¡Ya completaste tu journal de la mañana hoy!\n\n' +
+              `🙏 Gratitud: ${existingEntry.gratitude.length} cosas\n` +
+              `🎯 Intención: "${existingEntry.daily_intention.slice(0, 30)}..."\n\n` +
+              '¿Quieres hacer otra cosa?',
+        buttons: [
+          { id: 'stats', title: '📊 Estadísticas' },
+          { id: 'study', title: '📚 Estudiar' }
+        ]
+      }
+    }
     return {
       text: '🌅 *Journal de la Mañana*\n\n' +
-            'Empecemos con gratitud...\n\n' +
+            'Vamos a empezar el día con intención. Te haré 3 preguntas cortas.\n\n' +
+            '*Pregunta 1/3:*\n' +
             '¿Por qué 3 cosas estás agradecido/a hoy? 🙏\n\n' +
-            '_Pueden ser cosas pequeñas: el café, un buen descanso, tu familia..._'
+            '_Escríbelas separadas por coma o en líneas separadas_'
     }
   } else {
+    if (hasNight) {
+      return {
+        text: '🌙 ¡Ya completaste tu reflexión nocturna hoy!\n\n' +
+              `💎 Momentos: ${existingEntry.best_moments.length} guardados\n` +
+              `📌 Lección registrada\n` +
+              `😊 Mood: ${existingEntry.mood}/5\n\n` +
+              '¿Quieres hacer otra cosa?',
+        buttons: [
+          { id: 'stats', title: '📊 Estadísticas' },
+          { id: 'study', title: '📚 Estudiar' }
+        ]
+      }
+    }
     return {
       text: '🌙 *Reflexión Nocturna*\n\n' +
-            'Vamos a cerrar el día con una reflexión...\n\n' +
-            '¿Cuál fue el mejor momento de tu día hoy? ✨'
+            'Vamos a cerrar el día reflexionando. Te haré 3 preguntas cortas.\n\n' +
+            '*Pregunta 1/3:*\n' +
+            '¿Cuáles fueron los 3 mejores momentos de tu día? 💎\n\n' +
+            '_Escríbelos separados por coma o en líneas separadas_'
     }
   }
 }
