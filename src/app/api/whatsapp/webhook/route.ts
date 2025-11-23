@@ -177,7 +177,7 @@ async function processMessage(
 // Get formatted stats for user
 async function getFormattedStats(userId: string): Promise<string> {
   try {
-    // Get streak
+    // Get streak - use 'date' and 'type' (correct column names)
     let streak = 0
     const checkDate = new Date()
     while (streak < 365) {
@@ -186,7 +186,8 @@ async function getFormattedStats(userId: string): Promise<string> {
         .from('journal_entries')
         .select('id')
         .eq('user_id', userId)
-        .eq('entry_date', dateStr)
+        .eq('date', dateStr)
+        .eq('type', 'daily')
         .not('mood', 'is', null)
         .single()
 
@@ -195,13 +196,14 @@ async function getFormattedStats(userId: string): Promise<string> {
       checkDate.setDate(checkDate.getDate() - 1)
     }
 
-    // Get week's mood average
+    // Get week's mood average - use 'date' (correct column name)
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     const { data: entries } = await getSupabase()
       .from('journal_entries')
       .select('mood')
       .eq('user_id', userId)
-      .gte('entry_date', weekAgo)
+      .eq('type', 'daily')
+      .gte('date', weekAgo)
       .not('mood', 'is', null)
 
     const moods = entries?.map(e => e.mood).filter(Boolean) || []
@@ -298,12 +300,13 @@ async function handleAgentAction(
 
   try {
     if (action.type === 'save_journal_morning' && action.data) {
-      // Check for existing entry
+      // Check for existing entry - use 'date' and 'type' (correct column names)
       const { data: existing, error: selectError } = await getSupabase()
         .from('journal_entries')
         .select('id')
         .eq('user_id', connection.user_id)
-        .eq('entry_date', today)
+        .eq('date', today)
+        .eq('type', 'daily')
         .single()
 
       if (selectError && selectError.code !== 'PGRST116') {
@@ -336,8 +339,8 @@ async function handleAgentAction(
           .from('journal_entries')
           .insert({
             user_id: connection.user_id,
-            entry_date: today,
-            entry_type: 'daily',
+            date: today,
+            type: 'daily',
             ...journalData
           })
 
@@ -350,11 +353,13 @@ async function handleAgentAction(
     }
 
     if (action.type === 'save_journal_night' && action.data) {
+      // Use 'date' and 'type' (correct column names)
       const { data: existing, error: selectError } = await getSupabase()
         .from('journal_entries')
         .select('id')
         .eq('user_id', connection.user_id)
-        .eq('entry_date', today)
+        .eq('date', today)
+        .eq('type', 'daily')
         .single()
 
       if (selectError && selectError.code !== 'PGRST116') {
@@ -387,8 +392,8 @@ async function handleAgentAction(
           .from('journal_entries')
           .insert({
             user_id: connection.user_id,
-            entry_date: today,
-            entry_type: 'daily',
+            date: today,
+            type: 'daily',
             ...journalData
           })
 
@@ -450,19 +455,20 @@ async function handleSaveWeeklyCheckin(
     startOfWeek.setDate(now.getDate() - dayOfWeek)
     const weekStart = startOfWeek.toISOString().split('T')[0]
 
-    // Check for existing weekly entry
+    // Check for existing weekly entry - use 'date' and 'type' (correct column names)
     const { data: existing } = await getSupabase()
       .from('journal_entries')
       .select('id')
       .eq('user_id', connection.user_id)
-      .eq('entry_date', weekStart)
-      .eq('entry_type', 'weekly')
+      .eq('date', weekStart)
+      .eq('type', 'weekly')
       .single()
 
+    // Use correct field names from JournalEntry interface
     const weeklyData = {
-      weekly_rating: data.rating,
-      weekly_wins: [data.highlight],
-      weekly_challenges: [data.to_improve]
+      highlights: [data.highlight],
+      to_improve: data.to_improve,
+      mood: data.rating  // Use mood for rating (1-10 maps well)
     }
 
     if (existing) {
@@ -475,8 +481,8 @@ async function handleSaveWeeklyCheckin(
         .from('journal_entries')
         .insert({
           user_id: connection.user_id,
-          entry_date: weekStart,
-          entry_type: 'weekly',
+          date: weekStart,
+          type: 'weekly',
           ...weeklyData
         })
     }
@@ -490,17 +496,18 @@ async function handleSaveWeeklyCheckin(
 // Get formatted goals for user
 async function getFormattedGoals(userId: string): Promise<string> {
   try {
-    // Get yearly journal entry with goals
+    // Get yearly journal entry with goals - use 'date' and 'type' (correct column names)
     const currentYear = new Date().getFullYear()
     const { data: yearlyEntry } = await getSupabase()
       .from('journal_entries')
       .select('*')
       .eq('user_id', userId)
-      .eq('entry_type', 'yearly')
-      .gte('entry_date', `${currentYear}-01-01`)
+      .eq('type', 'yearly')
+      .gte('date', `${currentYear}-01-01`)
       .single()
 
-    if (!yearlyEntry || !yearlyEntry.yearly_goals?.length) {
+    // Check smart_goals field from JournalEntry interface
+    if (!yearlyEntry || !yearlyEntry.smart_goals?.length) {
       return '🎯 *Tus Metas*\n\n' +
         'No tienes metas configuradas para este año.\n\n' +
         '📱 Abre BrainFlow y ve a tu Journal Anual para definir tus metas:\n' +
@@ -509,9 +516,11 @@ async function getFormattedGoals(userId: string): Promise<string> {
 
     let response = '🎯 *Progreso de Metas*\n\n'
 
-    yearlyEntry.yearly_goals.forEach((goal: string, i: number) => {
-      // Simple progress bar (you can enhance this with actual tracking)
-      response += `${i + 1}. ${goal}\n`
+    yearlyEntry.smart_goals.forEach((goal: { area: string; goal: string; metric: string }, i: number) => {
+      response += `${i + 1}. *${goal.area}*: ${goal.goal}\n`
+      if (goal.metric) {
+        response += `   📏 Métrica: ${goal.metric}\n`
+      }
     })
 
     response += '\n📱 Ver detalles en BrainFlow:\n'
