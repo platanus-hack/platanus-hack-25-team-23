@@ -169,7 +169,12 @@ const SYSTEM_PROMPT = `Eres BrainFlow, un asistente que guía al usuario a compl
 ## Funciones Disponibles
 
 ### show_menu
-Usa SOLO cuando el usuario saluda (hola, hi, buenos días) o pide ayuda/menu.
+OBLIGATORIO llamar cuando:
+- Usuario saluda: "hola", "holaa", "hi", "hey", "buenos días", "buenas", "qué tal"
+- Usuario pide ayuda: "menu", "ayuda", "opciones", "help"
+- NO hay conversación activa de journal
+
+IMPORTANTE: Si el usuario solo dice "hola" o similar, SIEMPRE llama show_menu.
 
 ### get_user_stats
 Usa cuando pide estadísticas, progreso o "cómo voy".
@@ -391,23 +396,38 @@ export async function processWithAgent(
       if (funcName === 'save_morning_journal') {
         action = { type: 'save_journal_morning', data: funcArgs }
         const today = new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })
-        // Generate a confirmation message
-        responseMessage = responseMessage || `✨ *¡Journal matutino completado!*\n\n` +
+        // Generate a confirmation message with link and menu buttons
+        responseMessage = `✨ *¡Journal matutino completado!*\n\n` +
           `🙏 Gratitud: ${funcArgs.gratitude.length} cosas\n` +
           `🎯 Intención: "${funcArgs.daily_intention.slice(0, 40)}${funcArgs.daily_intention.length > 40 ? '...' : ''}"\n` +
           `✨ Gran día: ${funcArgs.what_would_make_great_day.length} cosas\n\n` +
-          `📱 _Lo anoté en tu journal del ${today} en BrainFlow._\n\n` +
-          `¡Que tengas un excelente día! 💪`
+          `📱 Ver en BrainFlow:\n` +
+          `https://brain-flow-hack-platanus.vercel.app/journal\n\n` +
+          `¡Que tengas un excelente día! 💪\n\n` +
+          `¿Qué más te gustaría hacer?`
+        // Add menu buttons after completing journal
+        buttons = [
+          { id: 'stats', title: '📊 Estadísticas' },
+          { id: 'study', title: '📚 Estudiar' },
+          { id: 'journal', title: '📝 Otro Journal' }
+        ]
       } else if (funcName === 'save_night_journal') {
         action = { type: 'save_journal_night', data: funcArgs }
         const moodEmoji = ['', '😢', '😕', '😐', '🙂', '😄'][funcArgs.mood] || '😊'
         const today = new Date().toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })
-        responseMessage = responseMessage || `🌙 *¡Reflexión nocturna completada!*\n\n` +
+        responseMessage = `🌙 *¡Reflexión nocturna completada!*\n\n` +
           `💎 Momentos: ${funcArgs.best_moments.length} guardados\n` +
           `📌 Lección: "${funcArgs.lesson_learned.slice(0, 40)}${funcArgs.lesson_learned.length > 40 ? '...' : ''}"\n` +
           `${moodEmoji} Mood: ${funcArgs.mood}/5\n\n` +
-          `📱 _Lo anoté en tu journal del ${today} en BrainFlow._\n\n` +
-          `Descansa bien, nos vemos mañana 🌟`
+          `📱 Ver en BrainFlow:\n` +
+          `https://brain-flow-hack-platanus.vercel.app/journal\n\n` +
+          `Descansa bien 🌟\n\n` +
+          `¿Algo más antes de dormir?`
+        // Add menu buttons after completing journal
+        buttons = [
+          { id: 'stats', title: '📊 Estadísticas' },
+          { id: 'study', title: '📚 Estudiar' }
+        ]
       } else if (funcName === 'show_menu') {
         action = { type: 'show_menu' }
         responseMessage = '¡Hola! 👋 Soy BrainFlow, tu asistente de bienestar.\n\n¿Qué te gustaría hacer?'
