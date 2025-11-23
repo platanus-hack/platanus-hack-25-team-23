@@ -156,6 +156,89 @@ async function getUserContext(userId: string): Promise<string> {
   return context
 }
 
+// Extract journal data from conversation history (fallback when AI doesn't call function)
+function extractJournalDataFromHistory(
+  history: ConversationMessage[],
+  currentMessage: string
+): {
+  type: 'morning' | 'night'
+  gratitude?: string[]
+  daily_intention?: string
+  what_would_make_great_day?: string[]
+  best_moments?: string[]
+  lesson_learned?: string
+  mood?: number
+} | null {
+  // Find patterns in history to determine journal type and extract data
+  const allMessages = history.map(m => m.content.toLowerCase())
+  const fullHistory = allMessages.join(' ')
+
+  // Detect if it's morning or night journal
+  const isMorning = fullHistory.includes('gratitud') && fullHistory.includes('intención')
+  const isNight = fullHistory.includes('mejores momentos') || fullHistory.includes('lección') || fullHistory.includes('cómo te sientes')
+
+  if (!isMorning && !isNight) return null
+
+  // Get user messages only
+  const userMessages = history.filter(m => m.role === 'user').map(m => m.content)
+
+  if (isMorning && userMessages.length >= 3) {
+    // Morning journal: gratitude, intention, great day
+    const gratitudeResponse = userMessages[userMessages.length - 3] || ''
+    const intentionResponse = userMessages[userMessages.length - 2] || ''
+    const greatDayResponse = userMessages[userMessages.length - 1] || currentMessage
+
+    return {
+      type: 'morning',
+      gratitude: parseListResponse(gratitudeResponse),
+      daily_intention: intentionResponse.trim(),
+      what_would_make_great_day: parseListResponse(greatDayResponse || currentMessage)
+    }
+  }
+
+  if (isNight && userMessages.length >= 3) {
+    // Night journal: best moments, lesson, mood
+    const momentsResponse = userMessages[userMessages.length - 3] || ''
+    const lessonResponse = userMessages[userMessages.length - 2] || ''
+    const moodResponse = currentMessage || userMessages[userMessages.length - 1] || ''
+
+    // Parse mood from response
+    let mood = parseInt(moodResponse.trim())
+    if (isNaN(mood) || mood < 1 || mood > 5) {
+      // Try to detect mood keywords
+      const moodLower = moodResponse.toLowerCase()
+      if (moodLower.includes('mal')) mood = 1
+      else if (moodLower.includes('regular')) mood = 2
+      else if (moodLower.includes('neutral')) mood = 3
+      else if (moodLower.includes('bien')) mood = 4
+      else if (moodLower.includes('genial') || moodLower.includes('excelente')) mood = 5
+      else mood = 3 // default
+    }
+
+    return {
+      type: 'night',
+      best_moments: parseListResponse(momentsResponse),
+      lesson_learned: lessonResponse.trim(),
+      mood
+    }
+  }
+
+  return null
+}
+
+// Parse a comma/newline separated response into array
+function parseListResponse(text: string): string[] {
+  if (!text) return []
+
+  // Split by comma, "y", or newline
+  const items = text
+    .split(/[,\n]|(?:\s+y\s+)/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0 && s.length < 200) // Filter empty and too long
+
+  return items.length > 0 ? items : [text.trim()]
+}
+
 // Main system prompt for BrainFlow WhatsApp bot
 const SYSTEM_PROMPT = `Eres BrainFlow, un asistente de bienestar personal por WhatsApp.
 
@@ -257,26 +340,44 @@ Elige del 1 al 5:
 
 PASO 4: Después de recibir mood, LLAMA save_night_journal con todos los datos.
 
-## REGLAS CRÍTICAS
+## REGLAS CRÍTICAS - MUY IMPORTANTE
 - SIGUE EL FLUJO PASO A PASO - no saltes preguntas
-- Si el usuario comparte algo extra, anótalo mentalmente pero sigue con la siguiente pregunta del template
 - Parsea respuestas: "café, familia, salud" = ["café", "familia", "salud"]
 - Si dice "estoy agradecido por ganar" = ["ganar la hackathon"] (1 item está bien)
-- NO hagas preguntas adicionales fuera del template
-- SIEMPRE USA FUNCTION CALLS para guardar datos - NUNCA solo texto
-- En PASO 4 de morning journal: DEBES llamar save_morning_journal (no solo texto)
-- En PASO 4 de night journal: DEBES llamar save_night_journal (no solo texto)
 
-## EJEMPLO DE EXTRACCIÓN DE DATOS DEL HISTORIAL:
-Si el historial muestra:
-- User: "café, mi familia, la salud" (respuesta a gratitud)
-- User: "terminar el proyecto" (respuesta a intención)
-- User: "ganar la hackathon" (respuesta a gran día)
+## REGLA MÁS IMPORTANTE - GUARDAR DATOS:
+- NUNCA respondas "voy a guardar" o "guardando" sin llamar la función
+- Cuando tengas los 3 datos, DEBES hacer function_call, NO responder con texto
+- Si el usuario da el dato final (pregunta 3), INMEDIATAMENTE llama la función
 
-Entonces llama: save_morning_journal({
-  gratitude: ["café", "mi familia", "la salud"],
+## EJEMPLO MORNING JOURNAL:
+Historial:
+- Assistant: "Pregunta 1 de 3: Gratitud"
+- User: "mi familia, el trabajo, la salud"
+- Assistant: "Pregunta 2 de 3: Intención"
+- User: "terminar el proyecto"
+- Assistant: "Pregunta 3 de 3: Gran Día"
+- User: "ganar"
+
+→ DEBES llamar save_morning_journal({
+  gratitude: ["mi familia", "el trabajo", "la salud"],
   daily_intention: "terminar el proyecto",
-  what_would_make_great_day: ["ganar la hackathon"]
+  what_would_make_great_day: ["ganar"]
+})
+
+## EJEMPLO NIGHT JOURNAL:
+Historial:
+- Assistant: "Pregunta 1 de 3: Mejores Momentos"
+- User: "el almuerzo con amigos, terminar un proyecto"
+- Assistant: "Pregunta 2 de 3: Lección"
+- User: "que la perseverancia vale la pena"
+- Assistant: "Pregunta 3 de 3: Mood (1-5)"
+- User: "5"
+
+→ DEBES llamar save_night_journal({
+  best_moments: ["el almuerzo con amigos", "terminar un proyecto"],
+  lesson_learned: "que la perseverancia vale la pena",
+  mood: 5
 })
 
 Responde siempre en español.`
@@ -483,6 +584,48 @@ export async function processWithAgent(
       console.log(`[Agent] Function args: ${choice.message.function_call.arguments}`)
     } else {
       console.log(`[Agent] Text response: ${responseMessage.substring(0, 100)}...`)
+
+      // FALLBACK: If AI says "guardar" but didn't call function, try to extract data from history
+      if (responseMessage.toLowerCase().includes('guardar') || responseMessage.toLowerCase().includes('guardando')) {
+        console.log(`[Agent] AI mentioned saving but didn't call function - attempting extraction`)
+
+        // Check if we have journal data in history
+        const journalData = extractJournalDataFromHistory(history, userMessage)
+        if (journalData) {
+          console.log(`[Agent] Extracted journal data:`, JSON.stringify(journalData, null, 2))
+
+          if (journalData.type === 'morning' && journalData.gratitude && journalData.daily_intention && journalData.what_would_make_great_day) {
+            return {
+              message: `✨ *¡Journal matutino completado!*\n\n` +
+                `🙏 Gratitud: ${journalData.gratitude.length} cosas\n` +
+                `🎯 Intención: "${journalData.daily_intention.slice(0, 40)}..."\n` +
+                `✨ Gran día: ${journalData.what_would_make_great_day.length} cosas\n\n` +
+                `📱 Ver en BrainFlow:\nhttps://brain-flow-hack-platanus.vercel.app/journal\n\n` +
+                `¡Que tengas un excelente día! 💪`,
+              action: { type: 'save_journal_morning', data: journalData },
+              buttons: [
+                { id: 'stats', title: '📊 Estadísticas' },
+                { id: 'study', title: '📚 Estudiar' }
+              ]
+            }
+          } else if (journalData.type === 'night' && journalData.best_moments && journalData.lesson_learned && journalData.mood) {
+            const moodEmoji = ['', '😢', '😕', '😐', '🙂', '😄'][journalData.mood] || '😊'
+            return {
+              message: `🌙 *¡Reflexión nocturna completada!*\n\n` +
+                `💎 Momentos: ${journalData.best_moments.length} guardados\n` +
+                `📌 Lección: "${journalData.lesson_learned.slice(0, 40)}..."\n` +
+                `${moodEmoji} Mood: ${journalData.mood}/5\n\n` +
+                `📱 Ver en BrainFlow:\nhttps://brain-flow-hack-platanus.vercel.app/journal\n\n` +
+                `Descansa bien 🌟`,
+              action: { type: 'save_journal_night', data: journalData },
+              buttons: [
+                { id: 'stats', title: '📊 Estadísticas' },
+                { id: 'journal', title: '📝 Journal' }
+              ]
+            }
+          }
+        }
+      }
     }
 
     // Handle function calls
