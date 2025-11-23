@@ -288,7 +288,14 @@ export async function POST(req: Request) {
         ? existingFiles.map(f => `- ${f}`).join('\n')
         : '(No files created yet)';
 
+    const now = new Date();
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentDateStr = `${days[now.getDay()]} ${now.getDate()} of ${months[now.getMonth()]}. ${now.getFullYear()}`;
+
     const SYSTEM_PROMPT = `You are KnowledgeFlow, an AI that generates atomic, interconnected knowledge notes.
+    
+    Current Date: ${currentDateStr}
     
     ## Core Objective
     You are NOT a chatbot. You are a **Graph Builder**.
