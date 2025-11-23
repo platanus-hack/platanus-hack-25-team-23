@@ -59,10 +59,12 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
     // Search in journal entries
     journalEntries.forEach(entry => {
       const entryText = [
-        entry.pilesAffirmation,
-        entry.freeThoughts,
+        entry.free_thoughts,
+        entry.daily_intention,
+        entry.lesson,
         ...(entry.gratitude || []),
-        ...(entry.pilesItems?.map(i => i.text) || [])
+        ...(entry.best_moments || []),
+        ...(entry.make_great || [])
       ].filter(Boolean).join(' ').toLowerCase();
 
       if (entryText.includes(query)) {
@@ -73,7 +75,7 @@ export function Sidebar({ isCollapsed = false }: SidebarProps) {
           title: `Journal - ${dayNames[date.getDay()]} ${date.getDate()}/${date.getMonth() + 1}`,
           type: 'journal',
           href: `/journal?date=${entry.date}`,
-          preview: entry.pilesAffirmation?.substring(0, 60) || entry.freeThoughts?.substring(0, 60) || ''
+          preview: entry.free_thoughts?.substring(0, 60) || entry.daily_intention?.substring(0, 60) || ''
         });
       }
     });

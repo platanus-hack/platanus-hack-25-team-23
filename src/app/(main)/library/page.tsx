@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { useJournal, JournalEntry, formatDate } from "@/lib/store/journal-context"
@@ -110,7 +110,7 @@ function getHoursSince(date: Date, now: number) {
   return Math.floor((now - date.getTime()) / (1000 * 60 * 60))
 }
 
-export default function LibraryPage() {
+function LibraryPageContent() {
   const { notes: contextNotes, session } = useKnowledge()
   const { entries: journalEntries } = useJournal()
   const { areas, youNodeColor, setYouNodeColor, updateArea, deleteArea, addArea } = useAreas()
@@ -290,14 +290,12 @@ export default function LibraryPage() {
     const query = searchQuery.toLowerCase()
     return journalEntries.filter(entry => {
       const entryText = [
-        entry.pilesAffirmation,
-        entry.freeThoughts,
+        entry.free_thoughts,
         entry.daily_intention,
         entry.lesson,
         ...(entry.gratitude || []),
         ...(entry.best_moments || []),
-        ...(entry.make_great || []),
-        ...(entry.pilesItems?.map(i => i.text) || [])
+        ...(entry.make_great || [])
       ].filter(Boolean).join(' ').toLowerCase()
       return entryText.includes(query) || entry.date.includes(query)
     })
@@ -1469,5 +1467,17 @@ export default function LibraryPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LibraryPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex-1 flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Cargando biblioteca...</div>
+      </div>
+    }>
+      <LibraryPageContent />
+    </Suspense>
   )
 }

@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Check, X, Loader2 } from 'lucide-react'
 
-export default function GoogleCallbackPage() {
+function GoogleCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -164,5 +164,32 @@ export default function GoogleCallbackPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function GoogleCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="flex-1 flex items-center justify-center"
+          style={{ backgroundColor: 'var(--background)' }}
+        >
+          <div className="text-center max-w-md p-8">
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+              style={{ backgroundColor: '#E6DAFF' }}
+            >
+              <Loader2 className="size-10 animate-spin" style={{ color: '#9575CD' }} />
+            </div>
+            <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+              Cargando...
+            </h2>
+          </div>
+        </div>
+      }
+    >
+      <GoogleCallbackContent />
+    </Suspense>
   )
 }
