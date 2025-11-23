@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useKnowledge } from "@/lib/store/knowledge-context"
 import { useJournal, JournalEntry, formatDate } from "@/lib/store/journal-context"
 import { createClient } from "@/lib/supabase/client"
@@ -20,7 +21,8 @@ import {
   Trash2,
   X,
   BookHeart,
-  Calendar
+  Calendar,
+  Search
 } from "lucide-react"
 import { DEFAULT_AREAS, DEFAULT_YOU_NODE_COLOR, COLOR_PALETTE, AreaConfig, detectAreaFromContent } from '@/lib/data/areas-config'
 import { useAreas } from '@/lib/store/areas-context'
@@ -112,6 +114,7 @@ export default function LibraryPage() {
   const { notes: contextNotes, session } = useKnowledge()
   const { entries: journalEntries } = useJournal()
   const { areas, youNodeColor, setYouNodeColor, updateArea, deleteArea, addArea } = useAreas()
+  const searchParams = useSearchParams()
   const [libraryNotes, setLibraryNotes] = useState<LibraryNote[]>([])
   const [loading, setLoading] = useState(true)
   const [isOrganizing, setIsOrganizing] = useState(false)
@@ -119,6 +122,15 @@ export default function LibraryPage() {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [showAreaManager, setShowAreaManager] = useState(false)
   const [customColor, setCustomColor] = useState('#6366f1')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Sync search query with URL params
+  useEffect(() => {
+    const urlSearch = searchParams.get('search')
+    if (urlSearch) {
+      setSearchQuery(urlSearch)
+    }
+  }, [searchParams])
 
   // Edit modal state
   const [editingArea, setEditingArea] = useState<AreaConfig | null>(null)
@@ -225,10 +237,20 @@ export default function LibraryPage() {
     return { total, understood, inProgress, pending }
   }, [libraryNotes])
 
+  // Filter notes by search query
+  const filteredNotes = useMemo(() => {
+    if (!searchQuery.trim()) return libraryNotes
+    const query = searchQuery.toLowerCase()
+    return libraryNotes.filter(note =>
+      note.title.toLowerCase().includes(query) ||
+      note.content.toLowerCase().includes(query)
+    )
+  }, [libraryNotes, searchQuery])
+
   // Create folder structure from context areas (synced with Gestionar Áreas)
   const folders: Folder[] = useMemo(() => {
     // Group notes by area name
-    const grouped = libraryNotes.reduce((acc, note) => {
+    const grouped = filteredNotes.reduce((acc, note) => {
       if (!acc[note.area]) {
         acc[note.area] = []
       }
@@ -260,12 +282,31 @@ export default function LibraryPage() {
     }
 
     return contextFolders
-  }, [libraryNotes, lastOrganized, areas])
+  }, [filteredNotes, lastOrganized, areas])
+
+  // Filter journal entries by search query
+  const filteredJournalEntries = useMemo(() => {
+    if (!searchQuery.trim()) return journalEntries
+    const query = searchQuery.toLowerCase()
+    return journalEntries.filter(entry => {
+      const entryText = [
+        entry.pilesAffirmation,
+        entry.freeThoughts,
+        entry.daily_intention,
+        entry.lesson,
+        ...(entry.gratitude || []),
+        ...(entry.best_moments || []),
+        ...(entry.make_great || []),
+        ...(entry.pilesItems?.map(i => i.text) || [])
+      ].filter(Boolean).join(' ').toLowerCase()
+      return entryText.includes(query) || entry.date.includes(query)
+    })
+  }, [journalEntries, searchQuery])
 
   // Group journal entries by year > month > entries (hierarchical structure like Calendar > 2025 > 09 > 2025-09-12)
   const journalHierarchy = useMemo(() => {
     const hierarchy: Record<string, Record<string, JournalEntry[]>> = {}
-    journalEntries.forEach(entry => {
+    filteredJournalEntries.forEach(entry => {
       const year = entry.date.substring(0, 4) // YYYY
       const month = entry.date.substring(5, 7) // MM
       if (!hierarchy[year]) {
@@ -283,7 +324,13 @@ export default function LibraryPage() {
       })
     })
     return hierarchy
-  }, [journalEntries])
+  }, [filteredJournalEntries])
+
+  // Filter folders to hide empty ones when searching
+  const displayFolders = useMemo(() => {
+    if (!searchQuery.trim()) return folders
+    return folders.filter(folder => folder.notes.length > 0)
+  }, [folders, searchQuery])
 
   // Toggle folder expansion
   const toggleFolder = (folderId: string) => {
@@ -604,6 +651,46 @@ export default function LibraryPage() {
                 )}
               </button>
             </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="mb-6">
+            <div className="relative max-w-md">
+              <Search
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 size-5"
+                style={{ color: '#9A9A9A' }}
+              />
+              <input
+                type="text"
+                placeholder="Buscar en biblioteca..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-10 py-3 rounded-xl text-sm transition-all focus:outline-none focus:ring-2"
+                style={{
+                  backgroundColor: 'white',
+                  border: '1px solid #EEEBE6',
+                  color: '#222222',
+                  boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 hover:opacity-70"
+                >
+                  <X className="size-4" style={{ color: '#9A9A9A' }} />
+                </button>
+              )}
+            </div>
+            {searchQuery && (
+              <p className="mt-2 text-sm" style={{ color: '#6D6D6D' }}>
+                {filteredNotes.length + filteredJournalEntries.length} resultado{(filteredNotes.length + filteredJournalEntries.length) !== 1 ? 's' : ''} para "{searchQuery}"
+                {filteredNotes.length > 0 && ` (${filteredNotes.length} notas`}
+                {filteredNotes.length > 0 && filteredJournalEntries.length > 0 && ', '}
+                {filteredJournalEntries.length > 0 && `${filteredJournalEntries.length} journal)`}
+                {filteredNotes.length > 0 && filteredJournalEntries.length === 0 && ')'}
+              </p>
+            )}
           </div>
 
           {/* Stats - Clean Style */}
@@ -1158,8 +1245,40 @@ export default function LibraryPage() {
             </div>
           )}
 
-          {folders.length > 0 ? (
-            folders.map(folder => renderFolder(folder))
+          {displayFolders.length > 0 ? (
+            displayFolders.map(folder => renderFolder(folder))
+          ) : searchQuery.trim() ? (
+            /* No results state */
+            <div
+              className="text-center py-12 rounded-3xl"
+              style={{
+                backgroundColor: 'var(--card)',
+                boxShadow: '0px 4px 14px rgba(0, 0, 0, 0.06)'
+              }}
+            >
+              <div
+                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: '#F6F5F2' }}
+              >
+                <Search className="size-10" style={{ color: '#9A9A9A' }} />
+              </div>
+              <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+                Sin resultados
+              </h3>
+              <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>
+                No se encontraron notas para "{searchQuery}"
+              </p>
+              <button
+                onClick={() => setSearchQuery('')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl transition-all hover:scale-105"
+                style={{
+                  backgroundColor: '#FFD9D9',
+                  color: '#222222'
+                }}
+              >
+                Limpiar busqueda
+              </button>
+            </div>
           ) : (
             /* Empty State */
             <div
@@ -1176,10 +1295,10 @@ export default function LibraryPage() {
                 <FolderOpen className="size-10" style={{ color: '#C9B7F3' }} />
               </div>
               <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
-                Aún no tienes notas
+                Aun no tienes notas
               </h3>
               <p className="mb-6" style={{ color: 'var(--muted-foreground)' }}>
-                Crea tu primera nota y Nodi la organizará automáticamente
+                Crea tu primera nota y sera organizada automaticamente
               </p>
               <Link
                 href="/new-query"

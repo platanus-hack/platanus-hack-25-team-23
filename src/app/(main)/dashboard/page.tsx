@@ -16,6 +16,7 @@ interface AreaWithProgress {
   progress: number
   total: number
   understood: number
+  inProgress: number
   hours: number
 }
 
@@ -66,13 +67,13 @@ function CircularProgress({ percentage, color, size = 100, strokeWidth = 8 }: { 
 }
 
 export default function DashboardPage() {
-  const { notes } = useKnowledge()
+  const { notes, currentNote } = useKnowledge()
   const { areas: contextAreas } = useAreas()
   const { getEntry, getStreak: getJournalStreak } = useJournal()
   // No async loading needed - all data comes from context
   const loading = false
-  // Streak disabled - user_progress table doesn't exist in Supabase
-  const streak = 0
+  // Get streak from journal entries
+  const streak = getJournalStreak()
 
   // Journal data
   const todayDate = formatDate(new Date())
@@ -115,7 +116,13 @@ export default function DashboardPage() {
       .map(area => {
         const areaNotes = notesByArea[area.name] || []
         const understood = areaNotes.filter(n => n.status === 'understood').length
+        const inProgress = areaNotes.filter(n => n.status === 'read').length
         const total = areaNotes.length
+
+        // Progress: understood = 100%, in progress = 50% credit
+        const progressValue = total > 0
+          ? Math.round(((understood + inProgress * 0.5) / total) * 100)
+          : 0
 
         return {
           id: area.id,
@@ -124,22 +131,27 @@ export default function DashboardPage() {
           icon: area.icon,
           total,
           understood,
-          progress: total > 0 ? Math.round((understood / total) * 100) : 0,
+          inProgress,
+          progress: progressValue,
           hours: total * 2
         }
       })
       .filter(a => a.total > 0)
   }, [notes, contextAreas])
 
+  // Progress: understood = 100%, in progress = 50% credit (same as area progress)
   const progressPercent = stats.total_notes > 0
-    ? Math.round((stats.understood_notes / stats.total_notes) * 100)
+    ? Math.round(((stats.understood_notes + stats.in_progress_notes * 0.5) / stats.total_notes) * 100)
     : 0
 
   const completedHours = stats.understood_notes * 2
   const remainingHours = (stats.total_notes - stats.understood_notes) * 2
 
   const recentNotes = notes.slice(-3).reverse()
-  const lastStudiedNote = recentNotes[0]
+  // Use currentNote (last viewed) if available, otherwise fall back to most recent note
+  const lastStudiedNote = currentNote || recentNotes[0]
+  // Get the area of the last studied note
+  const lastStudiedArea = lastStudiedNote ? detectAreaFromContent(lastStudiedNote.title, lastStudiedNote.content) : null
 
   return (
     <div
@@ -203,7 +215,18 @@ export default function DashboardPage() {
               />
             </div>
             <p className="text-xs mt-2" style={{ color: '#9A9A9A' }}>
-              {loading ? '-' : `${stats.understood_notes} de ${stats.total_notes} notas`}
+              {loading ? '-' : (
+                stats.understood_notes > 0 || stats.in_progress_notes > 0 ? (
+                  <>
+                    {stats.understood_notes > 0 && <span style={{ color: '#10B981' }}>✓{stats.understood_notes}</span>}
+                    {stats.understood_notes > 0 && stats.in_progress_notes > 0 && ' '}
+                    {stats.in_progress_notes > 0 && <span style={{ color: '#F59E0B' }}>◐{stats.in_progress_notes}</span>}
+                    {' / '}{stats.total_notes} notas
+                  </>
+                ) : (
+                  `${stats.total_notes} notas pendientes`
+                )
+              )}
             </p>
           </div>
 
@@ -393,7 +416,9 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-sm mb-1" style={{ color: '#6D6D6D' }}>Continuar donde dejaste</p>
                   <h3 className="text-xl font-bold" style={{ color: '#222222' }}>{lastStudiedNote.title}</h3>
-                  <p className="text-sm" style={{ color: '#9A9A9A' }}>General • Intermedio</p>
+                  <p className="text-sm" style={{ color: '#9A9A9A' }}>
+                    {lastStudiedArea ? `${lastStudiedArea.icon} ${lastStudiedArea.name}` : 'General'} • {lastStudiedNote.status === 'understood' ? 'Completado' : lastStudiedNote.status === 'read' ? 'En progreso' : 'Nuevo'}
+                  </p>
                 </div>
               </div>
               <Link
@@ -459,7 +484,16 @@ export default function DashboardPage() {
                       {area.name}
                     </h3>
                     <p className="text-xs" style={{ color: '#9A9A9A' }}>
-                      {area.understood || 0}/{area.total || 0} temas
+                      {area.understood > 0 || area.inProgress > 0 ? (
+                        <>
+                          {area.understood > 0 && <span style={{ color: '#10B981' }}>✓{area.understood}</span>}
+                          {area.understood > 0 && area.inProgress > 0 && ' '}
+                          {area.inProgress > 0 && <span style={{ color: '#F59E0B' }}>◐{area.inProgress}</span>}
+                          <span> / {area.total}</span>
+                        </>
+                      ) : (
+                        `${area.total} temas`
+                      )}
                     </p>
                   </div>
                 </Link>
@@ -535,16 +569,27 @@ export default function DashboardPage() {
                         Revisa lo que aprendiste
                       </p>
                       <div className="space-y-2">
-                        {recentNotes.slice(0, 2).map(note => (
-                          <Link
-                            key={note.slug}
-                            href={`/study?topic=${encodeURIComponent(note.title)}`}
-                            className="block text-sm font-medium hover:underline"
-                            style={{ color: '#5A8FCC' }}
-                          >
-                            {note.title} →
-                          </Link>
-                        ))}
+                        {recentNotes.slice(0, 2).map(note => {
+                          const noteArea = detectAreaFromContent(note.title, note.content)
+                          return (
+                            <Link
+                              key={note.slug}
+                              href={`/study?topic=${encodeURIComponent(note.title)}`}
+                              className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                              <span className="text-sm">{noteArea?.icon || '📝'}</span>
+                              <span className="flex-1 text-sm font-medium truncate" style={{ color: '#222222' }}>
+                                {note.title}
+                              </span>
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{
+                                backgroundColor: note.status === 'understood' ? '#D4F5E9' : note.status === 'read' ? '#FFF0E6' : '#F6F5F2',
+                                color: note.status === 'understood' ? '#10B981' : note.status === 'read' ? '#F59E0B' : '#9A9A9A'
+                              }}>
+                                {note.status === 'understood' ? '✓' : note.status === 'read' ? '◐' : '○'}
+                              </span>
+                            </Link>
+                          )
+                        })}
                       </div>
                     </div>
                   </div>
