@@ -6,7 +6,7 @@ import {
   logMessage,
   sendMenuMessage
 } from '@/lib/whatsapp'
-import { processWithAgent, detectMenuIntent, detectStatsIntent } from '@/lib/whatsapp/agent'
+import { processWithAgent } from '@/lib/whatsapp/agent'
 import { getSupabase } from '@/lib/whatsapp/client'
 import type { WhatsAppConnection, CommandResponse } from '@/lib/whatsapp/types'
 
@@ -91,10 +91,14 @@ async function processMessage(
   const text = message.trim()
 
   // Check if user is linked to an account
-  if (!connection.user_id && !text.toLowerCase().startsWith('/verificar')) {
+  if (!connection.user_id) {
     // Check if this might be a verification code (6 digits)
     if (/^\d{6}$/.test(text)) {
-      return await handleVerificationCode(connection, text)
+      return {
+        text: `Código recibido: ${text}\n\n` +
+              'Si vinculaste tu cuenta desde BrainFlow, tu conexión debería activarse automáticamente.\n\n' +
+              'Si aún no funciona, intenta volver a conectar desde la app. 🔄'
+      }
     }
 
     return {
@@ -107,60 +111,154 @@ async function processMessage(
     }
   }
 
-  // Handle button responses (quick actions)
+  // ALL messages go through AI agent for natural conversation
+  // The agent will detect intents (journal, stats, study, greeting) and respond appropriately
+
+  // Inject context about button presses to help AI understand
+  let messageForAgent = text
   if (text === 'journal') {
-    return await startJournalFlow(connection)
+    messageForAgent = 'Quiero hacer mi journal del día'
+  } else if (text === 'stats') {
+    messageForAgent = 'Quiero ver mis estadísticas'
+  } else if (text === 'study') {
+    messageForAgent = 'Quiero estudiar mis notas'
   }
 
-  if (text === 'stats') {
-    return await handleStats(connection)
-  }
-
-  if (text === 'study') {
-    return await handleStudy(connection)
-  }
-
-  // Check for greeting - show menu with buttons
-  const isGreeting = /^(hola|hi|hey|buenos?\s*(días?|tardes?|noches?)|qué\s*tal|saludos?|buenas?)$/i.test(text)
-  if (isGreeting) {
-    return {
-      text: '¡Hola! 👋 Soy BrainFlow, tu asistente de bienestar.\n\n¿Qué te gustaría hacer hoy?',
-      buttons: [
-        { id: 'journal', title: '📝 Journal' },
-        { id: 'stats', title: '📊 Estadísticas' },
-        { id: 'study', title: '📚 Estudiar' }
-      ]
-    }
-  }
-
-  // Check for menu/help intent
-  if (detectMenuIntent(text)) {
-    return {
-      text: '¿En qué te puedo ayudar? 💫',
-      buttons: [
-        { id: 'journal', title: '📝 Journal' },
-        { id: 'stats', title: '📊 Estadísticas' },
-        { id: 'study', title: '📚 Estudiar' }
-      ]
-    }
-  }
-
-  // Check for stats intent
-  if (detectStatsIntent(text)) {
-    return await handleStats(connection)
-  }
-
-  // Process with AI agent for natural conversation
-  const agentResponse = await processWithAgent(connection, text)
+  // Process everything with AI agent
+  const agentResponse = await processWithAgent(connection, messageForAgent)
 
   // Handle actions from agent
   if (agentResponse.action) {
-    await handleAgentAction(connection, agentResponse.action)
+    // Handle data-saving actions
+    if (agentResponse.action.type === 'save_journal_morning' || agentResponse.action.type === 'save_journal_night') {
+      await handleAgentAction(connection, agentResponse.action)
+    }
+
+    // Handle stats request - fetch and format stats
+    if (agentResponse.action.type === 'show_stats' && connection.user_id) {
+      const statsResponse = await getFormattedStats(connection.user_id)
+      return { text: statsResponse }
+    }
+
+    // Handle study notes request
+    if (agentResponse.action.type === 'show_study_notes' && connection.user_id) {
+      const studyResponse = await getFormattedStudyNotes(connection.user_id)
+      return { text: studyResponse }
+    }
   }
 
   return {
     text: agentResponse.message,
     buttons: agentResponse.buttons?.map(b => ({ id: b.id, title: b.title }))
+  }
+}
+
+// Get formatted stats for user
+async function getFormattedStats(userId: string): Promise<string> {
+  try {
+    // Get streak
+    let streak = 0
+    const checkDate = new Date()
+    while (streak < 365) {
+      const dateStr = checkDate.toISOString().split('T')[0]
+      const { data } = await getSupabase()
+        .from('journal_entries')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('entry_date', dateStr)
+        .not('mood', 'is', null)
+        .single()
+
+      if (!data) break
+      streak++
+      checkDate.setDate(checkDate.getDate() - 1)
+    }
+
+    // Get week's mood average
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const { data: entries } = await getSupabase()
+      .from('journal_entries')
+      .select('mood')
+      .eq('user_id', userId)
+      .gte('entry_date', weekAgo)
+      .not('mood', 'is', null)
+
+    const moods = entries?.map(e => e.mood).filter(Boolean) || []
+    const avgMood = moods.length > 0
+      ? (moods.reduce((a, b) => a + b, 0) / moods.length).toFixed(1)
+      : 'N/A'
+
+    const moodEmoji = moods.length > 0
+      ? ['', '😢', '😕', '😐', '🙂', '😄'][Math.round(parseFloat(avgMood))]
+      : '📊'
+
+    // Get notes count
+    const { count: notesCount } = await getSupabase()
+      .from('notes')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+
+    const { count: understoodCount } = await getSupabase()
+      .from('notes')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'understood')
+
+    return `📊 *Tus Estadísticas*\n\n` +
+           `🔥 Racha: ${streak} días consecutivos\n` +
+           `${moodEmoji} Mood promedio (7 días): ${avgMood}/5\n` +
+           `📚 Total de notas: ${notesCount || 0}\n` +
+           `✅ Notas dominadas: ${understoodCount || 0}\n\n` +
+           `¡Sigue así! 💪`
+  } catch (error) {
+    console.error('[WhatsApp] Error getting stats:', error)
+    return 'No pude obtener tus estadísticas. ¿Intentamos de nuevo?'
+  }
+}
+
+// Get formatted study notes for user
+async function getFormattedStudyNotes(userId: string): Promise<string> {
+  try {
+    // Get notes to study (not understood yet)
+    const { data: notes } = await getSupabase()
+      .from('notes')
+      .select('id, title, area, status')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(5)
+
+    if (!notes || notes.length === 0) {
+      return '📚 No tienes notas de estudio aún.\n\n' +
+             'Crea notas en la app BrainFlow y aparecerán aquí para repasar.'
+    }
+
+    const pendingNotes = notes.filter(n => n.status !== 'understood')
+    const masteredNotes = notes.filter(n => n.status === 'understood')
+
+    let response = '📚 *Tus Notas de Estudio*\n\n'
+
+    if (pendingNotes.length > 0) {
+      response += '*Para repasar:*\n'
+      pendingNotes.forEach((n, i) => {
+        response += `${i + 1}. ${n.title}${n.area ? ` (${n.area})` : ''}\n`
+      })
+      response += '\n'
+    }
+
+    if (masteredNotes.length > 0) {
+      response += `*Dominadas:* ${masteredNotes.length} notas ✅\n\n`
+    }
+
+    if (pendingNotes.length > 0) {
+      response += '_¿Cuál quieres repasar? Dime el nombre o número._'
+    } else {
+      response += '🎉 ¡Has dominado todas tus notas!'
+    }
+
+    return response
+  } catch (error) {
+    console.error('[WhatsApp] Error getting study notes:', error)
+    return 'No pude obtener tus notas. ¿Intentamos de nuevo?'
   }
 }
 
@@ -238,183 +336,6 @@ async function handleAgentAction(
     }
   } catch (error) {
     console.error('[WhatsApp] Error handling agent action:', error)
-  }
-}
-
-// Handle verification code
-async function handleVerificationCode(
-  connection: WhatsAppConnection,
-  code: string
-): Promise<CommandResponse> {
-  return {
-    text: `Código recibido: ${code}\n\n` +
-          'Si vinculaste tu cuenta desde BrainFlow, tu conexión debería activarse automáticamente.\n\n' +
-          'Si aún no funciona, intenta volver a conectar desde la app. 🔄'
-  }
-}
-
-// Handle stats command
-async function handleStats(connection: WhatsAppConnection): Promise<CommandResponse> {
-  if (!connection.user_id) {
-    return { text: 'Vincula tu cuenta primero para ver tus estadísticas.' }
-  }
-
-  try {
-    // Get streak
-    let streak = 0
-    const checkDate = new Date()
-    while (streak < 365) {
-      const dateStr = checkDate.toISOString().split('T')[0]
-      const { data } = await getSupabase()
-        .from('journal_entries')
-        .select('id')
-        .eq('user_id', connection.user_id)
-        .eq('entry_date', dateStr)
-        .not('mood', 'is', null)
-        .single()
-
-      if (!data) break
-      streak++
-      checkDate.setDate(checkDate.getDate() - 1)
-    }
-
-    // Get week's mood average
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    const { data: entries } = await getSupabase()
-      .from('journal_entries')
-      .select('mood')
-      .eq('user_id', connection.user_id)
-      .gte('entry_date', weekAgo)
-      .not('mood', 'is', null)
-
-    const moods = entries?.map(e => e.mood).filter(Boolean) || []
-    const avgMood = moods.length > 0
-      ? (moods.reduce((a, b) => a + b, 0) / moods.length).toFixed(1)
-      : 'N/A'
-
-    // Get notes count
-    const { count: notesCount } = await getSupabase()
-      .from('notes')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', connection.user_id)
-
-    const { count: understoodCount } = await getSupabase()
-      .from('notes')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', connection.user_id)
-      .eq('status', 'understood')
-
-    return {
-      text: `📊 *Tus Estadísticas*\n\n` +
-            `🔥 Racha: ${streak} días\n` +
-            `😊 Mood promedio (7 días): ${avgMood}/5\n` +
-            `📚 Notas: ${notesCount || 0}\n` +
-            `✅ Dominadas: ${understoodCount || 0}\n\n` +
-            `¡Sigue así! 💪`
-    }
-  } catch (error) {
-    console.error('[WhatsApp] Error getting stats:', error)
-    return { text: 'Error al obtener estadísticas. Intenta de nuevo.' }
-  }
-}
-
-// Start journal flow - determine morning or night based on time
-async function startJournalFlow(connection: WhatsAppConnection): Promise<CommandResponse> {
-  if (!connection.user_id) {
-    return { text: 'Vincula tu cuenta primero para hacer tu journal.' }
-  }
-
-  // Check if today's journal is already completed
-  const today = new Date().toISOString().split('T')[0]
-  const { data: existingEntry } = await getSupabase()
-    .from('journal_entries')
-    .select('gratitude, daily_intention, make_great, best_moments, lesson, mood')
-    .eq('user_id', connection.user_id)
-    .eq('entry_date', today)
-    .single()
-
-  const hour = new Date().getHours()
-  const isMorning = hour >= 5 && hour < 14
-
-  // Check what's already filled
-  const hasMorning = existingEntry?.gratitude?.length > 0 && existingEntry?.daily_intention
-  const hasNight = existingEntry?.best_moments?.length > 0 && existingEntry?.mood
-
-  if (isMorning) {
-    if (hasMorning) {
-      return {
-        text: '☀️ ¡Ya completaste tu journal de la mañana hoy!\n\n' +
-              `🙏 Gratitud: ${existingEntry.gratitude.length} cosas\n` +
-              `🎯 Intención: "${existingEntry.daily_intention.slice(0, 30)}..."\n\n` +
-              '¿Quieres hacer otra cosa?',
-        buttons: [
-          { id: 'stats', title: '📊 Estadísticas' },
-          { id: 'study', title: '📚 Estudiar' }
-        ]
-      }
-    }
-    return {
-      text: '🌅 *Journal de la Mañana*\n\n' +
-            'Vamos a empezar el día con intención. Te haré 3 preguntas cortas.\n\n' +
-            '*Pregunta 1/3:*\n' +
-            '¿Por qué 3 cosas estás agradecido/a hoy? 🙏\n\n' +
-            '_Escríbelas separadas por coma o en líneas separadas_'
-    }
-  } else {
-    if (hasNight) {
-      return {
-        text: '🌙 ¡Ya completaste tu reflexión nocturna hoy!\n\n' +
-              `💎 Momentos: ${existingEntry.best_moments.length} guardados\n` +
-              `📌 Lección registrada\n` +
-              `😊 Mood: ${existingEntry.mood}/5\n\n` +
-              '¿Quieres hacer otra cosa?',
-        buttons: [
-          { id: 'stats', title: '📊 Estadísticas' },
-          { id: 'study', title: '📚 Estudiar' }
-        ]
-      }
-    }
-    return {
-      text: '🌙 *Reflexión Nocturna*\n\n' +
-            'Vamos a cerrar el día reflexionando. Te haré 3 preguntas cortas.\n\n' +
-            '*Pregunta 1/3:*\n' +
-            '¿Cuáles fueron los 3 mejores momentos de tu día? 💎\n\n' +
-            '_Escríbelos separados por coma o en líneas separadas_'
-    }
-  }
-}
-
-// Handle study command
-async function handleStudy(connection: WhatsAppConnection): Promise<CommandResponse> {
-  if (!connection.user_id) {
-    return { text: 'Vincula tu cuenta primero para estudiar.' }
-  }
-
-  try {
-    // Get notes to study (not understood yet)
-    const { data: notes } = await getSupabase()
-      .from('notes')
-      .select('id, title, area')
-      .eq('user_id', connection.user_id)
-      .neq('status', 'understood')
-      .order('created_at', { ascending: false })
-      .limit(5)
-
-    if (!notes || notes.length === 0) {
-      return {
-        text: '🎉 ¡Felicidades! Has dominado todas tus notas.\n\n' +
-              'Crea nuevas notas en la app para seguir aprendiendo.'
-      }
-    }
-
-    return {
-      text: '📚 *Notas para repasar:*\n\n' +
-            notes.map((n, i) => `${i + 1}. ${n.title}`).join('\n') +
-            '\n\n¿Cuál quieres estudiar? Dime el número o el nombre.'
-    }
-  } catch (error) {
-    console.error('[WhatsApp] Error getting study notes:', error)
-    return { text: 'Error al obtener notas. Intenta de nuevo.' }
   }
 }
 

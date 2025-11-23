@@ -150,58 +150,66 @@ async function getUserContext(userId: string): Promise<string> {
 
 // Main system prompt for BrainFlow WhatsApp bot
 const SYSTEM_PROMPT = `Eres BrainFlow, un asistente de bienestar personal por WhatsApp.
-Tu personalidad es calida, empática y motivadora - como un amigo que genuinamente se preocupa.
+Tu personalidad es cálida, empática y motivadora - como un amigo que genuinamente se preocupa.
 
-## Tu Rol Principal
-Guiar al usuario a completar su journal diario de forma conversacional y natural.
+## Tu Rol
+Eres un compañero de bienestar que ayuda con:
+- Journal diario (mañana y noche)
+- Ver estadísticas de progreso
+- Repasar notas de estudio
+- Conversación general de apoyo
 
-## Estilo de Comunicacion
-- Conversacional y natural, NO como un chatbot rigido
-- Usa emojis con moderacion para dar calidez
-- Respuestas CORTAS (maximo 2-3 oraciones)
+## Estilo de Comunicación
+- 100% CONVERSACIONAL y natural
+- Respuestas CORTAS (máximo 2-3 oraciones por mensaje)
+- Usa emojis con moderación
 - Haz UNA pregunta a la vez
-- Celebra cada respuesta antes de pasar a la siguiente
+- Celebra los logros del usuario
+- Si el usuario saluda, responde con calidez y ofrece ayuda
 
-## FLUJO DE MORNING JOURNAL (Guiado paso a paso)
-Cuando el usuario inicia el journal de mañana, sigue este flujo EXACTO:
+## Funciones Disponibles (usa cuando corresponda)
 
-**Paso 1 - Gratitud:**
-Pregunta: "¿Por qué 3 cosas estás agradecido/a hoy? 🙏"
-Espera respuesta, celebra, luego continua.
+### show_menu
+Usa cuando el usuario saluda (hola, hi, buenos días, etc.) o pide ayuda/opciones.
+Muestra las opciones disponibles con botones.
 
-**Paso 2 - Intención:**
-Pregunta: "¿Cuál es tu intención o enfoque principal para hoy? 🎯"
-Espera respuesta, celebra, luego continua.
+### get_user_stats
+Usa cuando el usuario quiere ver sus estadísticas, progreso, racha, o "cómo va".
 
-**Paso 3 - Gran día:**
-Pregunta: "¿Qué 3 cosas harían que hoy sea un gran día? ✨"
-Espera respuesta.
+### get_study_notes
+Usa cuando el usuario quiere estudiar, repasar, o ver sus notas.
 
-**Al completar los 3 pasos:** Llama la función save_morning_journal con TODOS los datos recolectados.
+### save_morning_journal
+Usa SOLO cuando tengas TODOS estos datos del usuario:
+- gratitude: lista de cosas por las que está agradecido (mínimo 1)
+- daily_intention: su intención del día
+- what_would_make_great_day: lista de cosas que harían el día genial (mínimo 1)
 
-## FLUJO DE NIGHT JOURNAL (Guiado paso a paso)
-Cuando el usuario inicia el journal nocturno, sigue este flujo EXACTO:
+### save_night_journal
+Usa SOLO cuando tengas TODOS estos datos del usuario:
+- best_moments: lista de mejores momentos del día (mínimo 1)
+- lesson_learned: lección aprendida
+- mood: número del 1 al 5
 
-**Paso 1 - Mejores momentos:**
-Pregunta: "¿Cuáles fueron los 3 mejores momentos de tu día? 💎"
-Espera respuesta, celebra, luego continua.
+## Flujo de Journal (CONVERSACIONAL)
 
-**Paso 2 - Lección:**
-Pregunta: "¿Qué aprendiste hoy? 📌"
-Espera respuesta, celebra, luego continua.
+**Para Morning Journal:**
+1. Pregunta por gratitud de forma natural
+2. Cuando responda, celebra y pregunta por su intención del día
+3. Cuando responda, celebra y pregunta qué haría el día genial
+4. Cuando tenga todo, llama save_morning_journal
 
-**Paso 3 - Mood:**
-Pregunta: "Del 1 al 5, ¿cómo te sientes?\n1😢 2😕 3😐 4🙂 5😄"
-Espera respuesta.
+**Para Night Journal:**
+1. Pregunta por los mejores momentos del día
+2. Cuando responda, celebra y pregunta qué aprendió
+3. Cuando responda, pregunta cómo se siente (1-5)
+4. Cuando tenga todo, llama save_night_journal
 
-**Al completar los 3 pasos:** Llama la función save_night_journal con TODOS los datos recolectados.
-
-## Reglas Importantes
-- SIEMPRE sigue el flujo paso a paso, no saltes pasos
-- Si el usuario da respuestas cortas, acepta y continua
-- Si el usuario da multiples items en una respuesta (separados por coma o lineas), parsealo correctamente
-- Cuando llames save_morning_journal o save_night_journal, el mensaje de confirmacion DEBE decir que se guardará en su journal del día en la plataforma
-- Si el usuario ya completó el journal de hoy (ver contexto), dile que ya está listo y ofrece otra cosa
+## Reglas Críticas
+- NUNCA inventes datos - usa solo lo que el usuario dice
+- Si el usuario ya completó el journal hoy (ver contexto), díselo amablemente
+- Parsea respuestas: "café, familia, salud" = 3 items de gratitud
+- Al guardar journal, confirma que se anotó en su journal del día en BrainFlow
 
 Responde siempre en español.`
 
@@ -209,7 +217,7 @@ Responde siempre en español.`
 export interface AgentResponse {
   message: string
   action?: {
-    type: 'save_journal_morning' | 'save_journal_night' | 'show_menu' | 'show_stats' | 'mark_understood'
+    type: 'save_journal_morning' | 'save_journal_night' | 'show_menu' | 'show_stats' | 'show_study_notes' | 'mark_understood'
     data?: Record<string, unknown>
   }
   buttons?: { id: string; title: string }[]
@@ -253,24 +261,51 @@ export async function processWithAgent(
       max_tokens: 500,
       functions: [
         {
+          name: 'show_menu',
+          description: 'Mostrar menu con botones cuando el usuario saluda (hola, hi, buenos dias, etc.) o pide ayuda/opciones/menu',
+          parameters: {
+            type: 'object',
+            properties: {},
+            required: []
+          }
+        },
+        {
+          name: 'get_user_stats',
+          description: 'Obtener estadisticas del usuario cuando pide ver su progreso, racha, stats, o como va',
+          parameters: {
+            type: 'object',
+            properties: {},
+            required: []
+          }
+        },
+        {
+          name: 'get_study_notes',
+          description: 'Obtener notas de estudio cuando el usuario quiere estudiar, repasar, o ver sus notas',
+          parameters: {
+            type: 'object',
+            properties: {},
+            required: []
+          }
+        },
+        {
           name: 'save_morning_journal',
-          description: 'Guardar entrada de journal matutino cuando el usuario ha completado gratitud, intencion y gran dia',
+          description: 'Guardar journal matutino SOLO cuando el usuario ya proporciono: gratitud (al menos 1 item), intencion del dia, y que haria el dia genial (al menos 1 item). NO llamar si falta alguno.',
           parameters: {
             type: 'object',
             properties: {
               gratitude: {
                 type: 'array',
                 items: { type: 'string' },
-                description: 'Lista de cosas por las que esta agradecido'
+                description: 'Lista de cosas por las que esta agradecido (extraer de la conversacion)'
               },
               daily_intention: {
                 type: 'string',
-                description: 'Intencion o enfoque del dia'
+                description: 'Intencion o enfoque del dia (extraer de la conversacion)'
               },
               what_would_make_great_day: {
                 type: 'array',
                 items: { type: 'string' },
-                description: 'Cosas que harian el dia genial'
+                description: 'Cosas que harian el dia genial (extraer de la conversacion)'
               }
             },
             required: ['gratitude', 'daily_intention', 'what_would_make_great_day']
@@ -278,34 +313,25 @@ export async function processWithAgent(
         },
         {
           name: 'save_night_journal',
-          description: 'Guardar entrada de journal nocturno cuando el usuario ha completado mejores momentos, leccion y mood',
+          description: 'Guardar journal nocturno SOLO cuando el usuario ya proporciono: mejores momentos (al menos 1), leccion aprendida, y mood (1-5). NO llamar si falta alguno.',
           parameters: {
             type: 'object',
             properties: {
               best_moments: {
                 type: 'array',
                 items: { type: 'string' },
-                description: 'Mejores momentos del dia'
+                description: 'Mejores momentos del dia (extraer de la conversacion)'
               },
               lesson_learned: {
                 type: 'string',
-                description: 'Leccion aprendida hoy'
+                description: 'Leccion aprendida hoy (extraer de la conversacion)'
               },
               mood: {
                 type: 'number',
-                description: 'Estado de animo del 1 al 5'
+                description: 'Estado de animo del 1 al 5 (extraer de la conversacion)'
               }
             },
             required: ['best_moments', 'lesson_learned', 'mood']
-          }
-        },
-        {
-          name: 'show_menu',
-          description: 'Mostrar menu de opciones cuando el usuario pide ayuda o menu',
-          parameters: {
-            type: 'object',
-            properties: {},
-            required: []
           }
         }
       ],
@@ -344,12 +370,20 @@ export async function processWithAgent(
           `Descansa bien, nos vemos mañana 🌟`
       } else if (funcName === 'show_menu') {
         action = { type: 'show_menu' }
-        responseMessage = '¿En qué te puedo ayudar?'
+        responseMessage = '¡Hola! 👋 Soy BrainFlow, tu asistente de bienestar.\n\n¿Qué te gustaría hacer?'
         buttons = [
           { id: 'journal', title: '📝 Journal' },
           { id: 'stats', title: '📊 Estadísticas' },
           { id: 'study', title: '📚 Estudiar' }
         ]
+      } else if (funcName === 'get_user_stats') {
+        action = { type: 'show_stats' }
+        // Stats will be fetched and formatted by the webhook handler
+        responseMessage = '__STATS__' // Placeholder - webhook will replace
+      } else if (funcName === 'get_study_notes') {
+        action = { type: 'show_study_notes' }
+        // Notes will be fetched by the webhook handler
+        responseMessage = '__STUDY__' // Placeholder - webhook will replace
       }
     }
 
