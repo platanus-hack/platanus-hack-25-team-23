@@ -76,12 +76,13 @@ async function getUserContext(userId: string): Promise<string> {
     .from('journal_entries')
     .select('*')
     .eq('user_id', userId)
-    .gte('entry_date', weekAgo)
-    .order('entry_date', { ascending: false })
+    .eq('type', 'daily')
+    .gte('date', weekAgo)
+    .order('date', { ascending: false })
     .limit(5)
 
   // Get today's entry specifically
-  const todayEntry = journals?.find(j => j.entry_date === today)
+  const todayEntry = journals?.find(j => j.date === today)
 
   // Get recent notes
   const { data: notes } = await getSupabase()
@@ -96,7 +97,7 @@ async function getUserContext(userId: string): Promise<string> {
   const checkDate = new Date()
   while (streak < 365) {
     const dateStr = checkDate.toISOString().split('T')[0]
-    const hasEntry = journals?.some(j => j.entry_date === dateStr && j.mood)
+    const hasEntry = journals?.some(j => j.date === dateStr && j.mood)
     if (!hasEntry) break
     streak++
     checkDate.setDate(checkDate.getDate() - 1)
@@ -169,56 +170,79 @@ function extractJournalDataFromHistory(
   lesson_learned?: string
   mood?: number
 } | null {
-  // Find patterns in history to determine journal type and extract data
-  const allMessages = history.map(m => m.content.toLowerCase())
-  const fullHistory = allMessages.join(' ')
-
-  // Detect if it's morning or night journal
-  const isMorning = fullHistory.includes('gratitud') && fullHistory.includes('intención')
-  const isNight = fullHistory.includes('mejores momentos') || fullHistory.includes('lección') || fullHistory.includes('cómo te sientes')
-
-  if (!isMorning && !isNight) return null
-
-  // Get user messages only
+  // Get assistant messages to check if ALL 3 questions were asked
+  const assistantMessages = history.filter(m => m.role === 'assistant').map(m => m.content.toLowerCase())
   const userMessages = history.filter(m => m.role === 'user').map(m => m.content)
 
-  if (isMorning && userMessages.length >= 3) {
-    // Morning journal: gratitude, intention, great day
-    const gratitudeResponse = userMessages[userMessages.length - 3] || ''
-    const intentionResponse = userMessages[userMessages.length - 2] || ''
-    const greatDayResponse = userMessages[userMessages.length - 1] || currentMessage
+  // Check for MORNING journal - must have asked all 3 questions
+  const askedGratitude = assistantMessages.some(m => m.includes('pregunta 1') && m.includes('gratitud'))
+  const askedIntention = assistantMessages.some(m => m.includes('pregunta 2') && m.includes('intención'))
+  const askedGreatDay = assistantMessages.some(m => m.includes('pregunta 3') && m.includes('gran día'))
 
+  // Check for NIGHT journal - must have asked all 3 questions
+  const askedMoments = assistantMessages.some(m => m.includes('pregunta 1') && m.includes('momentos'))
+  const askedLesson = assistantMessages.some(m => m.includes('pregunta 2') && m.includes('lección'))
+  const askedMood = assistantMessages.some(m => m.includes('pregunta 3') && m.includes('cómo te sientes'))
+
+  const isMorningComplete = askedGratitude && askedIntention && askedGreatDay
+  const isNightComplete = askedMoments && askedLesson && askedMood
+
+  // Need at least 3 user responses after the questions started
+  if (!isMorningComplete && !isNightComplete) {
+    console.log('[Agent] Extraction failed: Not all 3 questions were asked')
+    return null
+  }
+
+  // Count user messages AFTER journal started (after first question)
+  const journalStartIndex = history.findIndex(m =>
+    m.role === 'assistant' && m.content.toLowerCase().includes('pregunta 1')
+  )
+
+  if (journalStartIndex === -1) {
+    console.log('[Agent] Extraction failed: Could not find journal start')
+    return null
+  }
+
+  const messagesAfterStart = history.slice(journalStartIndex + 1)
+  const userResponsesAfterStart = messagesAfterStart.filter(m => m.role === 'user').map(m => m.content)
+
+  console.log(`[Agent] User responses after journal start: ${userResponsesAfterStart.length}`)
+
+  // Need exactly 3 user responses (one for each question)
+  if (userResponsesAfterStart.length < 3) {
+    console.log('[Agent] Extraction failed: Not enough user responses (need 3)')
+    return null
+  }
+
+  if (isMorningComplete) {
+    // Take the last 3 user responses
+    const responses = userResponsesAfterStart.slice(-3)
     return {
       type: 'morning',
-      gratitude: parseListResponse(gratitudeResponse),
-      daily_intention: intentionResponse.trim(),
-      what_would_make_great_day: parseListResponse(greatDayResponse || currentMessage)
+      gratitude: parseListResponse(responses[0]),
+      daily_intention: responses[1].trim(),
+      what_would_make_great_day: parseListResponse(responses[2])
     }
   }
 
-  if (isNight && userMessages.length >= 3) {
-    // Night journal: best moments, lesson, mood
-    const momentsResponse = userMessages[userMessages.length - 3] || ''
-    const lessonResponse = userMessages[userMessages.length - 2] || ''
-    const moodResponse = currentMessage || userMessages[userMessages.length - 1] || ''
-
-    // Parse mood from response
-    let mood = parseInt(moodResponse.trim())
+  if (isNightComplete) {
+    const responses = userResponsesAfterStart.slice(-3)
+    // Parse mood from the last response
+    let mood = parseInt(responses[2].trim())
     if (isNaN(mood) || mood < 1 || mood > 5) {
-      // Try to detect mood keywords
-      const moodLower = moodResponse.toLowerCase()
+      const moodLower = responses[2].toLowerCase()
       if (moodLower.includes('mal')) mood = 1
       else if (moodLower.includes('regular')) mood = 2
       else if (moodLower.includes('neutral')) mood = 3
       else if (moodLower.includes('bien')) mood = 4
       else if (moodLower.includes('genial') || moodLower.includes('excelente')) mood = 5
-      else mood = 3 // default
+      else mood = 3
     }
 
     return {
       type: 'night',
-      best_moments: parseListResponse(momentsResponse),
-      lesson_learned: lessonResponse.trim(),
+      best_moments: parseListResponse(responses[0]),
+      lesson_learned: responses[1].trim(),
       mood
     }
   }
