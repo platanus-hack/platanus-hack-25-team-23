@@ -84,10 +84,10 @@ async function getUserContext(userId: string): Promise<string> {
   // Get today's entry specifically
   const todayEntry = journals?.find(j => j.date === today)
 
-  // Get recent notes
+  // Get recent notes (area column doesn't exist - computed from content)
   const { data: notes } = await getSupabase()
     .from('notes')
-    .select('title, status, area')
+    .select('title, status')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(10)
@@ -150,7 +150,7 @@ async function getUserContext(userId: string): Promise<string> {
     context += `### Notas de Estudio Recientes\n`
     notes.forEach(n => {
       const statusEmoji = n.status === 'understood' ? '✅' : n.status === 'read' ? '📖' : '🆕'
-      context += `- ${statusEmoji} ${n.title} (${n.area || 'General'})\n`
+      context += `- ${statusEmoji} ${n.title}\n`
     })
   }
 

@@ -238,49 +238,33 @@ async function getStreak(userId: string): Promise<number> {
 
 // Generate area neglect alert message
 async function generateAreaNeglectMessage(userId: string): Promise<string | null> {
-  // Get all notes grouped by area
+  // Get the oldest unreviewed note
   const { data: notes } = await getSupabase()
     .from('notes')
-    .select('area, updated_at')
+    .select('title, updated_at, status')
     .eq('user_id', userId)
-    .order('updated_at', { ascending: false })
+    .neq('status', 'understood')
+    .order('updated_at', { ascending: true })
+    .limit(1)
 
   if (!notes || notes.length === 0) {
     return null
   }
 
-  // Group notes by area and find last activity
-  const areaLastActivity: Record<string, Date> = {}
-  notes.forEach(note => {
-    const area = note.area || 'General'
-    if (!areaLastActivity[area]) {
-      areaLastActivity[area] = new Date(note.updated_at)
-    }
-  })
-
-  // Find areas with no activity in the last 7 days
+  const oldestNote = notes[0]
+  const lastUpdate = new Date(oldestNote.updated_at)
   const now = new Date()
-  const neglectedAreas: { name: string; daysSince: number }[] = []
+  const daysSince = Math.floor((now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24))
 
-  Object.entries(areaLastActivity).forEach(([area, lastDate]) => {
-    const daysSince = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
-    if (daysSince >= 7) {
-      neglectedAreas.push({ name: area, daysSince })
-    }
-  })
-
-  if (neglectedAreas.length === 0) {
+  // Only alert if note hasn't been touched in 7+ days
+  if (daysSince < 7) {
     return null
   }
 
-  // Sort by most neglected
-  neglectedAreas.sort((a, b) => b.daysSince - a.daysSince)
-  const mostNeglected = neglectedAreas[0]
-
-  return `⚠️ *Área Descuidada*\n\n` +
-    `Hace ${mostNeglected.daysSince} días que no dedicas tiempo a:\n\n` +
-    `📚 *${mostNeglected.name}*\n\n` +
-    `¿Te gustaría revisar tus notas de esta área?\n\n` +
+  return `⚠️ *Nota sin revisar*\n\n` +
+    `Hace ${daysSince} días que no revisas:\n\n` +
+    `📚 *${oldestNote.title}*\n\n` +
+    `¿Te gustaría repasarla?\n\n` +
     `Escribe "estudiar" o ve a BrainFlow:\n` +
     `https://brain-flow-hack-platanus.vercel.app/study`
 }

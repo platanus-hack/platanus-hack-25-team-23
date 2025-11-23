@@ -246,9 +246,10 @@ async function getFormattedStudyNotes(userId: string): Promise<string> {
     console.log(`[WhatsApp] Getting study notes for user: ${userId}`)
 
     // Get notes to study (not understood yet)
+    // Note: 'area' column doesn't exist in DB - it's computed from content
     const { data: notes, error } = await getSupabase()
       .from('notes')
-      .select('id, title, area, status')
+      .select('id, title, status, content')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(5)
@@ -277,7 +278,7 @@ async function getFormattedStudyNotes(userId: string): Promise<string> {
     if (pendingNotes.length > 0) {
       response += '*Para repasar:*\n'
       pendingNotes.forEach((n, i) => {
-        response += `${i + 1}. ${n.title}${n.area ? ` (${n.area})` : ''}\n`
+        response += `${i + 1}. ${n.title}\n`
       })
       response += '\n'
     }
@@ -433,15 +434,16 @@ async function handleSaveQuickNote(
   try {
     const title = data.title || `Nota desde WhatsApp - ${new Date().toLocaleDateString('es-CL')}`
 
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+
     const { error } = await getSupabase()
       .from('notes')
       .insert({
         user_id: connection.user_id,
         title,
+        slug,
         content: data.content,
-        area: 'General',
-        status: 'new',
-        source: 'whatsapp'
+        status: 'new'
       })
 
     if (error) {
