@@ -52,7 +52,7 @@ export interface WhatsAppMessage {
 
 export interface CommandResponse {
   text: string
-  buttons?: string[]
+  buttons?: { id: string; title: string }[]
 }
 
 export type CommandHandler = (

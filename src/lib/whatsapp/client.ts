@@ -40,17 +40,40 @@ export function getSupabase() {
   return getSupabaseAdmin()
 }
 
-// Send WhatsApp message via Twilio
+// Quick Reply button interface
+export interface QuickReplyButton {
+  id: string
+  title: string // Max 20 characters
+}
+
+// Send WhatsApp message via Twilio (supports text or quick reply buttons)
 export async function sendWhatsAppMessage(
   to: string,
   body: string,
-  _options?: { buttons?: string[] }
+  options?: { buttons?: QuickReplyButton[] }
 ) {
   const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14155238886'
   const toNumber = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`
 
   try {
     const client = getTwilioClient()
+
+    // If buttons are provided, use Content API with quick replies
+    if (options?.buttons && options.buttons.length > 0) {
+      // Create or get Content SID for this button configuration
+      const contentSid = await getOrCreateQuickReplyTemplate(body, options.buttons)
+
+      if (contentSid) {
+        const message = await client.messages.create({
+          from: fromNumber,
+          to: toNumber,
+          contentSid: contentSid,
+        })
+        return { success: true, sid: message.sid }
+      }
+    }
+
+    // Fallback to plain text message
     const message = await client.messages.create({
       from: fromNumber,
       to: toNumber,
@@ -62,6 +85,67 @@ export async function sendWhatsAppMessage(
     console.error('Error sending WhatsApp message:', error)
     return { success: false, error }
   }
+}
+
+// Cache for content templates
+const contentTemplateCache: Map<string, string> = new Map()
+
+// Create a Content Template for Quick Replies (session-based, no approval needed)
+async function getOrCreateQuickReplyTemplate(
+  body: string,
+  buttons: QuickReplyButton[]
+): Promise<string | null> {
+  const cacheKey = `${body}_${buttons.map(b => b.id).join('_')}`
+
+  // Check cache first
+  if (contentTemplateCache.has(cacheKey)) {
+    return contentTemplateCache.get(cacheKey)!
+  }
+
+  try {
+    const client = getTwilioClient()
+
+    // Create a unique friendly name for this template
+    const friendlyName = `brainflow_qr_${Date.now()}`
+
+    // Create Content Template via Twilio Content API
+    // Using 'as any' because Twilio types don't include twilio/quick-reply content type
+    const content = await client.content.v1.contents.create({
+      friendlyName,
+      language: 'es',
+      variables: {},
+      types: {
+        'twilio/quick-reply': {
+          body: body,
+          actions: buttons.slice(0, 3).map(btn => ({
+            id: btn.id,
+            title: btn.title.slice(0, 20) // Max 20 chars
+          }))
+        }
+      }
+    } as any)
+
+    contentTemplateCache.set(cacheKey, content.sid)
+    return content.sid
+  } catch (error) {
+    console.error('Error creating content template:', error)
+    // Return null to fallback to plain text
+    return null
+  }
+}
+
+// Send message with menu buttons (convenience function)
+export async function sendMenuMessage(
+  to: string,
+  greeting: string,
+  menuOptions: { id: string; label: string }[]
+) {
+  const buttons: QuickReplyButton[] = menuOptions.slice(0, 3).map(opt => ({
+    id: opt.id,
+    title: opt.label.slice(0, 20)
+  }))
+
+  return sendWhatsAppMessage(to, greeting, { buttons })
 }
 
 // Normalize phone number to E.164 format
