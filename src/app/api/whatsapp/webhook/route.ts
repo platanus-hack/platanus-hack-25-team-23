@@ -109,9 +109,7 @@ async function processMessage(
 
   // Handle button responses (quick actions)
   if (text === 'journal') {
-    return {
-      text: '¿Cómo va tu día? Cuéntame... ¿hay algo por lo que estés agradecido hoy? 🙏'
-    }
+    return await startJournalFlow(connection)
   }
 
   if (text === 'stats') {
@@ -120,6 +118,19 @@ async function processMessage(
 
   if (text === 'study') {
     return await handleStudy(connection)
+  }
+
+  // Check for greeting - show menu with buttons
+  const isGreeting = /^(hola|hi|hey|buenos?\s*(días?|tardes?|noches?)|qué\s*tal|saludos?|buenas?)$/i.test(text)
+  if (isGreeting) {
+    return {
+      text: '¡Hola! 👋 Soy BrainFlow, tu asistente de bienestar.\n\n¿Qué te gustaría hacer hoy?',
+      buttons: [
+        { id: 'journal', title: '📝 Journal' },
+        { id: 'stats', title: '📊 Estadísticas' },
+        { id: 'study', title: '📚 Estudiar' }
+      ]
+    }
   }
 
   // Check for menu/help intent
@@ -304,6 +315,31 @@ async function handleStats(connection: WhatsAppConnection): Promise<CommandRespo
   } catch (error) {
     console.error('[WhatsApp] Error getting stats:', error)
     return { text: 'Error al obtener estadísticas. Intenta de nuevo.' }
+  }
+}
+
+// Start journal flow - determine morning or night based on time
+async function startJournalFlow(connection: WhatsAppConnection): Promise<CommandResponse> {
+  if (!connection.user_id) {
+    return { text: 'Vincula tu cuenta primero para hacer tu journal.' }
+  }
+
+  const hour = new Date().getHours()
+  const isMorning = hour >= 5 && hour < 14
+
+  if (isMorning) {
+    return {
+      text: '🌅 *Journal de la Mañana*\n\n' +
+            'Empecemos con gratitud...\n\n' +
+            '¿Por qué 3 cosas estás agradecido/a hoy? 🙏\n\n' +
+            '_Pueden ser cosas pequeñas: el café, un buen descanso, tu familia..._'
+    }
+  } else {
+    return {
+      text: '🌙 *Reflexión Nocturna*\n\n' +
+            'Vamos a cerrar el día con una reflexión...\n\n' +
+            '¿Cuál fue el mejor momento de tu día hoy? ✨'
+    }
   }
 }
 
