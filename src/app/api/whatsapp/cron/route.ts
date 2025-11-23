@@ -115,6 +115,8 @@ async function generateReminderMessage(
       return await generateNightMessage(userId)
     case 'weekly_review':
       return await generateWeeklyMessage(userId)
+    case 'area_neglect':
+      return await generateAreaNeglectMessage(userId)
     default:
       return null
   }
@@ -227,6 +229,55 @@ async function getStreak(userId: string): Promise<number> {
   }
 
   return streak
+}
+
+// Generate area neglect alert message
+async function generateAreaNeglectMessage(userId: string): Promise<string | null> {
+  // Get all notes grouped by area
+  const { data: notes } = await getSupabase()
+    .from('notes')
+    .select('area, updated_at')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+
+  if (!notes || notes.length === 0) {
+    return null
+  }
+
+  // Group notes by area and find last activity
+  const areaLastActivity: Record<string, Date> = {}
+  notes.forEach(note => {
+    const area = note.area || 'General'
+    if (!areaLastActivity[area]) {
+      areaLastActivity[area] = new Date(note.updated_at)
+    }
+  })
+
+  // Find areas with no activity in the last 7 days
+  const now = new Date()
+  const neglectedAreas: { name: string; daysSince: number }[] = []
+
+  Object.entries(areaLastActivity).forEach(([area, lastDate]) => {
+    const daysSince = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+    if (daysSince >= 7) {
+      neglectedAreas.push({ name: area, daysSince })
+    }
+  })
+
+  if (neglectedAreas.length === 0) {
+    return null
+  }
+
+  // Sort by most neglected
+  neglectedAreas.sort((a, b) => b.daysSince - a.daysSince)
+  const mostNeglected = neglectedAreas[0]
+
+  return `⚠️ *Área Descuidada*\n\n` +
+    `Hace ${mostNeglected.daysSince} días que no dedicas tiempo a:\n\n` +
+    `📚 *${mostNeglected.name}*\n\n` +
+    `¿Te gustaría revisar tus notas de esta área?\n\n` +
+    `Escribe "estudiar" o ve a BrainFlow:\n` +
+    `https://brain-flow-hack-platanus.vercel.app/study`
 }
 
 // Calculate next scheduled time for a reminder

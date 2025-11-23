@@ -139,6 +139,16 @@ async function processMessage(
       console.log(`[WhatsApp] Journal saved successfully`)
     }
 
+    // Handle quick note save
+    if (agentResponse.action.type === 'save_quick_note' && connection.user_id) {
+      await handleSaveQuickNote(connection, agentResponse.action.data as { content: string; title?: string })
+    }
+
+    // Handle weekly checkin save
+    if (agentResponse.action.type === 'save_weekly_checkin' && connection.user_id) {
+      await handleSaveWeeklyCheckin(connection, agentResponse.action.data as { rating: number; highlight: string; to_improve: string })
+    }
+
     // Handle stats request - fetch and format stats
     if (agentResponse.action.type === 'show_stats' && connection.user_id) {
       const statsResponse = await getFormattedStats(connection.user_id)
@@ -149,6 +159,12 @@ async function processMessage(
     if (agentResponse.action.type === 'show_study_notes' && connection.user_id) {
       const studyResponse = await getFormattedStudyNotes(connection.user_id)
       return { text: studyResponse }
+    }
+
+    // Handle goals request
+    if (agentResponse.action.type === 'show_goals' && connection.user_id) {
+      const goalsResponse = await getFormattedGoals(connection.user_id)
+      return { text: goalsResponse }
     }
   }
 
@@ -385,6 +401,126 @@ async function handleAgentAction(
     }
   } catch (error) {
     console.error('[WhatsApp] Error handling agent action:', error)
+  }
+}
+
+// Save quick note for user
+async function handleSaveQuickNote(
+  connection: WhatsAppConnection,
+  data: { content: string; title?: string }
+) {
+  if (!connection.user_id) return
+
+  try {
+    const title = data.title || `Nota desde WhatsApp - ${new Date().toLocaleDateString('es-CL')}`
+
+    const { error } = await getSupabase()
+      .from('notes')
+      .insert({
+        user_id: connection.user_id,
+        title,
+        content: data.content,
+        area: 'General',
+        status: 'new',
+        source: 'whatsapp'
+      })
+
+    if (error) {
+      console.error('[WhatsApp] Error saving quick note:', error)
+    } else {
+      console.log('[WhatsApp] Quick note saved successfully')
+    }
+  } catch (error) {
+    console.error('[WhatsApp] Error in handleSaveQuickNote:', error)
+  }
+}
+
+// Save weekly checkin for user
+async function handleSaveWeeklyCheckin(
+  connection: WhatsAppConnection,
+  data: { rating: number; highlight: string; to_improve: string }
+) {
+  if (!connection.user_id) return
+
+  try {
+    // Get the start of the current week (Sunday)
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - dayOfWeek)
+    const weekStart = startOfWeek.toISOString().split('T')[0]
+
+    // Check for existing weekly entry
+    const { data: existing } = await getSupabase()
+      .from('journal_entries')
+      .select('id')
+      .eq('user_id', connection.user_id)
+      .eq('entry_date', weekStart)
+      .eq('entry_type', 'weekly')
+      .single()
+
+    const weeklyData = {
+      weekly_rating: data.rating,
+      weekly_wins: [data.highlight],
+      weekly_challenges: [data.to_improve]
+    }
+
+    if (existing) {
+      await getSupabase()
+        .from('journal_entries')
+        .update(weeklyData)
+        .eq('id', existing.id)
+    } else {
+      await getSupabase()
+        .from('journal_entries')
+        .insert({
+          user_id: connection.user_id,
+          entry_date: weekStart,
+          entry_type: 'weekly',
+          ...weeklyData
+        })
+    }
+
+    console.log('[WhatsApp] Weekly checkin saved successfully')
+  } catch (error) {
+    console.error('[WhatsApp] Error saving weekly checkin:', error)
+  }
+}
+
+// Get formatted goals for user
+async function getFormattedGoals(userId: string): Promise<string> {
+  try {
+    // Get yearly journal entry with goals
+    const currentYear = new Date().getFullYear()
+    const { data: yearlyEntry } = await getSupabase()
+      .from('journal_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('entry_type', 'yearly')
+      .gte('entry_date', `${currentYear}-01-01`)
+      .single()
+
+    if (!yearlyEntry || !yearlyEntry.yearly_goals?.length) {
+      return '🎯 *Tus Metas*\n\n' +
+        'No tienes metas configuradas para este año.\n\n' +
+        '📱 Abre BrainFlow y ve a tu Journal Anual para definir tus metas:\n' +
+        'https://brain-flow-hack-platanus.vercel.app/journal'
+    }
+
+    let response = '🎯 *Progreso de Metas*\n\n'
+
+    yearlyEntry.yearly_goals.forEach((goal: string, i: number) => {
+      // Simple progress bar (you can enhance this with actual tracking)
+      response += `${i + 1}. ${goal}\n`
+    })
+
+    response += '\n📱 Ver detalles en BrainFlow:\n'
+    response += 'https://brain-flow-hack-platanus.vercel.app/journal'
+
+    return response
+  } catch (error) {
+    console.error('[WhatsApp] Error getting goals:', error)
+    return 'No pude obtener tus metas. ¿Intentamos de nuevo?'
   }
 }
 

@@ -157,14 +157,14 @@ async function getUserContext(userId: string): Promise<string> {
 }
 
 // Main system prompt for BrainFlow WhatsApp bot
-const SYSTEM_PROMPT = `Eres BrainFlow, un asistente que guía al usuario a completar su journal diario.
+const SYSTEM_PROMPT = `Eres BrainFlow, un asistente de bienestar personal por WhatsApp.
 
-## IMPORTANTE: Tu objetivo es LLENAR EL TEMPLATE del journal paso a paso.
+## IMPORTANTE: Tu objetivo es ayudar al usuario con journaling, notas y seguimiento de progreso.
 
 ## Estilo
 - Respuestas CORTAS (1-2 oraciones)
 - Emojis moderados
-- Cálido pero ENFOCADO en completar el template
+- Cálido pero ENFOCADO en la tarea
 
 ## Funciones Disponibles
 
@@ -177,10 +177,22 @@ OBLIGATORIO llamar cuando:
 IMPORTANTE: Si el usuario solo dice "hola" o similar, SIEMPRE llama show_menu.
 
 ### get_user_stats
-Usa cuando pide estadísticas, progreso o "cómo voy".
+Usa cuando pide estadísticas, progreso, racha o "cómo voy".
 
 ### get_study_notes
 Usa cuando quiere estudiar o ver notas.
+
+### save_quick_note
+Usa cuando el usuario quiere guardar una nota o pensamiento rápido.
+- Detecta si dice "/nota", "guardar nota", "anotar", "recordar que..."
+- content: string (el contenido de la nota)
+- Extrae el contenido de lo que quiere guardar
+
+### get_goals_progress
+Usa cuando el usuario pregunta por sus metas, objetivos o "/metas".
+
+### start_weekly_checkin
+Usa cuando es domingo o el usuario pide "check-in semanal" o "resumen de la semana".
 
 ### save_morning_journal
 OBLIGATORIO llamar esta función cuando tengas los 3 campos del historial de conversación:
@@ -273,7 +285,7 @@ Responde siempre en español.`
 export interface AgentResponse {
   message: string
   action?: {
-    type: 'save_journal_morning' | 'save_journal_night' | 'show_menu' | 'show_stats' | 'show_study_notes' | 'mark_understood'
+    type: 'save_journal_morning' | 'save_journal_night' | 'show_menu' | 'show_stats' | 'show_study_notes' | 'mark_understood' | 'save_quick_note' | 'show_goals' | 'start_weekly_checkin' | 'save_weekly_checkin'
     data?: Record<string, unknown>
   }
   buttons?: { id: string; title: string }[]
@@ -396,6 +408,64 @@ export async function processWithAgent(
             },
             required: ['best_moments', 'lesson_learned', 'mood']
           }
+        },
+        {
+          name: 'save_quick_note',
+          description: 'Guardar una nota o pensamiento rapido. Usa cuando el usuario dice /nota, "guardar nota", "anotar", "recordar que..."',
+          parameters: {
+            type: 'object',
+            properties: {
+              content: {
+                type: 'string',
+                description: 'El contenido de la nota a guardar'
+              },
+              title: {
+                type: 'string',
+                description: 'Titulo corto para la nota (opcional, generar si no se proporciona)'
+              }
+            },
+            required: ['content']
+          }
+        },
+        {
+          name: 'get_goals_progress',
+          description: 'Obtener progreso de metas del usuario. Usa cuando pregunta por metas, objetivos, /metas',
+          parameters: {
+            type: 'object',
+            properties: {},
+            required: []
+          }
+        },
+        {
+          name: 'start_weekly_checkin',
+          description: 'Iniciar check-in semanal. Usa los domingos o cuando el usuario pide resumen semanal',
+          parameters: {
+            type: 'object',
+            properties: {},
+            required: []
+          }
+        },
+        {
+          name: 'save_weekly_checkin',
+          description: 'Guardar check-in semanal cuando el usuario complete las 3 preguntas: rating (1-10), highlight, y mejora',
+          parameters: {
+            type: 'object',
+            properties: {
+              rating: {
+                type: 'number',
+                description: 'Calificacion de la semana del 1 al 10'
+              },
+              highlight: {
+                type: 'string',
+                description: 'El mejor momento o highlight de la semana'
+              },
+              to_improve: {
+                type: 'string',
+                description: 'Que mejorar para la proxima semana'
+              }
+            },
+            required: ['rating', 'highlight', 'to_improve']
+          }
         }
       ],
       function_call: 'auto'
@@ -471,6 +541,38 @@ export async function processWithAgent(
         action = { type: 'show_study_notes' }
         // Notes will be fetched by the webhook handler
         responseMessage = '__STUDY__' // Placeholder - webhook will replace
+      } else if (funcName === 'save_quick_note') {
+        action = { type: 'save_quick_note', data: funcArgs }
+        const title = funcArgs.title || 'Nota rápida'
+        responseMessage = `💭 *Nota guardada*\n\n` +
+          `📝 "${funcArgs.content.slice(0, 60)}${funcArgs.content.length > 60 ? '...' : ''}"\n\n` +
+          `📱 Ver en BrainFlow:\n` +
+          `https://brain-flow-hack-platanus.vercel.app/library\n\n` +
+          `¿Algo más?`
+        buttons = [
+          { id: 'journal', title: '📝 Journal' },
+          { id: 'stats', title: '📊 Estadísticas' }
+        ]
+      } else if (funcName === 'get_goals_progress') {
+        action = { type: 'show_goals' }
+        responseMessage = '__GOALS__' // Placeholder - webhook will replace
+      } else if (funcName === 'start_weekly_checkin') {
+        action = { type: 'start_weekly_checkin' }
+        responseMessage = `📊 *Check-in Semanal*\n\n` +
+          `Vamos a revisar cómo te fue esta semana.\n\n` +
+          `*Pregunta 1 de 3:*\n` +
+          `¿Cómo calificarías tu semana del 1 al 10?`
+      } else if (funcName === 'save_weekly_checkin') {
+        action = { type: 'save_weekly_checkin', data: funcArgs }
+        responseMessage = `✅ *Check-in semanal guardado!*\n\n` +
+          `📊 Calificación: ${funcArgs.rating}/10\n` +
+          `⭐ Highlight: "${funcArgs.highlight.slice(0, 40)}..."\n` +
+          `📈 A mejorar: "${funcArgs.to_improve.slice(0, 40)}..."\n\n` +
+          `¡Que tengas una excelente semana! 💪`
+        buttons = [
+          { id: 'journal', title: '📝 Journal' },
+          { id: 'stats', title: '📊 Estadísticas' }
+        ]
       }
     }
 
