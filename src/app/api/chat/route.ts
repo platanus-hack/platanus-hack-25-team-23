@@ -163,14 +163,18 @@ export async function POST(req: Request) {
       async ({ timeMin, maxResults }) => {
         if (!token) return 'Error: User not authenticated with Google Calendar.';
         const { listEvents } = await import('@/lib/google/calendar');
-        const events = await listEvents(token, timeMin, maxResults);
+        
+        // Fix timezone
+        const timeMinFixed = ensureTimezone(timeMin);
+        
+        const events = await listEvents(token, timeMinFixed, maxResults);
         return JSON.stringify(events);
       },
       {
         name: 'list_events',
         description: 'List events from the user\'s calendar',
         schema: z.object({
-          timeMin: z.string().optional().describe('Start time (ISO string) to list events from. Defaults to now.'),
+          timeMin: z.string().optional().describe('Start time (ISO string with timezone) to list events from. Defaults to now.'),
           maxResults: z.number().optional().describe('Maximum number of events to return. Defaults to 10.'),
         }),
       }
@@ -269,15 +273,20 @@ export async function POST(req: Request) {
       async ({ timeMin, timeMax }) => {
         if (!token) return 'Error: User not authenticated with Google Calendar.';
         const { getFreeBusy } = await import('@/lib/google/calendar');
-        const result = await getFreeBusy(token, timeMin, timeMax);
+        
+        // Fix timezones
+        const timeMinFixed = ensureTimezone(timeMin) || timeMin;
+        const timeMaxFixed = ensureTimezone(timeMax) || timeMax;
+
+        const result = await getFreeBusy(token, timeMinFixed, timeMaxFixed);
         return JSON.stringify(result);
       },
       {
         name: 'get_free_busy',
         description: 'Check free/busy status for a time range',
         schema: z.object({
-          timeMin: z.string().describe('Start of the range (ISO string)'),
-          timeMax: z.string().describe('End of the range (ISO string)'),
+          timeMin: z.string().describe('Start of the range (ISO string with timezone)'),
+          timeMax: z.string().describe('End of the range (ISO string with timezone)'),
         }),
       }
     );
