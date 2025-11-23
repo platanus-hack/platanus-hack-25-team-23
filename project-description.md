@@ -31,8 +31,7 @@ Hoy en día, tu vida digital está fragmentada: tus emociones en un diario, tu c
 
 Más que una herramienta, es **Human Enhancement**: un segundo cerebro activo que conecta lo que sientes, lo que sabes y lo que haces. Utilizando IA avanzada, BrainFlow no solo almacena información, sino que la organiza, la conecta y te ayuda a navegar tu propia mente.
 
-<!-- Demo Link Placeholder: Add link here when available -->
-<!-- [Ver Demo en Vivo](https://brainflow.app) -->
+[Ver Demo en Vivo](https://platanus-hack-25-team-23.vercel.app/)
 
 ---
 
