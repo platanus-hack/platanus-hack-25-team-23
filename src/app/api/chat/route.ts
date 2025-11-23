@@ -300,11 +300,23 @@ export async function POST(req: Request) {
     const now = new Date();
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentDateStr = `${days[now.getDay()]} ${now.getDate()} of ${months[now.getMonth()]}. ${now.getFullYear()}`;
+    
+    // Format date: "Saturday 22 of Nov. 2025"
+    const dateStr = `${days[now.getDay()]} ${now.getDate()} of ${months[now.getMonth()]}. ${now.getFullYear()}`;
+    
+    // Format time: "3:03pm"
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    const timeStr = `${hours}:${minutes}${ampm}`;
+
+    const currentDateTimeStr = `${dateStr}, ${timeStr}`;
 
     const SYSTEM_PROMPT = `You are KnowledgeFlow, an AI that generates atomic, interconnected knowledge notes.
     
-    Current Date: ${currentDateStr}
+    Current Date and Time: ${currentDateTimeStr}
     
     ## Core Objective
     You are NOT a chatbot. You are a **Graph Builder**.
