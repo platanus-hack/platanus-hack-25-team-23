@@ -10,6 +10,8 @@ import * as d3 from 'd3'
 import Link from 'next/link'
 import { DEFAULT_AREAS, detectAreaFromContent } from '@/lib/data/areas-config'
 import { useAreas } from '@/lib/store/areas-context'
+import { SplitLayout } from '@/components/layout/split-layout'
+import { SidePanel } from '@/components/features/side-panel'
 
 interface GraphNode {
   id: string
@@ -492,6 +494,7 @@ export default function GraphPage() {
         .from('edges')
         .select('*')
         .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
 
       if (edgesError) {
         console.error('Error loading edges for graph:', edgesError)
@@ -1004,628 +1007,324 @@ export default function GraphPage() {
   }, [])
 
   return (
-    <div
-      className="flex-1 flex flex-col relative overflow-hidden h-full transition-colors duration-300"
-      style={{ backgroundColor: 'var(--background)' }}
-    >
-      {/* Graph Container - MUST be first for proper z-index stacking */}
-      <div
-        ref={containerRef}
-        className="absolute inset-0"
-        style={{ zIndex: 1 }}
-      >
-        <svg
-          ref={svgRef}
-          className="w-full h-full"
-          style={{
-            cursor: 'grab',
-            background: 'transparent'
-          }}
-        />
-      </div>
-
-      {/* View Mode Toggle - Centered at top - Clean Style */}
-      <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-10">
-        <div
-          className="p-1 rounded-xl flex gap-1"
-          style={{
-            background: 'white',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-          }}
-        >
-          <button
-            onClick={() => setViewMode('status')}
-            className="px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm"
-            style={{
-              background: viewMode === 'status' ? '#E6DAFF' : 'transparent',
-              color: viewMode === 'status' ? '#9575CD' : '#6D6D6D',
-            }}
-          >
-            <Eye className="size-4" />
-            Estado
-          </button>
-          <button
-            onClick={() => setViewMode('area')}
-            className="px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-medium text-sm"
-            style={{
-              background: viewMode === 'area' ? '#E6DAFF' : 'transparent',
-              color: viewMode === 'area' ? '#9575CD' : '#6D6D6D',
-            }}
-          >
-            <Palette className="size-4" />
-            Area
-          </button>
-        </div>
-      </div>
-
-      {/* Zoom Controls - Right side */}
-      <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
-        <button
-          onClick={handleZoomIn}
-          className="p-3 rounded-xl hover:scale-105 transition-all"
-          style={{
-            backgroundColor: 'white',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-          }}
-          title="Zoom In"
-        >
-          <ZoomIn className="size-5" style={{ color: '#6D6D6D' }} />
-        </button>
-        <button
-          onClick={handleZoomOut}
-          className="p-3 rounded-xl hover:scale-105 transition-all"
-          style={{
-            backgroundColor: 'white',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-          }}
-          title="Zoom Out"
-        >
-          <ZoomOut className="size-5" style={{ color: '#6D6D6D' }} />
-        </button>
-        <button
-          onClick={handleFullscreen}
-          className="p-3 rounded-xl hover:scale-105 transition-all"
-          style={{
-            backgroundColor: isFullscreen ? '#E6DAFF' : 'white',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-          }}
-          title={isFullscreen ? "Salir de Pantalla Completa" : "Pantalla Completa"}
-        >
-          {isFullscreen ? (
-            <Minimize2 className="size-5" style={{ color: '#9575CD' }} />
-          ) : (
-            <Maximize2 className="size-5" style={{ color: '#6D6D6D' }} />
-          )}
-        </button>
-
-        {/* Spacing Control Toggle */}
-        <button
-          data-popup-toggle="controls"
-          onClick={() => setShowControls(!showControls)}
-          className="p-3 rounded-xl hover:scale-105 transition-all"
-          style={{
-            backgroundColor: showControls ? '#CFE4FF' : 'white',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-          }}
-          title="Ajustar Espaciado"
-        >
-          <Sliders
-            className="size-5"
-            style={{ color: showControls ? '#5A8FCC' : '#6D6D6D' }}
-          />
-        </button>
-
-        {/* Filter Toggle */}
-        <button
-          data-popup-toggle="filters"
-          onClick={() => setShowFilters(!showFilters)}
-          className="p-3 rounded-xl hover:scale-105 transition-all relative"
-          style={{
-            backgroundColor: showFilters ? '#E6DAFF' : 'white',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-          }}
-          title="Filtros"
-        >
-          <Filter
-            className="size-5"
-            style={{ color: showFilters ? '#9575CD' : '#6D6D6D' }}
-          />
-          {(filterArea || filterLevel || filterStatus) && (
-            <span
-              className="absolute -top-1 -right-1 w-3 h-3 rounded-full"
-              style={{ background: '#9575CD' }}
-            />
-          )}
-        </button>
-      </div>
-
-      {/* Controls Panel - Spacing and Node Size */}
-      {showControls && (
-        <div
-          ref={controlsRef}
-          className="absolute top-28 right-6 z-10 p-5 rounded-2xl"
-          style={{
-            backgroundColor: 'white',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
-            width: '280px'
-          }}
-        >
-          {/* Spacing Control */}
-          <div className="flex items-center gap-2 mb-4">
-            <div
-              className="p-2 rounded-xl"
-              style={{ backgroundColor: 'rgba(163, 212, 255, 0.2)' }}
-            >
-              <Sliders className="size-4" style={{ color: '#5A8FCC' }} />
-            </div>
-            <h4 className="font-semibold" style={{ color: 'var(--foreground)' }}>
-              Espaciado de Nodos
-            </h4>
-          </div>
-
-          <div className="space-y-3 mb-6">
-            <div className="flex justify-between text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
-              <span>Pegados</span>
-              <span>Dispersos</span>
+    <SplitLayout
+      leftPanel={<SidePanel />}
+      rightPanel={
+        <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-background">
+          {/* Controls */}
+          <div className="absolute top-6 right-6 flex flex-col gap-3 z-10">
+            {/* View Mode Toggle */}
+            <div className="bg-card/90 backdrop-blur-sm border border-border rounded-xl p-1 shadow-sm flex">
+              <button
+                onClick={() => setViewMode('area')}
+                className={`p-2 rounded-lg transition-all ${viewMode === 'area' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                title="Vista por Áreas"
+              >
+                <Palette className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('status')}
+                className={`p-2 rounded-lg transition-all ${viewMode === 'status' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                title="Vista por Estado"
+              >
+                <Eye className="w-5 h-5" />
+              </button>
             </div>
 
-            <input
-              type="range"
-              min="50"
-              max="300"
-              step="10"
-              value={sliderValue}
-              onChange={(e) => handleSpacingChange(Number(e.target.value))}
-              className="w-full h-2 rounded-full appearance-none cursor-pointer"
-              style={{
-                background: `linear-gradient(to right, #A3D4FF 0%, #A3D4FF ${((sliderValue - 50) / 250) * 100}%, #E6E6E6 ${((sliderValue - 50) / 250) * 100}%, #E6E6E6 100%)`
-              }}
-            />
-
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>
-                Distancia: {sliderValue}px
-              </span>
+            {/* Zoom Controls */}
+            <div className="bg-card/90 backdrop-blur-sm border border-border rounded-xl p-1 shadow-sm flex flex-col">
               <button
                 onClick={() => {
-                  setSliderValue(150)
-                  setNodeSpacing(150)
+                  if (zoomRef.current && svgRef.current) {
+                    d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, 1.2)
+                  }
                 }}
-                className="text-xs px-3 py-1.5 rounded-lg transition-all hover:scale-105"
-                style={{
-                  backgroundColor: '#FFD9D9',
-                  color: '#222222'
-                }}
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                title="Acercar"
               >
-                Restaurar
+                <ZoomIn className="w-5 h-5" />
               </button>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t mb-4" style={{ borderColor: '#E6E6E6' }} />
-
-          {/* Node Size Control */}
-          <div className="flex items-center gap-2 mb-4">
-            <div
-              className="p-2 rounded-xl"
-              style={{ backgroundColor: 'rgba(201, 183, 243, 0.2)' }}
-            >
-              <Maximize2 className="size-4" style={{ color: '#9575CD' }} />
-            </div>
-            <h4 className="font-semibold" style={{ color: 'var(--foreground)' }}>
-              Tamano de Nodos
-            </h4>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex justify-between text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
-              <span>Pequenos</span>
-              <span>Grandes</span>
-            </div>
-
-            <input
-              type="range"
-              min="0.5"
-              max="2"
-              step="0.05"
-              value={nodeScaleSlider}
-              onChange={(e) => handleNodeScaleChange(Number(e.target.value))}
-              className="w-full h-2 rounded-full appearance-none cursor-pointer"
-              style={{
-                background: `linear-gradient(to right, #C9B7F3 0%, #C9B7F3 ${((nodeScaleSlider - 0.5) / 1.5) * 100}%, #E6E6E6 ${((nodeScaleSlider - 0.5) / 1.5) * 100}%, #E6E6E6 100%)`
-              }}
-            />
-
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>
-                Escala: {(nodeScaleSlider * 100).toFixed(0)}%
-              </span>
-              <button
-                onClick={() => handleNodeScaleChange(1)}
-                className="text-xs px-3 py-1.5 rounded-lg transition-all hover:scale-105"
-                style={{
-                  backgroundColor: '#FFD9D9',
-                  color: '#222222'
-                }}
-              >
-                Restaurar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filter Panel */}
-      {showFilters && (
-        <div
-          ref={filtersRef}
-          className="absolute z-10 p-5 rounded-2xl"
-          style={{
-            backgroundColor: 'white',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
-            width: '300px',
-            top: showControls ? '250px' : '160px',
-            right: '24px'
-          }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div
-                className="p-2 rounded-xl"
-                style={{ backgroundColor: 'rgba(201, 183, 243, 0.2)' }}
-              >
-                <Filter className="size-4" style={{ color: '#9575CD' }} />
-              </div>
-              <h4 className="font-semibold" style={{ color: 'var(--foreground)' }}>
-                Filtros
-              </h4>
-            </div>
-            {(filterArea || filterLevel || filterStatus) && (
               <button
                 onClick={() => {
-                  setFilterArea(null)
-                  setFilterLevel(null)
-                  setFilterStatus(null)
+                  if (zoomRef.current && svgRef.current) {
+                    d3.select(svgRef.current).transition().duration(300).call(zoomRef.current.scaleBy, 0.8)
+                  }
                 }}
-                className="text-xs px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-1"
-                style={{ color: 'var(--muted-foreground)' }}
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                title="Alejar"
               >
-                <X className="size-3" />
-                Limpiar
+                <ZoomOut className="w-5 h-5" />
               </button>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            {/* Area Filter */}
-            <div>
-              <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted-foreground)' }}>
-                Area
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {activeAreas.slice(0, 4).map(area => (
-                  <button
-                    key={area.id}
-                    onClick={() => setFilterArea(filterArea === area.name ? null : area.name)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all hover:scale-105"
-                    style={{
-                      background: filterArea === area.name
-                        ? `linear-gradient(135deg, ${area.color} 0%, ${area.color}cc 100%)`
-                        : 'rgba(0,0,0,0.05)',
-                      color: filterArea === area.name ? 'white' : '#646464',
-                      boxShadow: filterArea === area.name ? `0px 2px 6px ${area.color}40` : 'none'
-                    }}
-                  >
-                    {area.icon} {area.name.split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Level Filter */}
-            <div>
-              <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted-foreground)' }}>
-                Nivel
-              </label>
-              <div className="flex gap-2">
-                {[
-                  { id: 'beginner', label: 'Basico', color: '#22c55e' },
-                  { id: 'intermediate', label: 'Intermedio', color: '#eab308' },
-                  { id: 'advanced', label: 'Avanzado', color: '#ef4444' }
-                ].map(level => (
-                  <button
-                    key={level.id}
-                    onClick={() => setFilterLevel(filterLevel === level.id ? null : level.id)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all hover:scale-105 flex-1"
-                    style={{
-                      background: filterLevel === level.id
-                        ? `linear-gradient(135deg, ${level.color} 0%, ${level.color}cc 100%)`
-                        : 'rgba(0,0,0,0.05)',
-                      color: filterLevel === level.id ? 'white' : '#646464',
-                      boxShadow: filterLevel === level.id ? `0px 2px 6px ${level.color}40` : 'none'
-                    }}
-                  >
-                    {level.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Status Filter */}
-            <div>
-              <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--muted-foreground)' }}>
-                Estado
-              </label>
-              <div className="flex gap-2">
-                {[
-                  { id: 'understood', label: 'Dominado', color: '#A3E4B6' },
-                  { id: 'in-progress', label: 'En Progreso', color: '#FFE9A9' },
-                  { id: 'pending', label: 'Pendiente', color: '#D1D5DB' }
-                ].map(status => (
-                  <button
-                    key={status.id}
-                    onClick={() => setFilterStatus(filterStatus === status.id ? null : status.id)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all hover:scale-105 flex-1"
-                    style={{
-                      background: filterStatus === status.id
-                        ? `linear-gradient(135deg, ${status.color} 0%, ${status.color}cc 100%)`
-                        : 'rgba(0,0,0,0.05)',
-                      color: filterStatus === status.id ? '#1E1E1E' : '#646464',
-                      boxShadow: filterStatus === status.id ? `0px 2px 6px ${status.color}40` : 'none'
-                    }}
-                  >
-                    {status.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Active Filters Summary */}
-            {(filterArea || filterLevel || filterStatus) && (
-              <div
-                className="pt-3 border-t text-xs"
-                style={{ borderColor: '#E6E6E6', color: '#646464' }}
+              <button
+                onClick={() => {
+                  if (zoomRef.current && svgRef.current) {
+                    d3.select(svgRef.current).transition().duration(750).call(zoomRef.current.transform, d3.zoomIdentity)
+                  }
+                }}
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                title="Resetear Vista"
               >
-                <span className="font-medium">Mostrando:</span>{' '}
-                {filteredNodes.length} de {graphNodes.length} nodos
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+                <Maximize2 className="w-5 h-5" />
+              </button>
+            </div>
 
-      {/* Dynamic Legend - Left side */}
-      <div
-        className="absolute top-6 left-6 z-10 rounded-2xl transition-all duration-300"
-        style={{
-          backgroundColor: 'white',
-          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)',
-          maxWidth: '280px',
-          padding: legendCollapsed ? '12px 16px' : '20px'
-        }}
-      >
-        <div
-          className="flex items-center gap-2 cursor-pointer"
-          onClick={() => setLegendCollapsed(!legendCollapsed)}
-        >
-          <div
-            className="p-2 rounded-xl"
-            style={{
-              backgroundColor: viewMode === 'status'
-                ? 'rgba(201, 183, 243, 0.2)'
-                : 'rgba(163, 212, 255, 0.2)'
-            }}
-          >
-            {viewMode === 'status' ? (
-              <Eye className="size-4" style={{ color: '#9575CD' }} />
-            ) : (
-              <Palette className="size-4" style={{ color: '#5A8FCC' }} />
-            )}
-          </div>
-          <h3 className="font-semibold flex-1" style={{ color: 'var(--foreground)' }}>
-            {viewMode === 'status' ? 'Estados' : 'Areas de Conocimiento'}
-          </h3>
-          <button
-            className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
-            style={{ color: 'var(--muted-foreground)' }}
-          >
-            {legendCollapsed ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
-          </button>
-        </div>
-
-        {!legendCollapsed && (
-          <div className="mt-4">
-            {viewMode === 'status' ? (
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-5 h-5 rounded-full"
-                    style={{
-                      backgroundColor: '#86EFAC',
-                      boxShadow: '0px 2px 6px rgba(134, 239, 172, 0.4)'
-                    }}
-                  />
-                  <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                    Entendido
-                  </span>
-                  <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    (dominado)
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-5 h-5 rounded-full"
-                    style={{
-                      backgroundColor: '#FDE047',
-                      boxShadow: '0px 2px 6px rgba(253, 224, 71, 0.4)'
-                    }}
-                  />
-                  <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                    En progreso
-                  </span>
-                  <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    (abierto)
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-5 h-5 rounded-full"
-                    style={{
-                      backgroundColor: '#D1D5DB',
-                      boxShadow: '0px 2px 6px rgba(209, 213, 219, 0.4)'
-                    }}
-                  />
-                  <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                    Pendiente
-                  </span>
-                  <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    (no abierto)
-                  </span>
-                </div>
-
-                <div
-                  className="border-t pt-3 mt-3"
-                  style={{ borderColor: '#E6E6E6' }}
-                >
-                  <p className="text-xs mb-2 font-medium" style={{ color: 'var(--muted-foreground)' }}>
-                    Tipos de Conexion
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-0.5" style={{ backgroundColor: '#6366f1' }} />
-                      <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Prerrequisito</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-0.5" style={{ backgroundColor: '#8b5cf6' }} />
-                      <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Relacionado</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-0.5" style={{ backgroundColor: '#d1d5db' }} />
-                      <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Menciona</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
-                {activeAreas.map((area) => (
-                  <div key={area.id} className="space-y-1">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 rounded-full flex-shrink-0"
-                        style={{
-                          backgroundColor: area.color,
-                          boxShadow: `0px 2px 6px ${area.color}50`
-                        }}
-                      />
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="text-sm">{area.icon}</span>
-                        <span className="text-xs font-medium truncate" style={{ color: 'var(--foreground)' }}>
-                          {area.name}
-                        </span>
-                      </div>
-                    </div>
-                    {/* Color hierarchy preview */}
-                    <div className="flex items-center gap-1 ml-7">
-                      {[0, 1, 2, 3].map((depth) => (
-                        <div
-                          key={depth}
-                          className="w-3 h-3 rounded"
-                          style={{ backgroundColor: getColorForDepth(area.color, depth) }}
-                          title={depth === 0 ? 'Area' : depth === 1 ? 'Tema' : depth === 2 ? 'Subtema' : 'Notas'}
-                        />
-                      ))}
-                      <span className="text-[9px] ml-1" style={{ color: 'var(--muted-foreground)' }}>
-                        (jerarquia)
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Instructions Panel - Bottom left */}
-      <div
-        className="absolute bottom-6 left-6 z-10 p-4 rounded-2xl max-w-xs"
-        style={{
-          backgroundColor: '#FFF0E6',
-          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-        }}
-      >
-        <div className="flex items-start gap-3">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: '#FFD9D9' }}
-          >
-            <span className="text-sm">💡</span>
-          </div>
-          <div>
-            <p className="text-sm font-medium mb-1" style={{ color: '#222222' }}>
-              Como navegar?
-            </p>
-            <p className="text-xs" style={{ color: '#6D6D6D' }}>
-              <strong>Arrastra</strong> los nodos • <strong>Rueda</strong> para zoom • <strong>Click</strong> para ver contenido
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Selected Node Panel - Right side */}
-      {selectedNode && !selectedNode.isYouNode && !selectedNode.isAreaNode && (
-        <div
-          className="absolute bottom-6 right-6 z-10 p-5 rounded-2xl w-72"
-          style={{
-            backgroundColor: 'white',
-            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-          }}
-        >
-          <div className="flex items-start justify-between mb-4">
-            <h4 className="font-semibold" style={{ color: '#222222' }}>{selectedNode.name}</h4>
+            {/* Settings Toggle */}
             <button
-              onClick={() => setSelectedNode(null)}
-              className="w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:scale-105"
-              style={{ backgroundColor: '#F6F5F2', color: '#6D6D6D' }}
+              data-popup-toggle
+              onClick={() => setShowControls(!showControls)}
+              className={`p-3 rounded-xl border shadow-sm transition-all ${showControls ? 'bg-primary text-primary-foreground border-primary' : 'bg-card/90 backdrop-blur-sm border-border text-muted-foreground hover:text-foreground'}`}
+              title="Configuración del Grafo"
             >
-              ×
+              <Sliders className="w-5 h-5" />
+            </button>
+
+            {/* Filters Toggle */}
+            <button
+              data-popup-toggle
+              onClick={() => setShowFilters(!showFilters)}
+              className={`p-3 rounded-xl border shadow-sm transition-all ${showFilters ? 'bg-primary text-primary-foreground border-primary' : 'bg-card/90 backdrop-blur-sm border-border text-muted-foreground hover:text-foreground'}`}
+              title="Filtros"
+            >
+              <Filter className="w-5 h-5" />
             </button>
           </div>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span style={{ color: '#6D6D6D' }}>Area:</span>
-              <span style={{ color: '#222222' }}>{selectedNode.area}</span>
+
+          {/* Settings Popup */}
+          {showControls && (
+            <div
+              ref={controlsRef}
+              className="absolute top-6 right-20 w-72 bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-xl p-5 z-20 animate-in fade-in slide-in-from-right-4 duration-200"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-foreground">Configuración</h3>
+                <button onClick={() => setShowControls(false)} className="text-muted-foreground hover:text-foreground">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Espaciado</span>
+                    <span className="font-mono text-foreground">{sliderValue}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="300"
+                    value={sliderValue}
+                    onChange={(e) => handleSpacingChange(Number(e.target.value))}
+                    className="w-full accent-primary h-1.5 bg-muted rounded-full appearance-none cursor-pointer"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tamaño de Nodos</span>
+                    <span className="font-mono text-foreground">{nodeScaleSlider.toFixed(1)}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2"
+                    step="0.1"
+                    value={nodeScaleSlider}
+                    onChange={(e) => handleNodeScaleChange(Number(e.target.value))}
+                    className="w-full accent-primary h-1.5 bg-muted rounded-full appearance-none cursor-pointer"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span style={{ color: '#6D6D6D' }}>Nivel:</span>
-              <span className="capitalize" style={{ color: '#222222' }}>{selectedNode.level}</span>
+          )}
+
+          {/* Filters Popup */}
+          {showFilters && (
+            <div
+              ref={filtersRef}
+              className="absolute top-20 right-20 w-72 bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-xl p-5 z-20 animate-in fade-in slide-in-from-right-4 duration-200"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-foreground">Filtros</h3>
+                <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Área</label>
+                  <select
+                    className="w-full bg-muted/50 border border-border rounded-lg p-2 text-sm text-foreground focus:ring-2 focus:ring-primary/20 outline-none"
+                    value={filterArea || ''}
+                    onChange={(e) => setFilterArea(e.target.value || null)}
+                  >
+                    <option value="">Todas</option>
+                    {activeAreas.map(area => (
+                      <option key={area.id} value={area.name}>{area.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Estado</label>
+                  <select
+                    className="w-full bg-muted/50 border border-border rounded-lg p-2 text-sm text-foreground focus:ring-2 focus:ring-primary/20 outline-none"
+                    value={filterStatus || ''}
+                    onChange={(e) => setFilterStatus(e.target.value || null)}
+                  >
+                    <option value="">Todos</option>
+                    <option value="understood">Dominado</option>
+                    <option value="in-progress">En Progreso</option>
+                    <option value="pending">Pendiente</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span style={{ color: '#6D6D6D' }}>Estado:</span>
-              <span className="capitalize" style={{
-                color: selectedNode.status === 'understood' ? '#10B981' :
-                       selectedNode.status === 'in-progress' ? '#F59E0B' :
-                       '#6D6D6D'
-              }}>
-                {selectedNode.status === 'understood' ? 'Dominado' :
-                 selectedNode.status === 'in-progress' ? 'En progreso' : 'Pendiente'}
-              </span>
-            </div>
+          )}
+
+          {/* Legend - Collapsible */}
+          <div className={`absolute bottom-6 right-6 bg-card/90 backdrop-blur-sm border border-border rounded-2xl shadow-sm transition-all duration-300 z-10 overflow-hidden ${legendCollapsed ? 'w-12 h-12 p-0 flex items-center justify-center cursor-pointer hover:bg-muted/50' : 'p-5 min-w-[200px]'}`}>
+            {legendCollapsed ? (
+              <button onClick={() => setLegendCollapsed(false)} className="w-full h-full flex items-center justify-center text-muted-foreground">
+                <ChevronUp className="w-5 h-5" />
+              </button>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-sm text-foreground">Leyenda</h3>
+                  <button onClick={() => setLegendCollapsed(true)} className="text-muted-foreground hover:text-foreground">
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-primary" />
+                    <span className="text-xs text-muted-foreground">Nodo Central (Yo)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[#C9B7F3]" />
+                    <span className="text-xs text-muted-foreground">Área / Tema Principal</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[#E6DAFF]" />
+                    <span className="text-xs text-muted-foreground">Nota / Concepto</span>
+                  </div>
+                  <div className="h-px bg-border my-2" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-0.5 bg-[#6366f1]" />
+                    <span className="text-xs text-muted-foreground">Prerrequisito</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-0.5 bg-[#8b5cf6]" />
+                    <span className="text-xs text-muted-foreground">Relacionado</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-          <Link
-            href={`/study?topic=${encodeURIComponent(selectedNode.name)}`}
-            className="mt-4 w-full block text-center py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
+
+          {/* Loading Overlay */}
+          {loading && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                  <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-8 h-8 bg-primary/10 rounded-full animate-pulse" />
+                  </div>
+                </div>
+                <p className="text-muted-foreground font-medium animate-pulse">Cargando grafo...</p>
+              </div>
+            </div>
+          )}
+
+          {/* How to navigate */}
+          <div
+            className="absolute bottom-6 left-6 z-10 p-4 rounded-2xl"
             style={{
-              backgroundColor: '#FFD9D9',
-              color: '#222222'
+              backgroundColor: '#FFF0E6',
+              boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
             }}
           >
-            Estudiar
-          </Link>
+            <div className="flex items-start gap-3">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: '#FFD9D9' }}
+              >
+                <span className="text-sm">💡</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-1" style={{ color: '#222222' }}>
+                  Como navegar?
+                </p>
+                <p className="text-xs" style={{ color: '#6D6D6D' }}>
+                  <strong>Arrastra</strong> los nodos • <strong>Rueda</strong> para zoom • <strong>Click</strong> para ver contenido
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Selected Node Panel - Right side */}
+          {selectedNode && !selectedNode.isYouNode && !selectedNode.isAreaNode && (
+            <div
+              className="absolute bottom-6 right-6 z-10 p-5 rounded-2xl w-72"
+              style={{
+                backgroundColor: 'white',
+                boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
+              }}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <h4 className="font-semibold" style={{ color: '#222222' }}>{selectedNode.name}</h4>
+                <button
+                  onClick={() => setSelectedNode(null)}
+                  className="w-6 h-6 rounded-full flex items-center justify-center transition-colors hover:scale-105"
+                  style={{ backgroundColor: '#F6F5F2', color: '#6D6D6D' }}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span style={{ color: '#6D6D6D' }}>Area:</span>
+                  <span style={{ color: '#222222' }}>{selectedNode.area}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: '#6D6D6D' }}>Nivel:</span>
+                  <span className="capitalize" style={{ color: '#222222' }}>{selectedNode.level}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: '#6D6D6D' }}>Estado:</span>
+                  <span className="capitalize" style={{
+                    color: selectedNode.status === 'understood' ? '#10B981' :
+                           selectedNode.status === 'in-progress' ? '#F59E0B' :
+                           '#6D6D6D'
+                  }}>
+                    {selectedNode.status === 'understood' ? 'Dominado' :
+                     selectedNode.status === 'in-progress' ? 'En progreso' : 'Pendiente'}
+                  </span>
+                </div>
+              </div>
+              <Link
+                href={`/study?topic=${encodeURIComponent(selectedNode.name)}`}
+                className="mt-4 w-full block text-center py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
+                style={{
+                  backgroundColor: '#FFD9D9',
+                  color: '#222222'
+                }}
+              >
+                Estudiar
+              </Link>
+            </div>
+          )}
+
+          {/* SVG Container */}
+          <svg
+            ref={svgRef}
+            className="w-full h-full cursor-grab active:cursor-grabbing touch-none"
+            style={{ opacity: graphReady ? 1 : 0, transition: 'opacity 0.5s ease-in-out' }}
+          />
         </div>
-      )}
-    </div>
+      }
+    />
   )
 }

@@ -248,6 +248,9 @@ export function ChatView() {
       return;
     }
 
+    // Get Google Calendar token from localStorage if available
+    const googleCalendarToken = typeof window !== 'undefined' ? localStorage.getItem('google_calendar_token') : null;
+
     append(
       { 
         role: 'user',
@@ -259,6 +262,7 @@ export function ChatView() {
           model: model,
           webSearch: webSearch,
           level: level, // Pass level to backend (needs backend support to use it)
+          googleCalendarToken: googleCalendarToken, // Pass token explicitly
         },
       },
     );

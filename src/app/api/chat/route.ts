@@ -13,7 +13,7 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   console.log('API: Chat request received (DeepAgents)');
   try {
-    const { messages, model, webSearch } = await req.json();
+    const { messages, model, webSearch, googleCalendarToken } = await req.json();
     const supabase = await createClient();
     
     const { data: { user } } = await supabase.auth.getUser();
@@ -24,6 +24,12 @@ export async function POST(req: Request) {
     // const user = { id: 'debug-user-id' }; // Mock user for debugging
 
     const vfs = new SupabaseVFS(user.id, supabase);
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('API: Session retrieved. Provider token present:', !!session?.provider_token);
+    
+    // Use session token (if available) or client-provided token
+    const token = session?.provider_token || googleCalendarToken;
+    console.log('API: Using token source:', session?.provider_token ? 'Session' : (googleCalendarToken ? 'Client (LocalStorage)' : 'None'));
 
     // Define Tools
     const listFiles = tool(
@@ -152,13 +158,165 @@ export async function POST(req: Request) {
       }
     );
 
+    // Google Calendar Tools
+    const listEventsTool = tool(
+      async ({ timeMin, maxResults }) => {
+        if (!token) return 'Error: User not authenticated with Google Calendar.';
+        const { listEvents } = await import('@/lib/google/calendar');
+        
+        // Fix timezone
+        const timeMinFixed = ensureTimezone(timeMin);
+        
+        const events = await listEvents(token, timeMinFixed, maxResults);
+        return JSON.stringify(events);
+      },
+      {
+        name: 'list_events',
+        description: 'List events from the user\'s calendar',
+        schema: z.object({
+          timeMin: z.string().optional().describe('Start time (ISO string with timezone) to list events from. Defaults to now.'),
+          maxResults: z.number().optional().describe('Maximum number of events to return. Defaults to 10.'),
+        }),
+      }
+    );
+
+    // Helper to ensure dateTime has timezone
+    const ensureTimezone = (dateStr: string | undefined) => {
+      if (!dateStr) return dateStr;
+      if (dateStr.includes('T') && !dateStr.includes('Z') && !dateStr.includes('+') && !dateStr.match(/-\d{2}:\d{2}$/)) {
+        return `${dateStr}-03:00`; // Default to Chile time for this user, or use a dynamic offset
+      }
+      return dateStr;
+    };
+
+    const createEventTool = tool(
+      async (event) => {
+        if (!token) return 'Error: User not authenticated with Google Calendar.';
+        const { createEvent } = await import('@/lib/google/calendar');
+        
+        // Fix timezones if missing
+        if (event.start?.dateTime) event.start.dateTime = ensureTimezone(event.start.dateTime);
+        if (event.end?.dateTime) event.end.dateTime = ensureTimezone(event.end.dateTime);
+
+        const result = await createEvent(token, event);
+        return JSON.stringify(result);
+      },
+      {
+        name: 'create_event',
+        description: 'Create a new event in the user\'s calendar',
+        schema: z.object({
+          summary: z.string().describe('Title of the event'),
+          description: z.string().optional().describe('Description of the event'),
+          start: z.object({
+            dateTime: z.string().optional().describe('Start time (ISO string with timezone, e.g. 2023-11-24T09:00:00-03:00)'),
+            date: z.string().optional().describe('Start date (YYYY-MM-DD) for all-day events'),
+          }),
+          end: z.object({
+            dateTime: z.string().optional().describe('End time (ISO string with timezone, e.g. 2023-11-24T10:00:00-03:00)'),
+            date: z.string().optional().describe('End date (YYYY-MM-DD) for all-day events'),
+          }),
+          location: z.string().optional().describe('Location of the event'),
+        }),
+      }
+    );
+
+    const updateEventTool = tool(
+      async ({ eventId, event }) => {
+        if (!token) return 'Error: User not authenticated with Google Calendar.';
+        const { updateEvent } = await import('@/lib/google/calendar');
+
+        // Fix timezones if missing
+        if (event.start?.dateTime) event.start.dateTime = ensureTimezone(event.start.dateTime);
+        if (event.end?.dateTime) event.end.dateTime = ensureTimezone(event.end.dateTime);
+
+        const result = await updateEvent(token, eventId, event);
+        return JSON.stringify(result);
+      },
+      {
+        name: 'update_event',
+        description: 'Update an existing event',
+        schema: z.object({
+          eventId: z.string().describe('ID of the event to update'),
+          event: z.object({
+            summary: z.string().optional(),
+            description: z.string().optional(),
+            start: z.object({ 
+              dateTime: z.string().optional().describe('Start time (ISO string with timezone)'),
+              date: z.string().optional()
+            }).optional(),
+            end: z.object({ 
+              dateTime: z.string().optional().describe('End time (ISO string with timezone)'),
+              date: z.string().optional()
+            }).optional(),
+          }),
+        }),
+      }
+    );
+
+    const deleteEventTool = tool(
+      async ({ eventId }) => {
+        if (!token) return 'Error: User not authenticated with Google Calendar.';
+        const { deleteEvent } = await import('@/lib/google/calendar');
+        const result = await deleteEvent(token, eventId);
+        return JSON.stringify(result);
+      },
+      {
+        name: 'delete_event',
+        description: 'Delete an event',
+        schema: z.object({
+          eventId: z.string().describe('ID of the event to delete'),
+        }),
+      }
+    );
+
+    const getFreeBusyTool = tool(
+      async ({ timeMin, timeMax }) => {
+        if (!token) return 'Error: User not authenticated with Google Calendar.';
+        const { getFreeBusy } = await import('@/lib/google/calendar');
+        
+        // Fix timezones
+        const timeMinFixed = ensureTimezone(timeMin) || timeMin;
+        const timeMaxFixed = ensureTimezone(timeMax) || timeMax;
+
+        const result = await getFreeBusy(token, timeMinFixed, timeMaxFixed);
+        return JSON.stringify(result);
+      },
+      {
+        name: 'get_free_busy',
+        description: 'Check free/busy status for a time range',
+        schema: z.object({
+          timeMin: z.string().describe('Start of the range (ISO string with timezone)'),
+          timeMax: z.string().describe('End of the range (ISO string with timezone)'),
+        }),
+      }
+    );
+
     // Fetch existing files for context
     const existingFiles = await vfs.getAllFilePaths();
     const fileListContext = existingFiles.length > 0 
         ? existingFiles.map(f => `- ${f}`).join('\n')
         : '(No files created yet)';
 
+    const now = new Date();
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Format date: "Saturday 22 of Nov. 2025"
+    const dateStr = `${days[now.getDay()]} ${now.getDate()} of ${months[now.getMonth()]}. ${now.getFullYear()}`;
+    
+    // Format time: "3:03pm"
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    const timeStr = `${hours}:${minutes}${ampm}`;
+
+    const currentDateTimeStr = `${dateStr}, ${timeStr}`;
+
     const SYSTEM_PROMPT = `You are KnowledgeFlow, an AI that generates atomic, interconnected knowledge notes.
+    
+    Current Date and Time: ${currentDateTimeStr}
     
     ## Core Objective
     You are NOT a chatbot. You are a **Graph Builder**.
@@ -179,6 +337,7 @@ export async function POST(req: Request) {
     8. **Artifacts**: When you create a file, you MUST display it to the user using this specific syntax in your response:
        :::artifact{path="/notes/Topic.md"}:::
        (Replace /notes/Topic.md with the actual path you wrote to).
+    9. **Calendar Access**: You have access to the user's Google Calendar. Use the tools to manage their schedule when requested.
 
     ## Content Format Rules (CS BrainFlow Standard)
     
@@ -247,7 +406,12 @@ export async function POST(req: Request) {
         searchFiles,
         searchFiles,
         moveFile,
-        readPdf
+        readPdf,
+        listEventsTool,
+        createEventTool,
+        updateEventTool,
+        deleteEventTool,
+        getFreeBusyTool
       ], 
     });
 
